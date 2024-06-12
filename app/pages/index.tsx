@@ -65,7 +65,7 @@ const Home: NextPage = () => {
     if (account.isConnected && account.chainId) {
       return markets[account.chainId!].map(
         (market: { name: string; address: string }) => (
-          <ListItem>
+          <ListItem key={market.address}>
             <ListItemButton>
               <Link
                 href={{
@@ -90,6 +90,7 @@ const Home: NextPage = () => {
       return markets[account.chainId!].map(
         (market: { name: string; address: string }, index) => (
           <Link
+            key={market.address}
             href={{
               pathname: "/market",
               query: {
