@@ -14,36 +14,36 @@ type Markets = {
 export const markets: Markets = {
   [sepolia.id]: [
     {
-      name: "first market",
+      name: "mock erc20s/adaptive Irm",
       address:
         "0x04f54541d191a903c38ddb5a8197668d1a4053b7f8415b05836234cc62675f3c",
     },
     {
-      name: "second market",
+      name: "different mock erc20/adaptive Irm",
       address:
         "0x3b37604d58369d9b8eb814e1e561958ee9ecdbee3330c94e278cdcb95906d5aa",
     },
     {
-      name: "third market",
+      name: "mock erc20s/Irm is zero address",
       address:
         "0xb089388773e6581760c308a0dda8c5af144bd1da7e4fd488aa5377a502bc4f04",
     },
     {
-      name: "ERC20-WETH",
+      name: "custom ERC20-WETH/adaptive Irm",
       address:
         "0xb8cbb17f3676e770f042051659584daf918d334224ecbce90cfe77874e457f3a",
     },
   ],
   [flowPreviewnet.id]: [
     {
-      name: "first market",
+      name: "mock erc20s/adaptive Irm",
       address:
         "0x56d1c0e87abd6b4281ff888cc7fc1a167bd96b7f173f448d634cde490d52ea3e",
     },
   ],
   [polygonAmoy.id]: [
     {
-      name: "first market",
+      name: "mock erc20s/adaptive Irm",
       address:
         "0x7e223c77c5bedeec1162c0b7818232c124357f3177b5bcf13b0e1166c6a7dba0",
     },
