@@ -3,6 +3,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { useState, useEffect, ReactNode } from "react";
 import {
+  ButtonBase,
   FormControl,
   Grid,
   InputLabel,
@@ -52,6 +53,7 @@ import { flowPreviewnet, polygonAmoy } from "viem/chains";
 import { chainConfig, markets, contracts } from "../config/markets";
 import { getChainId } from "viem/actions";
 import Link from "next/link";
+// import { Link } from "react-router-dom";
 
 // const morphoContractAddress = "0xf95D7990e1B914A176f70e2Bb446F2264a66beb8";
 // const morphoContractAddress = "0xa138FFFb1C8f8be0896c3caBd0BcA8e4E4A2208d"; sepolia
@@ -67,7 +69,7 @@ const Home: NextPage = () => {
         (market: { name: string; address: string }) => (
           <ListItem key={market.address}>
             <ListItemButton>
-              <Link
+              {/* <Link
                 href={{
                   pathname: "/market",
                   query: {
@@ -76,7 +78,7 @@ const Home: NextPage = () => {
                 }}
               >
                 market {market.address}
-              </Link>
+              </Link> */}
             </ListItemButton>
           </ListItem>
         )
@@ -85,30 +87,65 @@ const Home: NextPage = () => {
     return [];
   }
 
+  // function renderTableRow(): ReactNode[] {
+  //   if (account.isConnected && account.chainId) {
+  //     return markets[account.chainId!].map(
+  //       (market: { name: string; address: string }, index) => (
+  //         // <Link
+  //         //   key={market.address}
+  //         //   href={{
+  //         //     pathname: "/market",
+  //         //     query: {
+  //         //       market: market.address as string,
+  //         //     },
+  //         //   }}
+  //         // >
+  //         <TableRow
+  //           component={Link}
+  //           href={{
+  //             pathname: "/market",
+  //             query: {
+  //               market: market.address as string,
+  //             },
+  //           }}
+  //           key={index}
+  //           sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+  //         >
+  //           <TableCell component="th" scope="row">
+  //             {index}
+  //           </TableCell>
+  //           <TableCell align="right">{market.name}</TableCell>
+  //           <TableCell align="right">{market.address}</TableCell>
+  //         </TableRow>
+  //         // </Link>
+  //       )
+  //     );
+  //   }
+  //   return [];
+  // }
+
   function renderTableRow(): ReactNode[] {
     if (account.isConnected && account.chainId) {
       return markets[account.chainId!].map(
         (market: { name: string; address: string }, index) => (
-          <Link
+          <TableRow
             key={market.address}
+            component={Link}
             href={{
               pathname: "/market",
-              query: {
-                market: market.address as string,
-              },
+              query: { market: market.address as string },
             }}
+            style={{
+              cursor: "pointer",
+              textDecoration: "none",
+              color: "inherit",
+            }}
+            sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
           >
-            <TableRow
-              key={index}
-              sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-            >
-              <TableCell component="th" scope="row">
-                {index}
-              </TableCell>
-              <TableCell align="right">{market.name}</TableCell>
-              <TableCell align="right">{market.address}</TableCell>
-            </TableRow>
-          </Link>
+            <TableCell>{index}</TableCell>
+            <TableCell align="right">{market.name}</TableCell>
+            <TableCell align="right">{market.address}</TableCell>
+          </TableRow>
         )
       );
     }
@@ -138,7 +175,7 @@ const Home: NextPage = () => {
       </Head>
 
       <main className={styles.main}>
-        <List>{renderRow()}</List>
+        {/* <List>{renderRow()}</List> */}
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
             <TableHead>

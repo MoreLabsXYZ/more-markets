@@ -146,9 +146,10 @@ const Home: NextPage = () => {
 
   useAccountEffect({
     onConnect(data) {
-      console.log("connected");
-      setMorphoContractAddress(contracts[data.chainId].morpho as Address);
-      setCurrentMarket(markets[data.chainId][0].address);
+      if (!data.isReconnected) {
+        setMorphoContractAddress(contracts[data.chainId].morpho as Address);
+        setCurrentMarket(markets[data.chainId][0].address);
+      }
     },
   });
 
