@@ -22,6 +22,18 @@ const Header = () => (
             </Typography>
           </Button>
         </Box>
+        <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
+          <Button href="/" sx={{ my: 2, color: "white", display: "block" }}>
+            <Typography component="div" sx={{ flexGrow: 1 }}>
+              Markets
+            </Typography>
+          </Button>
+          <Button href="/" sx={{ my: 2, color: "white", display: "block" }}>
+            <Typography component="div" sx={{ flexGrow: 1 }}>
+              Vaults
+            </Typography>
+          </Button>
+        </Box>
         {/* <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           <Link href="/">Home</Link>
         </Typography> */}

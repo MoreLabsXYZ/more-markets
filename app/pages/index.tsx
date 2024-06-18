@@ -50,83 +50,25 @@ import {
   parseUnits,
 } from "viem";
 import { flowPreviewnet, polygonAmoy } from "viem/chains";
-import { chainConfig, markets, contracts } from "../config/markets";
+import { chainConfig, markets, contracts, Markets } from "../config/markets";
 import { getChainId } from "viem/actions";
 import Link from "next/link";
-// import { Link } from "react-router-dom";
-
-// const morphoContractAddress = "0xf95D7990e1B914A176f70e2Bb446F2264a66beb8";
-// const morphoContractAddress = "0xa138FFFb1C8f8be0896c3caBd0BcA8e4E4A2208d"; sepolia
-// const loanTokenAddress = "0x7Aa1Dc017f67f22469BEe3f4be733b2d41EEf485";
-// const chainConfig[account.chainId!][currentMarket].collateralToken as Address = "0x5F37B448c318D3FC381A80049e69CBC9185E51C4";
 
 const Home: NextPage = () => {
   const account = useAccount();
+  const [marketsArray, setMarketsArray] = useState(markets);
 
-  function renderRow(): ReactNode[] {
-    if (account.isConnected && account.chainId) {
-      return markets[account.chainId!].map(
-        (market: { name: string; address: string }) => (
-          <ListItem key={market.address}>
-            <ListItemButton>
-              {/* <Link
-                href={{
-                  pathname: "/market",
-                  query: {
-                    market: market.address as string,
-                  },
-                }}
-              >
-                market {market.address}
-              </Link> */}
-            </ListItemButton>
-          </ListItem>
-        )
-      );
-    }
-    return [];
-  }
-
-  // function renderTableRow(): ReactNode[] {
-  //   if (account.isConnected && account.chainId) {
-  //     return markets[account.chainId!].map(
-  //       (market: { name: string; address: string }, index) => (
-  //         // <Link
-  //         //   key={market.address}
-  //         //   href={{
-  //         //     pathname: "/market",
-  //         //     query: {
-  //         //       market: market.address as string,
-  //         //     },
-  //         //   }}
-  //         // >
-  //         <TableRow
-  //           component={Link}
-  //           href={{
-  //             pathname: "/market",
-  //             query: {
-  //               market: market.address as string,
-  //             },
-  //           }}
-  //           key={index}
-  //           sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-  //         >
-  //           <TableCell component="th" scope="row">
-  //             {index}
-  //           </TableCell>
-  //           <TableCell align="right">{market.name}</TableCell>
-  //           <TableCell align="right">{market.address}</TableCell>
-  //         </TableRow>
-  //         // </Link>
-  //       )
-  //     );
-  //   }
-  //   return [];
-  // }
+  useEffect(() => {
+    const storedMarkets: Markets = JSON.parse(
+      localStorage.getItem("markets") || "[]"
+    );
+    console.log("storedMarkets: ", storedMarkets);
+    setMarketsArray(markets);
+  }, []);
 
   function renderTableRow(): ReactNode[] {
     if (account.isConnected && account.chainId) {
-      return markets[account.chainId!].map(
+      return marketsArray[account.chainId!].map(
         (market: { name: string; address: string }, index) => (
           <TableRow
             key={market.address}
@@ -152,22 +94,6 @@ const Home: NextPage = () => {
     return [];
   }
 
-  // function createData(
-  //   index: number,
-  //   name: string,
-  //   id: string
-  // ) {
-  //   return { index, name, id };
-  // }
-
-  // const rows = [
-  //   createData("Frozen yoghurt", 159, 6.0, 24, 4.0),
-  //   createData("Ice cream sandwich", 237, 9.0, 37, 4.3),
-  //   createData("Eclair", 262, 16.0, 24, 6.0),
-  //   createData("Cupcake", 305, 3.7, 67, 4.3),
-  //   createData("Gingerbread", 356, 16.0, 49, 3.9),
-  // ];
-
   return (
     <div className={styles.container}>
       <Head>
@@ -175,6 +101,48 @@ const Home: NextPage = () => {
       </Head>
 
       <main className={styles.main}>
+        <Box
+          display="flex"
+          alignItems="right"
+          justifyContent="right"
+          width="100%"
+          marginBottom={2}
+        >
+          <Button
+            component={Link}
+            href="/createMarket"
+            variant="outlined"
+            color="secondary"
+            style={{
+              height: "54px",
+              width: "200px",
+              marginLeft: "10px",
+              marginTop: "7px",
+            }}
+            sx={{ borderRadius: 3, boxShadow: 1 }}
+          >
+            CREATE MARKET
+          </Button>
+        </Box>
+
+        <Box
+          display="flex"
+          alignItems="left"
+          justifyContent="left"
+          width="100%"
+          marginBottom={2}
+        >
+          <Typography
+            fontSize={"16px"}
+            variant="h6"
+            noWrap
+            sx={{ flex: 1 }}
+            style={{ marginTop: "24px" }}
+          >
+            My markets:
+          </Typography>
+        </Box>
+
         {/* <List>{renderRow()}</List> */}
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
