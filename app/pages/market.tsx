@@ -38,10 +38,13 @@ import {
   parseEther,
   parseUnits,
 } from "viem";
-import { flowPreviewnet, polygonAmoy } from "viem/chains";
-import { chainConfig, markets, contracts } from "../config/markets";
+import { flowPreviewnet } from "viem/chains";
+import { markets, contracts } from "../config/markets";
+import { mockTokens, wrapped, ERC20Mintable } from "../config/tokens";
 import { getChainId } from "viem/actions";
-import { useSearchParams } from "next/navigation";
+import { redirect, useSearchParams } from "next/navigation";
+import { ApolloError, gql, useQuery } from "@apollo/client";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
 
 // const morphoContractAddress = "0xf95D7990e1B914A176f70e2Bb446F2264a66beb8";
 // const morphoContractAddress = "0xa138FFFb1C8f8be0896c3caBd0BcA8e4E4A2208d"; sepolia
@@ -81,6 +84,31 @@ const Home: NextPage = () => {
     testnet: true,
   } as const satisfies Chain;
 
+  const polygonAmoy = {
+    id: 80_002,
+    name: "Polygon Amoy",
+    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+    rpcUrls: {
+      default: {
+        http: ["https://rpc-amoy.polygon.technology"],
+      },
+    },
+    blockExplorers: {
+      default: {
+        name: "PolygonScan",
+        url: "https://polygon-amoy.g.alchemy.com/v2/jXLoZTSjTIhZDB9nNhJsSmvrcMAbdrNT",
+        apiUrl: "https://api-amoy.polygonscan.com/api",
+      },
+    },
+    contracts: {
+      multicall3: {
+        address: "0xca11bde05977b3631167028862be2a173976ca11",
+        blockCreated: 3127388,
+      },
+    },
+    testnet: true,
+  } as const satisfies Chain;
+
   const config = getDefaultConfig({
     appName: "My RainbowKit App",
     projectId: "YOUR_PROJECT_ID",
@@ -103,11 +131,21 @@ const Home: NextPage = () => {
     useState("");
   const [inputBorrowAssets, setInputBorrowAssets] = useState("");
   const [inputRepayAssets, setInputRepayAssets] = useState("");
-  const [position, setPosition] = useState();
-  const [tokens, setTokens] = useState();
+  const [position, setPosition] = useState({
+    supplyShares: 0,
+    borrowShares: 0,
+    collateral: 0,
+  });
+  const [marketParams, setMarketParams] = useState({
+    loanToken: "",
+    collateralToken: "",
+    oracle: "",
+    irm: "",
+    lltv: 0,
+  });
   // const [currentMarket, setCurrentMarket] = useState(markets[account.chainId!][0]);
   const searchParams1 = useSearchParams();
-  console.log("search params1: ", searchParams1.get("market"));
+  // console.log("search params1: ", searchParams1.get("market"));
   const [currentMarket, setCurrentMarket] = useState(
     searchParams1.get("market")!
   );
@@ -115,14 +153,31 @@ const Home: NextPage = () => {
     contracts[chainId].morpho as Address
   );
   const [decimal, setDecimal] = useState(0);
+  const [marketsArray, setMarketsArray] = useState([""]);
+
+  useAccountEffect({
+    onConnect(userData) {
+      setMorphoContractAddress(contracts[userData.chainId].morpho as Address);
+      if (!userData.isReconnected) {
+        if (marketsArray) {
+          setCurrentMarket(marketsArray[0]);
+        }
+      }
+    },
+  });
 
   useEffect(() => {
-    console.log("market changed", currentMarket);
+    getMarkets(morphoContractAddress);
+  }, [morphoContractAddress]);
+
+  useEffect(() => {
     if (account && account.isConnected && currentMarket) {
+      console.log("inside ", account.chainId);
+      console.log("inside ", morphoContractAddress);
       getPosition();
       getMarketParams();
     }
-    if (currentMarket == markets[sepolia.id][3].address) {
+    if (currentMarket == markets[sepolia.id][3]) {
       setDecimal(18);
     } else {
       setDecimal(0);
@@ -130,28 +185,25 @@ const Home: NextPage = () => {
   }, [currentMarket, searchParams1]);
 
   useEffect(() => {
-    console.log("chain changed", chainId);
     if (account && account.isConnected && account.chainId) {
       setMorphoContractAddress(contracts[account.chainId].morpho as Address);
-      setCurrentMarket(markets[account.chainId][0].address);
     }
-  }, [chainId]);
+  }, [chainId, account]);
+
+  // useEffect(() => {
+  //   if (marketsArray) {
+  //     setCurrentMarket(marketsArray[0]);
+  //   } else {
+  //     redirect("/");
+  //   }
+  // }, [marketsArray]);
 
   useEffect(() => {
-    console.log("chain changed", chainId);
+    console.log("searchParams1 changed ", chainId);
     if (account && account.isConnected && account.chainId) {
       setCurrentMarket(searchParams1.get("market")!);
     }
   }, [searchParams1]);
-
-  useAccountEffect({
-    onConnect(data) {
-      if (!data.isReconnected) {
-        setMorphoContractAddress(contracts[data.chainId].morpho as Address);
-        setCurrentMarket(markets[data.chainId][0].address);
-      }
-    },
-  });
 
   function getChain() {
     if (chainId) {
@@ -171,6 +223,7 @@ const Home: NextPage = () => {
     console.log("current market: ", currentMarket);
     console.log("account: ", account.address as Hex);
     console.log("chain: ", getChain());
+    console.log("morpho: ", morphoContractAddress);
     console.log("config: ", config);
     const position: any = await readContract(config, {
       address: morphoContractAddress,
@@ -180,6 +233,18 @@ const Home: NextPage = () => {
       args: [currentMarket as Address, account.address as Hex],
     });
     setPosition(position);
+    console.log("postition: ", position);
+  };
+
+  const getMarkets = async (morphoAddress: Address) => {
+    const markets: any = await readContract(config, {
+      address: morphoAddress,
+      abi: morphoAbi,
+      functionName: "arrayOfMarkets",
+      chainId: getChain(),
+      args: [],
+    });
+    setMarketsArray(markets);
   };
 
   const getMarketParams = async () => {
@@ -190,7 +255,8 @@ const Home: NextPage = () => {
       chainId: getChain(),
       args: [currentMarket as Address],
     });
-    setTokens(params);
+    setMarketParams(params);
+    console.log("market params: ", params);
   };
 
   const handleInputLoanTokenChange = (
@@ -239,10 +305,9 @@ const Home: NextPage = () => {
   };
 
   const handleLoanTokenButtonClick = async () => {
-    if (currentMarket != markets[sepolia.id][3].address) {
+    if (currentMarket != markets[sepolia.id][3]) {
       const txSetBalanceHash = await writeContractAsync({
-        address: chainConfig[account.chainId!][currentMarket]
-          .loanToken as Address,
+        address: marketParams?.loanToken as Address,
         abi: ERC20MockAbi,
         functionName: "setBalance",
         args: [account.address, BigInt(inputLoanToken)],
@@ -253,8 +318,7 @@ const Home: NextPage = () => {
       });
     } else {
       const txMintHash = await writeContractAsync({
-        address: chainConfig[account.chainId!][currentMarket]
-          .loanToken as Address,
+        address: marketParams?.loanToken as Address,
         abi: ERC20MintableBurnableAbi,
         functionName: "mint",
         args: [account.address, parseUnits(inputLoanToken, 18)],
@@ -267,10 +331,9 @@ const Home: NextPage = () => {
   };
 
   const handleCollateralTokenButtonClick = async () => {
-    if (currentMarket != markets[sepolia.id][3].address) {
+    if (currentMarket != markets[sepolia.id][3]) {
       const txSetBalanceHash = await writeContractAsync({
-        address: chainConfig[account.chainId!][currentMarket]
-          .collateralToken as Address,
+        address: marketParams?.collateralToken as Address,
         abi: ERC20MockAbi,
         functionName: "setBalance",
         args: [account.address, BigInt(inputCollateralToken)],
@@ -281,8 +344,7 @@ const Home: NextPage = () => {
       });
     } else {
       const txDepositHash = await writeContractAsync({
-        address: chainConfig[account.chainId!][currentMarket]
-          .collateralToken as Address,
+        address: marketParams?.collateralToken as Address,
         abi: WETH9Abi,
         functionName: "deposit",
         args: [],
@@ -297,8 +359,7 @@ const Home: NextPage = () => {
 
   const handleSupplyButtonClick = async () => {
     const txApproveHash = await writeContractAsync({
-      address: chainConfig[account.chainId!][currentMarket]
-        .loanToken as Address,
+      address: marketParams?.loanToken as Address,
       abi: erc20Abi,
       functionName: "approve",
       args: [
@@ -318,14 +379,11 @@ const Home: NextPage = () => {
       functionName: "supply",
       args: [
         {
-          loanToken: chainConfig[account.chainId!][currentMarket]
-            .loanToken as Address,
-          collateralToken: chainConfig[account.chainId!][currentMarket]
-            .collateralToken as Address,
-          oracle: chainConfig[account.chainId!][currentMarket]
-            .oracle as Address,
-          irm: chainConfig[account.chainId!][currentMarket].irm as Address,
-          lltv: chainConfig[account.chainId!][currentMarket].lltv,
+          loanToken: marketParams?.loanToken as Address,
+          collateralToken: marketParams?.collateralToken as Address,
+          oracle: marketParams?.oracle as Address,
+          irm: marketParams?.irm as Address,
+          lltv: marketParams?.lltv,
         },
         parseUnits(inputSupplyAssets, decimal),
         BigInt(0),
@@ -348,14 +406,11 @@ const Home: NextPage = () => {
       functionName: "withdraw",
       args: [
         {
-          loanToken: chainConfig[account.chainId!][currentMarket]
-            .loanToken as Address,
-          collateralToken: chainConfig[account.chainId!][currentMarket]
-            .collateralToken as Address,
-          oracle: chainConfig[account.chainId!][currentMarket]
-            .oracle as Address,
-          irm: chainConfig[account.chainId!][currentMarket].irm as Address,
-          lltv: chainConfig[account.chainId!][currentMarket].lltv,
+          loanToken: marketParams?.loanToken as Address,
+          collateralToken: marketParams?.collateralToken as Address,
+          oracle: marketParams?.oracle as Address,
+          irm: marketParams?.irm as Address,
+          lltv: marketParams?.lltv,
         },
         parseUnits(inputWithdrawAssets, decimal),
         BigInt(0),
@@ -371,8 +426,7 @@ const Home: NextPage = () => {
   };
   const handleSupplyCollateralButtonClick = async () => {
     const txApproveHash = await writeContractAsync({
-      address: chainConfig[account.chainId!][currentMarket]
-        .collateralToken as Address,
+      address: marketParams?.collateralToken as Address,
       abi: erc20Abi,
       functionName: "approve",
       args: [
@@ -391,14 +445,11 @@ const Home: NextPage = () => {
       functionName: "supplyCollateral",
       args: [
         {
-          loanToken: chainConfig[account.chainId!][currentMarket]
-            .loanToken as Address,
-          collateralToken: chainConfig[account.chainId!][currentMarket]
-            .collateralToken as Address,
-          oracle: chainConfig[account.chainId!][currentMarket]
-            .oracle as Address,
-          irm: chainConfig[account.chainId!][currentMarket].irm as Address,
-          lltv: chainConfig[account.chainId!][currentMarket].lltv,
+          loanToken: marketParams?.loanToken as Address,
+          collateralToken: marketParams?.collateralToken as Address,
+          oracle: marketParams?.oracle as Address,
+          irm: marketParams?.irm as Address,
+          lltv: marketParams?.lltv,
         },
         parseUnits(inputSupplyCollateralAssets, decimal),
         account.address,
@@ -418,14 +469,11 @@ const Home: NextPage = () => {
       functionName: "withdrawCollateral",
       args: [
         {
-          loanToken: chainConfig[account.chainId!][currentMarket]
-            .loanToken as Address,
-          collateralToken: chainConfig[account.chainId!][currentMarket]
-            .collateralToken as Address,
-          oracle: chainConfig[account.chainId!][currentMarket]
-            .oracle as Address,
-          irm: chainConfig[account.chainId!][currentMarket].irm as Address,
-          lltv: chainConfig[account.chainId!][currentMarket].lltv,
+          loanToken: marketParams?.loanToken as Address,
+          collateralToken: marketParams?.collateralToken as Address,
+          oracle: marketParams?.oracle as Address,
+          irm: marketParams?.irm as Address,
+          lltv: marketParams?.lltv,
         },
         parseUnits(inputWithdrawCollateralAssets, decimal),
         account.address,
@@ -445,14 +493,11 @@ const Home: NextPage = () => {
       functionName: "borrow",
       args: [
         {
-          loanToken: chainConfig[account.chainId!][currentMarket]
-            .loanToken as Address,
-          collateralToken: chainConfig[account.chainId!][currentMarket]
-            .collateralToken as Address,
-          oracle: chainConfig[account.chainId!][currentMarket]
-            .oracle as Address,
-          irm: chainConfig[account.chainId!][currentMarket].irm as Address,
-          lltv: chainConfig[account.chainId!][currentMarket].lltv,
+          loanToken: marketParams?.loanToken as Address,
+          collateralToken: marketParams?.collateralToken as Address,
+          oracle: marketParams?.oracle as Address,
+          irm: marketParams?.irm as Address,
+          lltv: marketParams?.lltv,
         },
         parseUnits(inputBorrowAssets, decimal),
         BigInt(0),
@@ -468,8 +513,7 @@ const Home: NextPage = () => {
   };
   const handleRepayButtonClick = async () => {
     const txApproveHash = await writeContractAsync({
-      address: chainConfig[account.chainId!][currentMarket]
-        .loanToken as Address,
+      address: marketParams?.loanToken as Address,
       abi: erc20Abi,
       functionName: "approve",
       args: [
@@ -488,14 +532,11 @@ const Home: NextPage = () => {
       functionName: "repay",
       args: [
         {
-          loanToken: chainConfig[account.chainId!][currentMarket]
-            .loanToken as Address,
-          collateralToken: chainConfig[account.chainId!][currentMarket]
-            .collateralToken as Address,
-          oracle: chainConfig[account.chainId!][currentMarket]
-            .oracle as Address,
-          irm: chainConfig[account.chainId!][currentMarket].irm as Address,
-          lltv: chainConfig[account.chainId!][currentMarket].lltv,
+          loanToken: marketParams?.loanToken as Address,
+          collateralToken: marketParams?.collateralToken as Address,
+          oracle: marketParams?.oracle as Address,
+          irm: marketParams?.irm as Address,
+          lltv: marketParams?.lltv,
         },
         parseUnits(inputRepayAssets, decimal),
         BigInt(0),
@@ -510,200 +551,238 @@ const Home: NextPage = () => {
     getPosition();
   };
 
-  function renderRow(): ReactNode[] {
-    if (account.isConnected && account.chainId) {
-      return markets[account.chainId!].map(
-        (market: { name: string; address: string }) => (
-          <MenuItem key={market.address} value={market.address}>
-            market {market.address}
-          </MenuItem>
-        )
+  // function renderRow(): ReactNode[] {
+  //   if (account.isConnected && account.chainId) {
+  //     return markets[account.chainId!].map(
+  //       (market: { name: string; address: string }) => (
+  //         <MenuItem key={market.address} value={market.address}>
+  //           market {market.address}
+  //         </MenuItem>
+  //       )
+  //     );
+  //   }
+  //   return [];
+  // }
+
+  function faucetTokens(token: string, type: string) {
+    if (mockTokens.includes(token)) {
+      return (
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          width="100%"
+          maxWidth={600}
+          marginBottom={2}
+        >
+          <TextField
+            fullWidth
+            label={
+              account.isConnected
+                ? `${type} token number to set`
+                : "Connect wallet first"
+            }
+            variant="outlined"
+            color="secondary"
+            value={type == "loan" ? inputLoanToken : inputCollateralToken}
+            onChange={
+              type == "loan"
+                ? handleInputLoanTokenChange
+                : handleInputCollateralTokenChange
+            }
+            margin="normal"
+            style={{ width: "300px" }}
+            disabled={account.isDisconnected}
+            InputProps={{ sx: { borderRadius: 3, boxShadow: 1 } }}
+          />
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={
+              type == "loan"
+                ? handleLoanTokenButtonClick
+                : handleCollateralTokenButtonClick
+            }
+            style={{
+              height: "54px",
+              width: "200px",
+              marginLeft: "10px",
+              marginTop: "7px",
+            }}
+            sx={{ borderRadius: 3, boxShadow: 1 }}
+            disabled={account.isDisconnected}
+          >
+            SET {type.toUpperCase()} TOKENS
+          </Button>
+        </Box>
       );
     }
-    return [];
+    if (ERC20Mintable.includes(token)) {
+      return (
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          width="100%"
+          maxWidth={600}
+          marginBottom={2}
+        >
+          <TextField
+            fullWidth
+            label={
+              account.isConnected
+                ? `${type} token number to mint`
+                : "Connect wallet first"
+            }
+            variant="outlined"
+            color="secondary"
+            value={type == "loan" ? inputLoanToken : inputCollateralToken}
+            onChange={
+              type == "loan"
+                ? handleInputLoanTokenChange
+                : handleInputCollateralTokenChange
+            }
+            margin="normal"
+            style={{ width: "300px" }}
+            disabled={account.isDisconnected}
+            InputProps={{ sx: { borderRadius: 3, boxShadow: 1 } }}
+          />
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={
+              type == "loan"
+                ? handleLoanTokenButtonClick
+                : handleCollateralTokenButtonClick
+            }
+            style={{
+              height: "54px",
+              width: "200px",
+              marginLeft: "10px",
+              marginTop: "7px",
+            }}
+            sx={{ borderRadius: 3, boxShadow: 1 }}
+            disabled={account.isDisconnected}
+          >
+            MINT {type} TOKENS
+          </Button>
+        </Box>
+      );
+    }
+    if (wrapped.includes(token)) {
+      return (
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          width="100%"
+          maxWidth={600}
+          marginBottom={2}
+        >
+          <TextField
+            fullWidth
+            label={
+              account.isConnected
+                ? "Number of native to wrap"
+                : "Connect wallet first"
+            }
+            variant="outlined"
+            color="secondary"
+            value={type == "loan" ? inputLoanToken : inputCollateralToken}
+            onChange={
+              type == "loan"
+                ? handleInputLoanTokenChange
+                : handleInputCollateralTokenChange
+            }
+            margin="normal"
+            style={{ width: "300px" }}
+            disabled={account.isDisconnected}
+            InputProps={{ sx: { borderRadius: 3, boxShadow: 1 } }}
+          />
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={
+              type == "loan"
+                ? handleLoanTokenButtonClick
+                : handleCollateralTokenButtonClick
+            }
+            style={{
+              height: "54px",
+              width: "200px",
+              marginLeft: "10px",
+              marginTop: "7px",
+            }}
+            sx={{ borderRadius: 3, boxShadow: 1 }}
+            disabled={account.isDisconnected}
+          >
+            WRAP ETH AS {type.toUpperCase()} TOKEN
+          </Button>
+        </Box>
+      );
+    }
   }
-
   function faucetFunctionality() {
-    if (currentMarket != markets[sepolia.id][3].address) {
-      return (
-        <div>
-          <Box sx={{ fontWeight: "bold" }} style={{ marginTop: "24px" }}>
-            {"Faucet functionality:"}
-          </Box>
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            width="100%"
-            maxWidth={600}
-            marginBottom={2}
-          >
-            <TextField
-              fullWidth
-              label={
-                account.isConnected
-                  ? "Loan token number to set"
-                  : "Connect wallet first"
-              }
-              variant="outlined"
-              color="secondary"
-              value={inputLoanToken}
-              onChange={handleInputLoanTokenChange}
-              margin="normal"
-              style={{ width: "300px" }}
-              disabled={account.isDisconnected}
-              InputProps={{ sx: { borderRadius: 3, boxShadow: 1 } }}
-            />
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handleLoanTokenButtonClick}
-              style={{
-                height: "54px",
-                width: "200px",
-                marginLeft: "10px",
-                marginTop: "7px",
-              }}
-              sx={{ borderRadius: 3, boxShadow: 1 }}
-              disabled={account.isDisconnected}
-            >
-              SET LOAN TOKENS
-            </Button>
-          </Box>
-
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            width="100%"
-            maxWidth={600}
-            marginBottom={2}
-          >
-            <TextField
-              fullWidth
-              label={
-                account.isConnected
-                  ? "Collateral token number to set"
-                  : "Connect wallet first"
-              }
-              variant="outlined"
-              color="secondary"
-              value={inputCollateralToken}
-              onChange={handleInputCollateralTokenChange}
-              margin="normal"
-              style={{ width: "300px" }}
-              disabled={account.isDisconnected}
-              InputProps={{ sx: { borderRadius: 3, boxShadow: 1 } }}
-            />
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handleCollateralTokenButtonClick}
-              style={{
-                height: "54px",
-                width: "200px",
-                marginLeft: "10px",
-                marginTop: "7px",
-              }}
-              sx={{ borderRadius: 3, boxShadow: 1 }}
-              disabled={account.isDisconnected}
-            >
-              SET COLLATERAL TOKENS
-            </Button>
-          </Box>
-        </div>
-      );
-    } else {
-      return (
-        <div>
-          <Box sx={{ fontWeight: "bold" }} style={{ marginTop: "24px" }}>
-            {"Faucet functionality:"}
-          </Box>
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            width="100%"
-            maxWidth={600}
-            marginBottom={2}
-          >
-            <TextField
-              fullWidth
-              label={
-                account.isConnected
-                  ? "Loan token number to mint"
-                  : "Connect wallet first"
-              }
-              variant="outlined"
-              color="secondary"
-              value={inputLoanToken}
-              onChange={handleInputLoanTokenChange}
-              margin="normal"
-              style={{ width: "300px" }}
-              disabled={account.isDisconnected}
-              InputProps={{ sx: { borderRadius: 3, boxShadow: 1 } }}
-            />
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handleLoanTokenButtonClick}
-              style={{
-                height: "54px",
-                width: "200px",
-                marginLeft: "10px",
-                marginTop: "7px",
-              }}
-              sx={{ borderRadius: 3, boxShadow: 1 }}
-              disabled={account.isDisconnected}
-            >
-              MINT LOAN TOKENS
-            </Button>
-          </Box>
-
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            width="100%"
-            maxWidth={600}
-            marginBottom={2}
-          >
-            <TextField
-              fullWidth
-              label={
-                account.isConnected
-                  ? "Number of ETH to wrap"
-                  : "Connect wallet first"
-              }
-              variant="outlined"
-              color="secondary"
-              value={inputCollateralToken}
-              onChange={handleInputCollateralTokenChange}
-              margin="normal"
-              style={{ width: "300px" }}
-              disabled={account.isDisconnected}
-              InputProps={{ sx: { borderRadius: 3, boxShadow: 1 } }}
-            />
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handleCollateralTokenButtonClick}
-              style={{
-                height: "54px",
-                width: "200px",
-                marginLeft: "10px",
-                marginTop: "7px",
-              }}
-              sx={{ borderRadius: 3, boxShadow: 1 }}
-              disabled={account.isDisconnected}
-            >
-              WRAP ETH
-            </Button>
-          </Box>
-        </div>
-      );
+    let showLoanToken = false;
+    let showCollateralToken = false;
+    if (
+      marketParams?.loanToken &&
+      (mockTokens.includes(marketParams?.loanToken.toLowerCase()) ||
+        wrapped.includes(marketParams?.loanToken.toLowerCase()) ||
+        ERC20Mintable.includes(marketParams?.loanToken.toLowerCase()))
+    ) {
+      showLoanToken = true;
     }
+    if (
+      marketParams?.collateralToken &&
+      (mockTokens.includes(marketParams?.collateralToken.toLowerCase()) ||
+        wrapped.includes(marketParams?.collateralToken.toLowerCase()) ||
+        ERC20Mintable.includes(marketParams?.collateralToken.toLowerCase()))
+    ) {
+      showCollateralToken = true;
+    }
+
+    if (!showLoanToken && !showCollateralToken) {
+      return null;
+    }
+    return (
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        marginTop={1}
+      >
+        <Box sx={{ fontWeight: "bold" }} style={{ marginTop: "24px" }}>
+          {"Faucet functionality:"}
+        </Box>
+        {showLoanToken &&
+          marketParams?.loanToken &&
+          faucetTokens(marketParams.loanToken.toLowerCase(), "loan")}
+        {showCollateralToken &&
+          marketParams?.collateralToken &&
+          faucetTokens(
+            marketParams.collateralToken.toLowerCase(),
+            "collateral"
+          )}
+      </Box>
+    );
   }
+
+  // function renderSome(): ReactNode {
+  //   if (account.isConnected && account.chainId) {
+  //     return (
+  //       <div>
+  //         <p>{marketParams?.collateralToken}</p>
+  //         <p>{marketParams?.loanToken}</p>
+  //         <p>{marketParams?.oracle}</p>
+  //         <p>{marketParams?.irm}</p>
+  //         <p>{marketParams?.lltv}</p>
+  //       </div>
+  //     );
+  //   }
+  //   return [];
+  // }
 
   return (
     <div className={styles.container}>
@@ -745,8 +824,8 @@ const Home: NextPage = () => {
             sx={{ flex: 1 }}
             style={{ marginTop: "24px" }}
           >
-            {tokens
-              ? `Market loan token: ${tokens[0]}`
+            {marketParams
+              ? `Market loan token: ${marketParams.loanToken}`
               : "Market params loading..."}
           </Typography>
           <Typography
@@ -756,8 +835,8 @@ const Home: NextPage = () => {
             sx={{ flex: 1 }}
             style={{ marginTop: "24px" }}
           >
-            {tokens
-              ? `Market collateral token: ${tokens[1]}`
+            {marketParams
+              ? `Market collateral token: ${marketParams?.collateralToken}`
               : "Market params loading..."}
           </Typography>
           <Typography
@@ -767,8 +846,8 @@ const Home: NextPage = () => {
             sx={{ flex: 1 }}
             style={{ marginTop: "24px" }}
           >
-            {tokens
-              ? `Market oracle: ${tokens[2]}`
+            {marketParams
+              ? `Market oracle: ${marketParams?.oracle}`
               : "Market params loading..."}
           </Typography>
           <Typography
@@ -778,7 +857,9 @@ const Home: NextPage = () => {
             sx={{ flex: 1 }}
             style={{ marginTop: "24px" }}
           >
-            {tokens ? `Market irm: ${tokens[3]}` : "Market params loading..."}
+            {marketParams
+              ? `Market irm: ${marketParams?.irm}`
+              : "Market params loading..."}
           </Typography>
           <Typography
             fontSize={"16px"}
@@ -787,7 +868,9 @@ const Home: NextPage = () => {
             sx={{ flex: 1 }}
             style={{ marginTop: "24px" }}
           >
-            {tokens ? `Market lltv: ${tokens[4]}` : "Market params loading..."}
+            {marketParams
+              ? `Market lltv: ${marketParams?.lltv}`
+              : "Market params loading..."}
           </Typography>
 
           {/* 
@@ -1134,7 +1217,7 @@ const Home: NextPage = () => {
           >
             {position
               ? `Position in supply shares: ${formatUnits(
-                  position[0],
+                  BigInt(position.supplyShares),
                   6 + decimal
                 )}`
               : "Supply position loading..."}
@@ -1148,7 +1231,7 @@ const Home: NextPage = () => {
           >
             {position
               ? `Position in borrow shares: ${formatUnits(
-                  position[1],
+                  BigInt(position.borrowShares),
                   6 + decimal
                 )}`
               : "Borrow shares position loading..."}
@@ -1161,13 +1244,13 @@ const Home: NextPage = () => {
             style={{ marginTop: "24px" }}
           >
             {position
-              ? `Position in collateral: ${formatUnits(position[2], decimal)}`
+              ? `Position in collateral: ${formatUnits(
+                  BigInt(position.collateral),
+                  decimal
+                )}`
               : "Collateral position loading..."}
           </Typography>
         </Box>
-        {/* {error && (
-        <div>Error: {(error as BaseError).shortMessage || error.message}</div>
-      )} */}
       </main>
 
       <footer className={styles.footer}></footer>

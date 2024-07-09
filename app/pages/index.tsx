@@ -49,47 +49,162 @@ import {
   parseEther,
   parseUnits,
 } from "viem";
-import { flowPreviewnet, polygonAmoy } from "viem/chains";
 import { chainConfig, markets, contracts, Markets } from "../config/markets";
 import { getChainId } from "viem/actions";
 import Link from "next/link";
+import { ApolloError, gql, useQuery } from "@apollo/client";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { flowPreviewnet } from "wagmi/chains";
 
 const Home: NextPage = () => {
   const account = useAccount();
-  const [marketsArray, setMarketsArray] = useState(markets);
+  const chainId = useChainId();
+  const [morphoContractAddress, setMorphoContractAddress] = useState(
+    contracts[chainId].morpho as Address
+  );
+  const [marketsArray, setMarketsArray] = useState([""]);
+
+  const sepolia = {
+    id: 11_155_111,
+    name: "Sepolia",
+    nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: {
+      default: {
+        http: [
+          "https://eth-sepolia.g.alchemy.com/v2/jXLoZTSjTIhZDB9nNhJsSmvrcMAbdrNT",
+        ],
+      },
+    },
+    blockExplorers: {
+      default: {
+        name: "Etherscan",
+        url: "https://sepolia.etherscan.io",
+        apiUrl: "https://api-sepolia.etherscan.io/api",
+      },
+    },
+    contracts: {
+      multicall3: {
+        address: "0xca11bde05977b3631167028862be2a173976ca11",
+        blockCreated: 751532,
+      },
+      ensRegistry: { address: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e" },
+      ensUniversalResolver: {
+        address: "0xc8Af999e38273D658BE1b921b88A9Ddf005769cC",
+        blockCreated: 5_317_080,
+      },
+    },
+    testnet: true,
+  } as const satisfies Chain;
+
+  const polygonAmoy = {
+    id: 80_002,
+    name: "Polygon Amoy",
+    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+    rpcUrls: {
+      default: {
+        http: ["https://rpc-amoy.polygon.technology"],
+      },
+    },
+    blockExplorers: {
+      default: {
+        name: "PolygonScan",
+        url: "https://polygon-amoy.g.alchemy.com/v2/jXLoZTSjTIhZDB9nNhJsSmvrcMAbdrNT",
+        apiUrl: "https://api-amoy.polygonscan.com/api",
+      },
+    },
+    contracts: {
+      multicall3: {
+        address: "0xca11bde05977b3631167028862be2a173976ca11",
+        blockCreated: 3127388,
+      },
+    },
+    testnet: true,
+  } as const satisfies Chain;
+
+  const config = getDefaultConfig({
+    appName: "My RainbowKit App",
+    projectId: "YOUR_PROJECT_ID",
+    chains: [sepolia, flowPreviewnet, polygonAmoy],
+  });
+
+  function getChain() {
+    if (chainId) {
+      if (chainId == sepolia.id) {
+        return sepolia.id;
+      } else if (chainId == flowPreviewnet.id) {
+        return flowPreviewnet.id;
+      } else if (chainId == polygonAmoy.id) {
+        return polygonAmoy.id;
+      }
+    } else {
+      return sepolia.id;
+    }
+  }
+
+  // useEffect(() => {
+  //   if (chainId) {
+  //     let subgraphUrl = query_url_sepolia;
+  //     switch (chainId) {
+  //       case sepolia.id:
+  //         subgraphUrl = query_url_sepolia;
+  //         break;
+  //       case polygonAmoy.id:
+  //         subgraphUrl = query_url_amoy;
+  //         break;
+  //       default:
+  //         subgraphUrl = query_url_sepolia;
+  //     }
+
+  //     if (subgraphUrl) {
+  //       const newClient = new ApolloClient({
+  //         uri: subgraphUrl,
+  //         cache: new InMemoryCache(),
+  //       });
+  //       setApolloClient(newClient);
+  //     }
+  //   }
+  // }, [chainId]);
 
   useEffect(() => {
-    const storedMarkets: Markets = JSON.parse(
-      localStorage.getItem("markets") || "[]"
-    );
-    console.log("storedMarkets: ", storedMarkets);
-    setMarketsArray(markets);
-  }, []);
+    if (account && account.isConnected && account.chainId) {
+      setMorphoContractAddress(contracts[account.chainId].morpho as Address);
+      getMarkets(contracts[account.chainId].morpho as Address);
+    }
+  }, [chainId, account]);
 
-  function renderTableRow(): ReactNode[] {
+  const getMarkets = async (morphoAddress: Address) => {
+    const markets: any = await readContract(config, {
+      address: morphoAddress,
+      abi: morphoAbi,
+      functionName: "arrayOfMarkets",
+      chainId: getChain(),
+      args: [],
+    });
+    setMarketsArray(markets);
+  };
+
+  function renderTableRow(): ReactNode {
+    // console.log("data: ", data);
     if (account.isConnected && account.chainId) {
-      return marketsArray[account.chainId!].map(
-        (market: { name: string; address: string }, index) => (
-          <TableRow
-            key={market.address}
-            component={Link}
-            href={{
-              pathname: "/market",
-              query: { market: market.address as string },
-            }}
-            style={{
-              cursor: "pointer",
-              textDecoration: "none",
-              color: "inherit",
-            }}
-            sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-          >
-            <TableCell>{index}</TableCell>
-            <TableCell align="right">{market.name}</TableCell>
-            <TableCell align="right">{market.address}</TableCell>
-          </TableRow>
-        )
-      );
+      return marketsArray.map((marketId: string, index) => (
+        <TableRow
+          key={marketId}
+          component={Link}
+          href={{
+            pathname: "/market",
+            query: { market: marketId as string },
+          }}
+          style={{
+            cursor: "pointer",
+            textDecoration: "none",
+            color: "inherit",
+          }}
+          sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+        >
+          <TableCell>{index}</TableCell>
+          <TableCell align="right">{marketId}</TableCell>
+        </TableRow>
+      ));
     }
     return [];
   }
@@ -113,6 +228,7 @@ const Home: NextPage = () => {
             href="/createMarket"
             variant="outlined"
             color="secondary"
+            disabled={account.isConnected ? false : true}
             style={{
               height: "54px",
               width: "200px",
@@ -149,7 +265,6 @@ const Home: NextPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Id</TableCell>
-                <TableCell align="right">Name</TableCell>
                 <TableCell align="right">Market Id</TableCell>
               </TableRow>
             </TableHead>

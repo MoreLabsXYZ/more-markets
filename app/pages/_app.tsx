@@ -1,9 +1,10 @@
 import "../styles/globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
 import type { AppProps } from "next/app";
+import { ApolloProvider } from "@apollo/client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, useChainId } from "wagmi";
 import {
   arbitrum,
   base,
@@ -11,7 +12,6 @@ import {
   optimism,
   polygon,
   flowPreviewnet,
-  polygonAmoy,
 } from "wagmi/chains";
 import {
   getDefaultConfig,
@@ -49,6 +49,31 @@ const sepolia = {
     ensUniversalResolver: {
       address: "0xc8Af999e38273D658BE1b921b88A9Ddf005769cC",
       blockCreated: 5_317_080,
+    },
+  },
+  testnet: true,
+} as const satisfies Chain;
+
+const polygonAmoy = {
+  id: 80_002,
+  name: "Polygon Amoy",
+  nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc-amoy.polygon.technology"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "PolygonScan",
+      url: "https://polygon-amoy.g.alchemy.com/v2/jXLoZTSjTIhZDB9nNhJsSmvrcMAbdrNT",
+      apiUrl: "https://api-amoy.polygonscan.com/api",
+    },
+  },
+  contracts: {
+    multicall3: {
+      address: "0xca11bde05977b3631167028862be2a173976ca11",
+      blockCreated: 3127388,
     },
   },
   testnet: true,

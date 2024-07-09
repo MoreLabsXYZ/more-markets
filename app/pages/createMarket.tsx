@@ -15,7 +15,7 @@ import {
 import { waitForTransactionReceipt, readContract } from "wagmi/actions";
 import { morphoAbi } from "../abi/morphoAbi";
 import { Address } from "viem";
-import { flowPreviewnet, polygonAmoy } from "viem/chains";
+import { flowPreviewnet } from "viem/chains";
 import { contracts } from "../config/markets";
 
 const Home: NextPage = () => {
@@ -51,6 +51,31 @@ const Home: NextPage = () => {
     testnet: true,
   } as const satisfies Chain;
 
+  const polygonAmoy = {
+    id: 80_002,
+    name: "Polygon Amoy",
+    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+    rpcUrls: {
+      default: {
+        http: ["https://rpc-amoy.polygon.technology"],
+      },
+    },
+    blockExplorers: {
+      default: {
+        name: "PolygonScan",
+        url: "https://polygon-amoy.g.alchemy.com/v2/jXLoZTSjTIhZDB9nNhJsSmvrcMAbdrNT",
+        apiUrl: "https://api-amoy.polygonscan.com/api",
+      },
+    },
+    contracts: {
+      multicall3: {
+        address: "0xca11bde05977b3631167028862be2a173976ca11",
+        blockCreated: 3127388,
+      },
+    },
+    testnet: true,
+  } as const satisfies Chain;
+
   const config = getDefaultConfig({
     appName: "My RainbowKit App",
     projectId: "YOUR_PROJECT_ID",
@@ -75,7 +100,7 @@ const Home: NextPage = () => {
     if (account && account.isConnected && account.chainId) {
       setMorphoContractAddress(contracts[account.chainId].morpho as Address);
     }
-  }, [chainId]);
+  }, [chainId, account]);
 
   useAccountEffect({
     onConnect(data) {
@@ -146,6 +171,23 @@ const Home: NextPage = () => {
       chainId: getChain(),
       hash: txHash,
     });
+
+    // const response = await fetch("/api/updateMarkets", {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify({
+    //     name: "markets",
+    //     value: createMarketArgs,
+    //     chainId: getChain(),
+    //   }),
+    // });
+
+    // localStorage.setItem("markets", JSON.stringify([createMarketArgs]));
+
+    // const result = await response.json();
+    // console.log(result.message);
   };
 
   return (
