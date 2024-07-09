@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "@morpho-org/morpho-blue/src/Morpho.sol";
+import {ICredoraMetrics} from "./interfaces/ICredoraMetrics.sol";
 
 /// @title MoreMarkets
 /// @author Morpho Labs
@@ -41,7 +42,10 @@ contract MoreMarkets is IMorphoStaticTyping {
     /// @inheritdoc IMorphoStaticTyping
     mapping(Id => MarketParams) public idToMarketParams;
 
+    mapping(Id => mapping(bytes8 => uint256)) public raeToCustomLltv;
+
     Id[] private _arrayOfMarkets;
+    ICredoraMetrics private _credoraMetrics;
 
     /* CONSTRUCTOR */
 
@@ -71,6 +75,18 @@ contract MoreMarkets is IMorphoStaticTyping {
     }
 
     /* ONLY OWNER FUNCTIONS */
+
+    function setCredora(address credora) external onlyOwner {
+        _credoraMetrics = ICredoraMetrics(credora);
+    }
+
+    function setLltvToRae(
+        Id market,
+        bytes8 rae,
+        uint256 lltv
+    ) external onlyOwner {
+        raeToCustomLltv[market][rae] = lltv;
+    }
 
     /// @inheritdoc IMorphoBase
     function setOwner(address newOwner) external onlyOwner {
@@ -724,9 +740,22 @@ contract MoreMarkets is IMorphoStaticTyping {
                 market[id].totalBorrowAssets,
                 market[id].totalBorrowShares
             );
+
+        uint256 lltvToUse;
+        (bool success, bytes memory data) = address(_credoraMetrics).staticcall(
+            abi.encodeWithSignature("getRAE(address)", borrower)
+        );
+
+        if (success) {
+            bytes8 result = abi.decode(data, (bytes8));
+            lltvToUse = raeToCustomLltv[id][result];
+        } else {
+            lltvToUse = marketParams.lltv;
+        }
+
         uint256 maxBorrow = uint256(position[id][borrower].collateral)
             .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
-            .wMulDown(marketParams.lltv);
+            .wMulDown(lltvToUse);
 
         return maxBorrow >= borrowed;
     }
