@@ -1,0 +1,406 @@
+import {
+  loadFixture,
+  impersonateAccount,
+} from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { expect } from "chai";
+import hre, { ethers } from "hardhat";
+import { MarketParamsStruct } from "../typechain-types/contracts/MoreMarkets";
+import { AbiCoder, keccak256 } from "ethers";
+
+describe("MoreMarkets", function () {
+  // Hardcoded in contract
+  const TOKEN_NAME = "Token Best Technology";
+  const TOKEN_SYMBOL = "TBT";
+  const COMPANY = "0xcbf88d61f08698f203136803A69152C0d2B38D58";
+  const MARKET_MAKER = "0xf8a7454a1696Fb2eE0f0323959e5F31B900c6B7d";
+  const REWARD_POOL = "0x464d9E9100cc061BfBc4aD43A10811C01868838c";
+  const DEAD = "0x000000000000000000000000000000000000dEaD";
+
+  const ORACLE = "0xC1aB56955958Ac8379567157740F18AAadD8cD04";
+
+  const CREDORA_ADMIN = "0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab";
+  const CREDORA_METRICS = "0xA1CE4fD8470718eB3e8248E40ab489856E125F59";
+
+  const LLTVS = [945000000000000000n, 965000000000000000n];
+  const PREMIUM_LLTVS = [1000000000000000000n, 1250000000000000000n];
+
+  const RAE_VALUES = ["BBB-", "AAA+"];
+
+  const identifier = (marketParams: MarketParamsStruct) => {
+    const encodedMarket = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "address", "address", "uint256"],
+      Object.values(marketParams)
+    );
+
+    return Buffer.from(keccak256(encodedMarket).slice(2), "hex");
+  };
+
+  function stringToBytes8(str: string): string {
+    let bytes = ethers.toUtf8Bytes(str);
+
+    if (bytes.length > 8) {
+      throw new Error("String is too long to convert to bytes8");
+    }
+
+    let bytes8 = new Uint8Array(8);
+    bytes8.set(bytes);
+    return ethers.hexlify(bytes8);
+  }
+
+  async function deployFixture() {
+    const [owner, otherAccount] = await hre.ethers.getSigners();
+
+    // get admin of Credora
+    await impersonateAccount(CREDORA_ADMIN);
+    const credoraAdmin = await ethers.getSigner(CREDORA_ADMIN);
+
+    const credoraMetrics = await hre.ethers.getContractAt(
+      "ICredoraMetrics",
+      CREDORA_METRICS
+    );
+
+    const MoreMarkets = await hre.ethers.getContractFactory("MoreMarkets");
+    const moreMarkets = await MoreMarkets.deploy(owner);
+
+    // setup markets
+    const IRM = await hre.ethers.getContractFactory("AdaptiveCurveIrm");
+    const irm = await IRM.deploy(moreMarkets);
+
+    await moreMarkets.enableIrm(irm);
+
+    await moreMarkets.enableLltv(LLTVS[0]);
+    await moreMarkets.enableLltv(LLTVS[1]);
+
+    // set credora metrics on more markets
+    await moreMarkets.setCredora(CREDORA_METRICS);
+
+    // deploy tokens
+    const LoanToken = await hre.ethers.getContractFactory("ERC20MintableMock");
+    const loanToken = await LoanToken.deploy(owner);
+
+    const CollateralToken = await hre.ethers.getContractFactory(
+      "ERC20MintableMock"
+    );
+    const collateralToken = await CollateralToken.deploy(owner);
+
+    // create market
+    const marketParams: MarketParamsStruct = {
+      loanToken: await loanToken.getAddress(),
+      collateralToken: await collateralToken.getAddress(),
+      oracle: ORACLE,
+      irm: await irm.getAddress(),
+      lltv: LLTVS[0],
+    };
+    await moreMarkets.createMarket(marketParams);
+    const marketId = identifier(marketParams);
+
+    // LLTV's for RAE
+    await moreMarkets.setLltvToRae(
+      marketId,
+      stringToBytes8(RAE_VALUES[0]),
+      PREMIUM_LLTVS[0]
+    );
+    await moreMarkets.setLltvToRae(
+      marketId,
+      stringToBytes8(RAE_VALUES[1]),
+      PREMIUM_LLTVS[1]
+    );
+
+    // mint some tokens
+    await loanToken.mint(owner, ethers.parseEther("10000"));
+    await loanToken.approve(moreMarkets, ethers.parseEther("10000"));
+
+    await collateralToken.mint(owner, ethers.parseEther("10000"));
+    await collateralToken.approve(moreMarkets, ethers.parseEther("10000"));
+
+    // supply tokens to markets
+    await moreMarkets.supply(
+      marketParams,
+      ethers.parseEther("1000"),
+      0,
+      owner,
+      "0x"
+    );
+
+    return {
+      moreMarkets,
+      owner,
+      credoraAdmin,
+      credoraMetrics,
+      irm,
+      marketParams,
+      marketId,
+      loanToken,
+      collateralToken,
+    };
+  }
+
+  describe("Deployment", function () {
+    it("Should set the right owner", async function () {
+      const { moreMarkets, owner } = await loadFixture(deployFixture);
+
+      expect(await moreMarkets.owner()).to.equal(owner.address);
+    });
+
+    it("Should set the right credora address", async function () {
+      const { moreMarkets, credoraMetrics } = await loadFixture(deployFixture);
+
+      expect(await moreMarkets.credoraMetrics()).to.equal(credoraMetrics);
+    });
+
+    it("Should enable irm", async function () {
+      const { moreMarkets, irm } = await loadFixture(deployFixture);
+
+      expect(await moreMarkets.isIrmEnabled(irm)).to.equal(true);
+    });
+
+    it("Should enable LLTVs", async function () {
+      const { moreMarkets } = await loadFixture(deployFixture);
+
+      expect(await moreMarkets.isLltvEnabled(LLTVS[0])).to.equal(true);
+      expect(await moreMarkets.isLltvEnabled(LLTVS[1])).to.equal(true);
+    });
+
+    it("Should create market with correct params", async function () {
+      const { moreMarkets, marketParams, marketId } = await loadFixture(
+        deployFixture
+      );
+
+      const contractMarketParams = await moreMarkets.idToMarketParams(marketId);
+      expect(contractMarketParams[0]).to.equal(marketParams.loanToken);
+      expect(contractMarketParams[1]).to.equal(marketParams.collateralToken);
+      expect(contractMarketParams[2]).to.equal(marketParams.oracle);
+      expect(contractMarketParams[3]).to.equal(marketParams.irm);
+      expect(contractMarketParams[4]).to.equal(marketParams.lltv);
+    });
+
+    it("Should set LLTV for AAA+", async function () {
+      const { moreMarkets, marketId } = await loadFixture(deployFixture);
+
+      expect(
+        await moreMarkets.raeToCustomLltv(
+          marketId,
+          stringToBytes8(RAE_VALUES[1])
+        )
+      ).to.equal(PREMIUM_LLTVS[1]);
+    });
+
+    it("Should set balances for loan and coll tokens", async function () {
+      const { owner, loanToken, collateralToken } = await loadFixture(
+        deployFixture
+      );
+
+      expect(await loanToken.balanceOf(owner)).to.equal(
+        ethers.parseEther("9000")
+      );
+      expect(await collateralToken.balanceOf(owner)).to.equal(
+        ethers.parseEther("10000")
+      );
+    });
+  });
+
+  describe("First scenario", function () {
+    it("Should borrow maxBorrow and then more after credit rating increased", async function () {
+      const { credoraMetrics, credoraAdmin, moreMarkets, marketParams, owner } =
+        await loadFixture(deployFixture);
+      await moreMarkets.supplyCollateral(
+        marketParams,
+        ethers.parseEther("100"),
+        owner,
+        "0x"
+      );
+
+      await expect(
+        moreMarkets.borrow(
+          marketParams,
+          ethers.parseEther("94.51"),
+          0,
+          owner,
+          owner
+        )
+      ).to.be.revertedWith("insufficient collateral");
+
+      await moreMarkets.borrow(
+        marketParams,
+        ethers.parseEther("94.5"),
+        0,
+        owner,
+        owner
+      );
+
+      await expect(
+        moreMarkets.borrow(
+          marketParams,
+          ethers.parseEther("0.01"),
+          0,
+          owner,
+          owner
+        )
+      ).to.be.revertedWith("insufficient collateral");
+
+      const encodedCredoraParams = AbiCoder.defaultAbiCoder().encode(
+        ["address", "uint64", "uint64", "bytes8", "uint64", "uint64", "uint64"],
+        [owner.address, 0, 0, stringToBytes8("AAA+"), 0, 0, 0]
+      );
+      const emptyBytes32 =
+        "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+      await credoraMetrics
+        .connect(credoraAdmin)
+        .setData(emptyBytes32, encodedCredoraParams, emptyBytes32);
+      await credoraMetrics
+        .connect(credoraAdmin)
+        ["grantPermission(address,address,uint128)"](
+          owner.address,
+          owner.address,
+          60000
+        );
+      await credoraMetrics
+        .connect(credoraAdmin)
+        ["grantPermission(address,address,uint128)"](
+          owner.address,
+          await moreMarkets.getAddress(),
+          60000
+        );
+      expect(await credoraMetrics.getRAE(owner.address)).to.equal(
+        stringToBytes8("AAA+")
+      );
+
+      await expect(
+        moreMarkets.borrow(
+          marketParams,
+          ethers.parseEther("30.51"),
+          0,
+          owner,
+          owner
+        )
+      ).to.be.revertedWith("insufficient collateral");
+
+      await moreMarkets.borrow(
+        marketParams,
+        ethers.parseEther("29"),
+        0,
+        owner,
+        owner
+      );
+
+      await expect(
+        moreMarkets.liquidate(marketParams, owner, 1, 0, "0x00")
+      ).to.be.revertedWith("position is healthy");
+
+      await expect(
+        moreMarkets.withdrawCollateral(
+          marketParams,
+          ethers.parseEther("5"),
+          owner.address,
+          owner.address
+        )
+      ).to.be.revertedWith("insufficient collateral");
+    });
+  });
+
+  describe("Second scenario", function () {
+    it("Should borrow maxBorrow and then more after credit rating increased", async function () {
+      const {
+        credoraMetrics,
+        credoraAdmin,
+        moreMarkets,
+        marketParams,
+        marketId,
+        owner,
+        loanToken,
+        collateralToken,
+      } = await loadFixture(deployFixture);
+
+      const suppliedCollateral = ethers.parseEther("100");
+      await moreMarkets.supplyCollateral(
+        marketParams,
+        suppliedCollateral,
+        owner,
+        "0x"
+      );
+
+      let encodedCredoraParams = AbiCoder.defaultAbiCoder().encode(
+        ["address", "uint64", "uint64", "bytes8", "uint64", "uint64", "uint64"],
+        [owner.address, 0, 0, stringToBytes8(RAE_VALUES[1]), 0, 0, 0]
+      );
+      const emptyBytes32 =
+        "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+      await credoraMetrics
+        .connect(credoraAdmin)
+        .setData(emptyBytes32, encodedCredoraParams, emptyBytes32);
+      await credoraMetrics
+        .connect(credoraAdmin)
+        ["grantPermission(address,address,uint128)"](
+          owner.address,
+          owner.address,
+          60000
+        );
+      await credoraMetrics
+        .connect(credoraAdmin)
+        ["grantPermission(address,address,uint128)"](
+          owner.address,
+          await moreMarkets.getAddress(),
+          60000
+        );
+      expect(await credoraMetrics.getRAE(owner.address)).to.equal(
+        stringToBytes8(RAE_VALUES[1])
+      );
+
+      await moreMarkets.borrow(
+        marketParams,
+        ethers.parseEther("120"),
+        0,
+        owner,
+        owner
+      );
+
+      await expect(
+        moreMarkets.borrow(
+          marketParams,
+          ethers.parseEther("5.1"),
+          0,
+          owner,
+          owner
+        )
+      ).to.be.revertedWith("insufficient collateral");
+
+      await expect(
+        moreMarkets.liquidate(marketParams, owner, 1, 0, "0x00")
+      ).to.be.revertedWith("position is healthy");
+
+      encodedCredoraParams = AbiCoder.defaultAbiCoder().encode(
+        ["address", "uint64", "uint64", "bytes8", "uint64", "uint64", "uint64"],
+        [owner.address, 0, 0, stringToBytes8(RAE_VALUES[0]), 0, 0, 0]
+      );
+      await credoraMetrics
+        .connect(credoraAdmin)
+        .setData(emptyBytes32, encodedCredoraParams, emptyBytes32);
+
+      await expect(
+        moreMarkets.withdrawCollateral(
+          marketParams,
+          ethers.parseEther("0.001"),
+          owner.address,
+          owner.address
+        )
+      ).to.be.revertedWith("insufficient collateral");
+
+      const balanceLoanBef = await loanToken.balanceOf(owner.address);
+      const balanceCollBef = await collateralToken.balanceOf(owner.address);
+      await moreMarkets.liquidate(
+        marketParams,
+        owner,
+        suppliedCollateral,
+        0,
+        "0x"
+      );
+
+      console.log(balanceLoanBef - (await loanToken.balanceOf(owner.address)));
+      console.log(
+        (await collateralToken.balanceOf(owner.address)) - balanceCollBef
+      );
+    });
+  });
+});

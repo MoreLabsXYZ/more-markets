@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "@morpho-org/morpho-blue/src/Morpho.sol";
+import {ErrorsLib} from "@morpho-org/morpho-blue/src/Morpho.sol";
 import {ICredoraMetrics} from "./interfaces/ICredoraMetrics.sol";
 
 /// @title MoreMarkets
@@ -45,7 +46,7 @@ contract MoreMarkets is IMorphoStaticTyping {
     mapping(Id => mapping(bytes8 => uint256)) public raeToCustomLltv;
 
     Id[] private _arrayOfMarkets;
-    ICredoraMetrics private _credoraMetrics;
+    ICredoraMetrics public credoraMetrics;
 
     /* CONSTRUCTOR */
 
@@ -77,15 +78,15 @@ contract MoreMarkets is IMorphoStaticTyping {
     /* ONLY OWNER FUNCTIONS */
 
     function setCredora(address credora) external onlyOwner {
-        _credoraMetrics = ICredoraMetrics(credora);
+        credoraMetrics = ICredoraMetrics(credora);
     }
 
     function setLltvToRae(
-        Id market,
+        Id marketId,
         bytes8 rae,
         uint256 lltv
     ) external onlyOwner {
-        raeToCustomLltv[market][rae] = lltv;
+        raeToCustomLltv[marketId][rae] = lltv;
     }
 
     /// @inheritdoc IMorphoBase
@@ -742,7 +743,7 @@ contract MoreMarkets is IMorphoStaticTyping {
             );
 
         uint256 lltvToUse;
-        (bool success, bytes memory data) = address(_credoraMetrics).staticcall(
+        (bool success, bytes memory data) = address(credoraMetrics).staticcall(
             abi.encodeWithSignature("getRAE(address)", borrower)
         );
 

@@ -95,4 +95,10 @@ library ErrorsLib {
 
     /// @notice Thrown when all caps have been reached.
     error AllCapsReached();
+
+    /// @dev Thrown when passing the zero address.
+    string internal constant ZERO_ADDRESS = "zero address";
+
+    /// @dev Thrown when the caller is not Morpho.
+    string internal constant NOT_MORPHO = "not Morpho";
 }
