@@ -1,5 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
 require("dotenv").config();
 
 if (!process.env.MNEMONIC)
@@ -52,13 +54,16 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 999999,
+            runs: 4000,
           },
           viaIR: true,
           evmVersion: "paris",
         },
       },
     ],
+  },
+  gasReporter: {
+    enabled: true,
   },
 };
 

@@ -6,6 +6,7 @@
     "hardhat": "^2.22.6"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0"
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat-contract-sizer": "^2.10.0"
   }
 }

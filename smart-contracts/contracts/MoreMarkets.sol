@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "@morpho-org/morpho-blue/src/Morpho.sol";
 import {ErrorsLib} from "@morpho-org/morpho-blue/src/Morpho.sol";
 import {ICredoraMetrics} from "./interfaces/ICredoraMetrics.sol";
+import "hardhat/console.sol";
 
 /// @title MoreMarkets
 /// @author Morpho Labs
@@ -18,6 +19,12 @@ contract MoreMarkets is IMorphoStaticTyping {
     using MarketParamsLib for MarketParams;
 
     /* IMMUTABLES */
+
+    enum UPDATE_TYPE {
+        BORROW,
+        REPAY,
+        IDLE
+    }
 
     /// @inheritdoc IMorphoBase
     bytes32 public immutable DOMAIN_SEPARATOR;
@@ -45,7 +52,18 @@ contract MoreMarkets is IMorphoStaticTyping {
 
     mapping(Id => mapping(bytes8 => uint256)) public raeToCustomLltv;
 
+    mapping(Id => mapping(bytes8 => uint256))
+        public totalBorrowAssetsForCategory;
+    mapping(Id => mapping(bytes8 => uint256))
+        public totalBorrowSharesForCategory;
+    mapping(Id => mapping(address => bool)) public userExceededDefaultLltv;
+    mapping(address => bytes8) private _userLastCategory;
+    mapping(bytes8 => uint64) private _categoryMultiplier;
+
+    mapping(Id => mapping(bytes8 => uint256)) public extraSharesForCategory;
+
     Id[] private _arrayOfMarkets;
+    bytes8[] private _availableCategories;
     ICredoraMetrics public credoraMetrics;
 
     /* CONSTRUCTOR */
@@ -87,6 +105,23 @@ contract MoreMarkets is IMorphoStaticTyping {
         uint256 lltv
     ) external onlyOwner {
         raeToCustomLltv[marketId][rae] = lltv;
+    }
+
+    // TODO: revisit logic of storing
+    function setAvailableCategories(
+        bytes8[] memory newAvailableCategories,
+        uint64[] memory categoryMultipliers
+    ) external onlyOwner {
+        _availableCategories = newAvailableCategories;
+        for (uint256 i; i < newAvailableCategories.length; ) {
+            _categoryMultiplier[
+                newAvailableCategories[i]
+            ] = categoryMultipliers[i];
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /// @inheritdoc IMorphoBase
@@ -291,25 +326,20 @@ contract MoreMarkets is IMorphoStaticTyping {
 
         _accrueInterest(marketParams, id);
 
-        if (assets > 0)
-            shares = assets.toSharesUp(
-                market[id].totalBorrowAssets,
-                market[id].totalBorrowShares
-            );
-        else
-            assets = shares.toAssetsDown(
-                market[id].totalBorrowAssets,
-                market[id].totalBorrowShares
-            );
-
-        position[id][onBehalf].borrowShares += shares.toUint128();
-        market[id].totalBorrowShares += shares.toUint128();
-        market[id].totalBorrowAssets += assets.toUint128();
+        _updatePosition(
+            marketParams,
+            id,
+            onBehalf,
+            assets,
+            shares,
+            UPDATE_TYPE.BORROW
+        );
 
         require(
             _isHealthy(marketParams, id, onBehalf),
             ErrorsLib.INSUFFICIENT_COLLATERAL
         );
+
         require(
             market[id].totalBorrowAssets <= market[id].totalSupplyAssets,
             ErrorsLib.INSUFFICIENT_LIQUIDITY
@@ -347,22 +377,14 @@ contract MoreMarkets is IMorphoStaticTyping {
 
         _accrueInterest(marketParams, id);
 
-        if (assets > 0)
-            shares = assets.toSharesDown(
-                market[id].totalBorrowAssets,
-                market[id].totalBorrowShares
-            );
-        else
-            assets = shares.toAssetsUp(
-                market[id].totalBorrowAssets,
-                market[id].totalBorrowShares
-            );
-
-        position[id][onBehalf].borrowShares -= shares.toUint128();
-        market[id].totalBorrowShares -= shares.toUint128();
-        market[id].totalBorrowAssets = UtilsLib
-            .zeroFloorSub(market[id].totalBorrowAssets, assets)
-            .toUint128();
+        _updatePosition(
+            marketParams,
+            id,
+            onBehalf,
+            assets,
+            shares,
+            UPDATE_TYPE.REPAY
+        );
 
         // `assets` may be greater than `totalBorrowAssets` by 1.
         emit EventsLib.Repay(id, msg.sender, onBehalf, assets, shares);
@@ -388,6 +410,7 @@ contract MoreMarkets is IMorphoStaticTyping {
         address onBehalf,
         bytes calldata data
     ) external {
+        console.log("hi1");
         Id id = marketParams.id();
         require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
         require(assets != 0, ErrorsLib.ZERO_ASSETS);
@@ -444,6 +467,141 @@ contract MoreMarkets is IMorphoStaticTyping {
         IERC20(marketParams.collateralToken).safeTransfer(receiver, assets);
     }
 
+    function updateBorrower(
+        MarketParams memory marketParams,
+        address borrower
+    ) external {
+        Id id = marketParams.id();
+        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        _accrueInterest(marketParams, id);
+
+        if (
+            !_updatePosition(marketParams, id, borrower, 0, 0, UPDATE_TYPE.IDLE)
+        ) {
+            revert("No need for update");
+        }
+    }
+
+    function _updatePosition(
+        MarketParams memory marketParams,
+        Id id,
+        address borrower,
+        uint256 assets,
+        uint256 shares,
+        UPDATE_TYPE updateType
+    ) internal returns (bool isCategoryUpdated) {
+        (bool success, bytes memory data) = address(credoraMetrics).staticcall(
+            abi.encodeWithSignature("getRAE(address)", borrower)
+        );
+
+        bytes8 currentCategory;
+
+        // TODO: decide what to do with shares
+        if (
+            _isDefaultLltvExceeded(
+                marketParams,
+                id,
+                borrower,
+                assets,
+                updateType
+            )
+        ) {
+            if (success && (data.length > 0)) {
+                currentCategory = abi.decode(data, (bytes8));
+            } else {
+                revert(ErrorsLib.INSUFFICIENT_COLLATERAL);
+            }
+        }
+
+        bytes8 lastCategory = _userLastCategory[borrower];
+        if (assets > 0)
+            shares = assets.toSharesUp(
+                totalBorrowAssetsForCategory[id][currentCategory],
+                totalBorrowSharesForCategory[id][currentCategory]
+            );
+        else if (shares > 0)
+            assets = shares.toAssetsDown(
+                totalBorrowAssetsForCategory[id][lastCategory],
+                totalBorrowSharesForCategory[id][lastCategory]
+            );
+
+        uint256 borrowedSharesBefore = position[id][borrower].borrowShares;
+        uint256 borrowedAssetsBefore;
+
+        borrowedAssetsBefore = borrowedSharesBefore.toAssetsDown(
+            totalBorrowAssetsForCategory[id][lastCategory],
+            totalBorrowSharesForCategory[id][lastCategory]
+        );
+        if (lastCategory != currentCategory) {
+            _updateCategory(
+                id,
+                lastCategory,
+                currentCategory,
+                borrower,
+                updateType,
+                borrowedAssetsBefore,
+                borrowedSharesBefore,
+                assets
+            );
+            isCategoryUpdated = true;
+        } else if (updateType == UPDATE_TYPE.BORROW) {
+            position[id][borrower].borrowShares += shares.toUint128();
+            totalBorrowAssetsForCategory[id][currentCategory] += assets
+                .toUint128();
+            totalBorrowSharesForCategory[id][currentCategory] += shares
+                .toUint128();
+        } else if (updateType == UPDATE_TYPE.REPAY) {
+            position[id][borrower].borrowShares += shares.toUint128();
+            totalBorrowAssetsForCategory[id][currentCategory] -= assets
+                .toUint128();
+            totalBorrowSharesForCategory[id][currentCategory] -= shares
+                .toUint128();
+        }
+
+        if (updateType == UPDATE_TYPE.BORROW)
+            market[id].totalBorrowAssets += assets.toUint128();
+        else if (updateType == UPDATE_TYPE.REPAY)
+            market[id].totalBorrowAssets = UtilsLib
+                .zeroFloorSub(market[id].totalBorrowAssets, assets)
+                .toUint128();
+    }
+
+    function _updateCategory(
+        Id id,
+        bytes8 lastCategory,
+        bytes8 newCategory,
+        address borrower,
+        UPDATE_TYPE updateType,
+        uint256 borrowedAssetsBefore,
+        uint256 borrowedSharesBefore,
+        uint256 assets
+    ) internal {
+        // sub from prev category
+        totalBorrowAssetsForCategory[id][lastCategory] -= borrowedAssetsBefore;
+        totalBorrowSharesForCategory[id][lastCategory] -= borrowedSharesBefore;
+
+        // calc new shares
+        uint256 newAssets = borrowedAssetsBefore;
+        if (updateType == UPDATE_TYPE.BORROW) newAssets += assets;
+        else if (updateType == UPDATE_TYPE.REPAY) newAssets -= assets;
+
+        uint256 newShares = newAssets.toSharesUp(
+            totalBorrowAssetsForCategory[id][newCategory],
+            totalBorrowSharesForCategory[id][newCategory]
+        );
+
+        // update borrow shares
+        position[id][borrower].borrowShares = newShares.toUint128();
+        // add to new category
+        totalBorrowAssetsForCategory[id][newCategory] +=
+            borrowedAssetsBefore +
+            assets;
+        totalBorrowSharesForCategory[id][newCategory] += newShares;
+
+        // update last category
+        _userLastCategory[borrower] = newCategory;
+    }
+
     /* LIQUIDATION */
 
     /// @inheritdoc IMorphoBase
@@ -454,6 +612,7 @@ contract MoreMarkets is IMorphoStaticTyping {
         uint256 repaidShares,
         bytes calldata data
     ) external returns (uint256, uint256) {
+        console.log("hi2");
         Id id = marketParams.id();
         require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
         require(
@@ -488,28 +647,46 @@ contract MoreMarkets is IMorphoStaticTyping {
                 repaidShares = seizedAssetsQuoted
                     .wDivUp(liquidationIncentiveFactor)
                     .toSharesUp(
-                        market[id].totalBorrowAssets,
-                        market[id].totalBorrowShares
+                        totalBorrowAssetsForCategory[id][
+                            _userLastCategory[borrower]
+                        ],
+                        totalBorrowSharesForCategory[id][
+                            _userLastCategory[borrower]
+                        ]
                     );
             } else {
                 seizedAssets = repaidShares
                     .toAssetsDown(
-                        market[id].totalBorrowAssets,
-                        market[id].totalBorrowShares
+                        totalBorrowAssetsForCategory[id][
+                            _userLastCategory[borrower]
+                        ],
+                        totalBorrowSharesForCategory[id][
+                            _userLastCategory[borrower]
+                        ]
                     )
                     .wMulDown(liquidationIncentiveFactor)
                     .mulDivDown(ORACLE_PRICE_SCALE, collateralPrice);
             }
         }
         uint256 repaidAssets = repaidShares.toAssetsUp(
-            market[id].totalBorrowAssets,
-            market[id].totalBorrowShares
+            totalBorrowAssetsForCategory[id][_userLastCategory[borrower]],
+            totalBorrowSharesForCategory[id][_userLastCategory[borrower]]
         );
 
+        console.log("some data");
+        console.log(repaidAssets);
+        console.log(repaidShares);
+        console.log(position[id][borrower].borrowShares);
         position[id][borrower].borrowShares -= repaidShares.toUint128();
-        market[id].totalBorrowShares -= repaidShares.toUint128();
-        market[id].totalBorrowAssets = UtilsLib
-            .zeroFloorSub(market[id].totalBorrowAssets, repaidAssets)
+        console.log(position[id][borrower].borrowShares);
+        totalBorrowSharesForCategory[id][
+            _userLastCategory[borrower]
+        ] -= repaidShares.toUint128();
+        totalBorrowAssetsForCategory[id][_userLastCategory[borrower]] = UtilsLib
+            .zeroFloorSub(
+                totalBorrowAssetsForCategory[id][_userLastCategory[borrower]],
+                repaidAssets
+            )
             .toUint128();
 
         position[id][borrower].collateral -= seizedAssets.toUint128();
@@ -519,16 +696,28 @@ contract MoreMarkets is IMorphoStaticTyping {
         if (position[id][borrower].collateral == 0) {
             badDebtShares = position[id][borrower].borrowShares;
             badDebtAssets = UtilsLib.min(
+                // TODO: not sure if we need here total borrow assets for all
                 market[id].totalBorrowAssets,
                 badDebtShares.toAssetsUp(
-                    market[id].totalBorrowAssets,
-                    market[id].totalBorrowShares
+                    totalBorrowAssetsForCategory[id][
+                        _userLastCategory[borrower]
+                    ],
+                    totalBorrowSharesForCategory[id][
+                        _userLastCategory[borrower]
+                    ]
                 )
             );
 
             market[id].totalBorrowAssets -= badDebtAssets.toUint128();
             market[id].totalSupplyAssets -= badDebtAssets.toUint128();
-            market[id].totalBorrowShares -= badDebtShares.toUint128();
+            // TODO: possible underflow
+            totalBorrowAssetsForCategory[id][
+                _userLastCategory[borrower]
+            ] -= badDebtAssets.toUint128();
+            totalBorrowSharesForCategory[id][
+                _userLastCategory[borrower]
+            ] -= badDebtShares.toUint128();
+            // market[id].totalBorrowShares -= badDebtShares.toUint128();
             position[id][borrower].borrowShares = 0;
         }
 
@@ -684,9 +873,49 @@ contract MoreMarkets is IMorphoStaticTyping {
                 marketParams,
                 market[id]
             );
-            uint256 interest = market[id].totalBorrowAssets.wMulDown(
-                borrowRate.wTaylorCompounded(elapsed)
-            );
+
+            uint256 interest;
+            //  = market[id].totalBorrowAssets.wMulDown(
+            //     borrowRate.wTaylorCompounded(elapsed)
+            // );
+            for (uint256 i; i < _availableCategories.length; ) {
+                bytes8 currentCategory = _availableCategories[i];
+
+                if (totalBorrowAssetsForCategory[id][currentCategory] == 0)
+                    continue;
+                uint256 interestForCategory = totalBorrowAssetsForCategory[id][
+                    currentCategory
+                ].wMulDown(
+                        borrowRate
+                            .wMulDown(_categoryMultiplier[currentCategory])
+                            .wTaylorCompounded(elapsed)
+                    );
+                interest += interestForCategory;
+
+                totalBorrowAssetsForCategory[id][
+                    currentCategory
+                ] += interestForCategory;
+
+                // // uint256 extraInterest = interestForCategory -
+                // //     totalBorrowAssetsForCategory[id][currentCategory].wMulDown(
+                // //         borrowRate.wTaylorCompounded(elapsed)
+                // //     );
+                // uint256 extraInterest = interestForCategory.wDivUp(
+                //     _categoryMultiplier[currentCategory]
+                // );
+
+                // uint256 sharesToMint = extraInterest.toSharesUp(
+                //     market[id].totalBorrowAssets,
+                //     market[id].totalBorrowShares
+                // );
+
+                // extraSharesForCategory[id][currentCategory] += sharesToMint;
+
+                unchecked {
+                    ++i;
+                }
+            }
+            // TODO: we need to mint shares to premium users
             market[id].totalBorrowAssets += interest.toUint128();
             market[id].totalSupplyAssets += interest.toUint128();
 
@@ -736,29 +965,68 @@ contract MoreMarkets is IMorphoStaticTyping {
         address borrower,
         uint256 collateralPrice
     ) internal view returns (bool) {
-        uint256 borrowed = uint256(position[id][borrower].borrowShares)
-            .toAssetsUp(
-                market[id].totalBorrowAssets,
-                market[id].totalBorrowShares
-            );
-
         uint256 lltvToUse;
         (bool success, bytes memory data) = address(credoraMetrics).staticcall(
             abi.encodeWithSignature("getRAE(address)", borrower)
         );
 
+        bytes8 currentCategory;
+        bytes8 lastCategory = _userLastCategory[borrower];
         if (success) {
-            bytes8 result = abi.decode(data, (bytes8));
-            lltvToUse = raeToCustomLltv[id][result];
+            currentCategory = abi.decode(data, (bytes8));
+            lltvToUse = raeToCustomLltv[id][currentCategory];
         } else {
             lltvToUse = marketParams.lltv;
         }
+
+        uint256 borrowed = uint256(position[id][borrower].borrowShares)
+            .toAssetsUp(
+                totalBorrowAssetsForCategory[id][lastCategory],
+                totalBorrowSharesForCategory[id][lastCategory]
+            );
 
         uint256 maxBorrow = uint256(position[id][borrower].collateral)
             .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
             .wMulDown(lltvToUse);
 
+        console.log(collateralPrice.wDivDown(ORACLE_PRICE_SCALE));
+        console.log(position[id][borrower].collateral);
+        console.log(maxBorrow);
+        console.log(borrowed);
+
         return maxBorrow >= borrowed;
+    }
+
+    function _isDefaultLltvExceeded(
+        MarketParams memory marketParams,
+        Id id,
+        address borrower,
+        uint256 assets,
+        UPDATE_TYPE updateType
+    ) internal view returns (bool exceeded) {
+        // can remove a lot of variable to avoid stack too deep
+        uint256 collateralPrice = IOracle(marketParams.oracle).price();
+
+        bytes8 lastCategory = _userLastCategory[borrower];
+        uint256 totalBorrowAssets = totalBorrowAssetsForCategory[id][
+            lastCategory
+        ];
+        uint256 totalBorrowShares = totalBorrowSharesForCategory[id][
+            lastCategory
+        ];
+
+        uint256 borrowedBefore = uint256(position[id][borrower].borrowShares)
+            .toAssetsUp(totalBorrowAssets, totalBorrowShares);
+
+        uint256 borrowed = updateType == UPDATE_TYPE.BORROW
+            ? borrowedBefore + assets
+            : borrowedBefore - assets;
+
+        uint256 maxBorrowByDefault = uint256(position[id][borrower].collateral)
+            .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
+            .wMulDown(marketParams.lltv);
+
+        if (borrowed > maxBorrowByDefault) exceeded = true;
     }
 
     /* STORAGE VIEW */

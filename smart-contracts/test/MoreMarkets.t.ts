@@ -8,20 +8,12 @@ import { MarketParamsStruct } from "../typechain-types/contracts/MoreMarkets";
 import { AbiCoder, keccak256 } from "ethers";
 
 describe("MoreMarkets", function () {
-  // Hardcoded in contract
-  const TOKEN_NAME = "Token Best Technology";
-  const TOKEN_SYMBOL = "TBT";
-  const COMPANY = "0xcbf88d61f08698f203136803A69152C0d2B38D58";
-  const MARKET_MAKER = "0xf8a7454a1696Fb2eE0f0323959e5F31B900c6B7d";
-  const REWARD_POOL = "0x464d9E9100cc061BfBc4aD43A10811C01868838c";
-  const DEAD = "0x000000000000000000000000000000000000dEaD";
-
   const ORACLE = "0xC1aB56955958Ac8379567157740F18AAadD8cD04";
 
   const CREDORA_ADMIN = "0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab";
   const CREDORA_METRICS = "0xA1CE4fD8470718eB3e8248E40ab489856E125F59";
 
-  const LLTVS = [945000000000000000n, 965000000000000000n];
+  const LLTVS = [945000000000000000n, 965000000000000000n, 800000000000000000n];
   const PREMIUM_LLTVS = [1000000000000000000n, 1250000000000000000n];
 
   const RAE_VALUES = ["BBB-", "AAA+"];
@@ -59,6 +51,8 @@ describe("MoreMarkets", function () {
       CREDORA_METRICS
     );
 
+    const oracle = await hre.ethers.getContractAt("OracleMock", ORACLE);
+
     const MoreMarkets = await hre.ethers.getContractFactory("MoreMarkets");
     const moreMarkets = await MoreMarkets.deploy(owner);
 
@@ -70,6 +64,7 @@ describe("MoreMarkets", function () {
 
     await moreMarkets.enableLltv(LLTVS[0]);
     await moreMarkets.enableLltv(LLTVS[1]);
+    await moreMarkets.enableLltv(LLTVS[2]);
 
     // set credora metrics on more markets
     await moreMarkets.setCredora(CREDORA_METRICS);
@@ -107,11 +102,11 @@ describe("MoreMarkets", function () {
     );
 
     // mint some tokens
-    await loanToken.mint(owner, ethers.parseEther("10000"));
-    await loanToken.approve(moreMarkets, ethers.parseEther("10000"));
+    await loanToken.mint(owner, ethers.parseEther("100000"));
+    await loanToken.approve(moreMarkets, ethers.parseEther("100000"));
 
-    await collateralToken.mint(owner, ethers.parseEther("10000"));
-    await collateralToken.approve(moreMarkets, ethers.parseEther("10000"));
+    await collateralToken.mint(owner, ethers.parseEther("100000"));
+    await collateralToken.approve(moreMarkets, ethers.parseEther("100000"));
 
     // supply tokens to markets
     await moreMarkets.supply(
@@ -132,6 +127,7 @@ describe("MoreMarkets", function () {
       marketId,
       loanToken,
       collateralToken,
+      oracle,
     };
   }
 
@@ -401,6 +397,94 @@ describe("MoreMarkets", function () {
       console.log(
         (await collateralToken.balanceOf(owner.address)) - balanceCollBef
       );
+    });
+  });
+
+  describe("Liquidate", function () {
+    it("partial liquidation from example", async function () {
+      const {
+        credoraMetrics,
+        credoraAdmin,
+        moreMarkets,
+        owner,
+        loanToken,
+        collateralToken,
+        oracle,
+        irm,
+      } = await loadFixture(deployFixture);
+
+      await oracle.setPrice(3000000000000000000000000000000000000000n);
+
+      const marketParams: MarketParamsStruct = {
+        loanToken: await loanToken.getAddress(),
+        collateralToken: await collateralToken.getAddress(),
+        oracle: ORACLE,
+        irm: await irm.getAddress(),
+        lltv: LLTVS[2],
+      };
+      await moreMarkets.createMarket(marketParams);
+      const marketId = identifier(marketParams);
+
+      await collateralToken.approve(moreMarkets, ethers.parseEther("100000"));
+      await loanToken.approve(moreMarkets, ethers.parseEther("100000"));
+      await moreMarkets.supply(
+        marketParams,
+        ethers.parseEther("10000"),
+        0,
+        owner,
+        "0x"
+      );
+
+      await moreMarkets.supplyCollateral(
+        marketParams,
+        ethers.parseEther("1"),
+        owner,
+        "0x"
+      );
+
+      await moreMarkets.borrow(
+        marketParams,
+        ethers.parseEther("2400"),
+        0,
+        owner,
+        owner
+      );
+
+      // await moreMarkets.liquidate(
+      //   marketParams,
+      //   owner,
+      //   ethers.parseEther("0.1"),
+      //   0,
+      //   "0x"
+      // );
+
+      await oracle.setPrice(2900000000000000000000000000000000000000n);
+
+      const balanceCollBef = await collateralToken.balanceOf(owner.address);
+      const balanceLoanBef = await loanToken.balanceOf(owner.address);
+      console.log("liquidation 1");
+      await moreMarkets.liquidate(
+        marketParams,
+        owner,
+        ethers.parseEther("0.5"),
+        0,
+        "0x"
+      );
+      console.log(
+        (await collateralToken.balanceOf(owner.address)) - balanceCollBef
+      );
+      console.log(balanceLoanBef - (await loanToken.balanceOf(owner.address)));
+
+      console.log("liquidation 2");
+      await expect(
+        moreMarkets.liquidate(
+          marketParams,
+          owner,
+          ethers.parseEther("0.1"),
+          0,
+          "0x"
+        )
+      ).to.revertedWith("position is healthy");
     });
   });
 });
