@@ -121,6 +121,26 @@ contract MoreMarketsTest is Test {
         assertEq(markets.owner(), owner);
     }
 
+    function test_borrow_correctlyWithShares() public {
+        startHoax(credoraAdmin);
+        credora.grantPermission(owner, address(markets), type(uint128).max);
+
+        startHoax(owner);
+        markets.supplyCollateral(marketParams, 1000 ether, owner, "");
+
+        // default lltv 80%
+        // premium lltv 100%
+        uint256 defaultBorrow = 800 ether;
+        markets.borrow(
+            marketParams,
+            0,
+            (defaultBorrow + 1) * 10 ** 6,
+            owner,
+            owner
+        );
+        assertEq(markets._userLastMultiplier(owner), 1.25 ether);
+    }
+
     function test_borrow_checkBorrowMultipliersForCategoryE() public {
         startHoax(credoraAdmin);
         credora.grantPermission(owner, address(markets), type(uint128).max);

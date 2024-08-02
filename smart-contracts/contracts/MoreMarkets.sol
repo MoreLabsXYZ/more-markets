@@ -332,7 +332,7 @@ contract MoreMarkets is IMorphoStaticTyping {
 
         _accrueInterest(marketParams, id);
 
-        _updatePosition(
+        assets = _updatePosition(
             marketParams,
             id,
             onBehalf,
