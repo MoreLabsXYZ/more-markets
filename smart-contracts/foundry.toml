@@ -1,7 +1,7 @@
 [profile.default]
-src = "src"
+src = "contracts1"
 out = "artifacts"
-libs = ["node_modules"]
+libs = ["node_modules", "lib"]
 remappings = [
     "@chainlink/=node_modules/@chainlink/",
     "@eth-optimism/=node_modules/@chainlink/contracts/node_modules/@eth-optimism/",
@@ -10,6 +10,13 @@ remappings = [
     "@scroll-tech/=node_modules/@scroll-tech/",
     "eth-gas-reporter/=node_modules/eth-gas-reporter/",
     "hardhat/=node_modules/hardhat/",
+    "forge-std/=lib/forge-std/src/",
 ]
+gas_reports = ["*"]
+no_match_test = "loadOfContract"
+
+optimizer = true
+optimizer_runs = 200
+viaIR = true
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
