@@ -56,12 +56,9 @@ contract MoreMarkets is IMorphoStaticTyping {
         public totalBorrowAssetsForMultiplier;
     mapping(Id => mapping(uint64 => uint256))
         public totalBorrowSharesForMultiplier;
-    mapping(Id => mapping(address => bool)) public userExceededDefaultLltv;
     mapping(address => uint64) public _userLastMultiplier;
     mapping(uint8 => uint64) private _categoryMultiplier;
     mapping(uint8 => uint8) private _categoryNumberOfSteps;
-
-    mapping(Id => mapping(bytes8 => uint256)) public extraSharesForCategory;
 
     Id[] private _arrayOfMarkets;
     uint64[] private _availableMultipliers;
@@ -1034,35 +1031,6 @@ contract MoreMarkets is IMorphoStaticTyping {
             .wMulDown(lltvToUse);
 
         return maxBorrow >= borrowed;
-    }
-
-    function _isDefaultLltvExceeded(
-        MarketParams memory marketParams,
-        Id id,
-        address borrower,
-        uint256 assets,
-        UPDATE_TYPE updateType
-    ) internal view returns (bool exceeded) {
-        // can remove a lot of variable to avoid stack too deep
-        uint256 collateralPrice = IOracle(marketParams.oracle).price();
-
-        uint64 lastMultiplier = _userLastMultiplier[borrower];
-
-        uint256 borrowedBefore = uint256(position[id][borrower].borrowShares)
-            .toAssetsUp(
-                totalBorrowAssetsForMultiplier[id][lastMultiplier],
-                totalBorrowSharesForMultiplier[id][lastMultiplier]
-            );
-
-        uint256 borrowed = updateType == UPDATE_TYPE.BORROW
-            ? borrowedBefore + assets
-            : borrowedBefore - assets;
-
-        uint256 maxBorrowByDefault = uint256(position[id][borrower].collateral)
-            .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
-            .wMulDown(marketParams.lltv);
-
-        if (borrowed > maxBorrowByDefault) exceeded = true;
     }
 
     /* STORAGE VIEW */
