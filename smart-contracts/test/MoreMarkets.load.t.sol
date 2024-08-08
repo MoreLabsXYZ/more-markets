@@ -34,21 +34,21 @@ contract MoreMarketsTest is Test {
     ];
 
     uint8 numberOfPremiumBuckets = 5;
-    uint256[] public premiumLltvs = [
+    uint128[] public premiumLltvs = [
         1000000000000000000,
         1200000000000000000,
         1400000000000000000,
         1600000000000000000,
         2000000000000000000
     ];
-    uint64[] public categoryMultipliers = [
+    uint112[] public categoryMultipliers = [
         2 ether,
         2 ether,
         2 ether,
         2 ether,
         2 ether
     ];
-    uint8[] public categorySteps = [4, 8, 12, 16, 24];
+    uint16[] public categorySteps = [4, 8, 12, 16, 24];
 
     EnumerableSet.UintSet private multipliersArray;
     uint64[] private _multipliers;
@@ -95,13 +95,12 @@ contract MoreMarketsTest is Test {
         markets.createMarket(marketParams);
         Id id = marketParams.id();
 
-        for (uint64 i; i < numberOfPremiumBuckets; ) {
-            markets.setLltvToCategory(id, i, premiumLltvs[i]);
-            unchecked {
-                ++i;
-            }
-        }
-        markets.setCategoryMultipliers(categoryMultipliers, categorySteps);
+        markets.setCategoryInfo(
+            id,
+            categoryMultipliers,
+            categorySteps,
+            premiumLltvs
+        );
 
         loanToken.mint(address(owner), 1000000000 ether);
         loanToken.approve(address(markets), 1000000000 ether);
@@ -115,7 +114,7 @@ contract MoreMarketsTest is Test {
         for (uint256 i = 0; i < multipliersArray.length(); ++i) {
             _multipliers.push(uint64(multipliersArray.at(i)));
         }
-        markets.setAvailableMultipliers(_multipliers);
+        // markets.setAvailableMultipliers(_multipliers);
         _fulfillUsers(64, 1000 ether);
     }
 
@@ -224,8 +223,8 @@ contract MoreMarketsTest is Test {
 
     function _getAvailableMultipliers(
         uint256 numberOfCategories,
-        uint8[] memory steps,
-        uint64[] memory multipliers
+        uint16[] memory steps,
+        uint112[] memory multipliers
     ) internal {
         for (uint256 i; i < numberOfCategories; ) {
             uint256 multiplierStep = (uint256(multipliers[i]) - 1 ether).wDivUp(

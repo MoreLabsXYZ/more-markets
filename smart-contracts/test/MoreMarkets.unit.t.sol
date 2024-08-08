@@ -7,12 +7,10 @@ import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
-import {EnumerableSet} from "./utils/EnumerableSet.sol";
 
 contract MoreMarketsTest is Test {
     using MarketParamsLib for MarketParams;
     using MathLib for uint256;
-    using EnumerableSet for EnumerableSet.UintSet;
 
     uint256 sepoliaFork;
 
@@ -34,24 +32,21 @@ contract MoreMarketsTest is Test {
     ];
 
     uint8 numberOfPremiumBuckets = 5;
-    uint256[] public premiumLltvs = [
+    uint128[] public premiumLltvs = [
         1000000000000000000,
         1200000000000000000,
         1400000000000000000,
         1600000000000000000,
         2000000000000000000
     ];
-    uint64[] public categoryMultipliers = [
+    uint112[] public categoryMultipliers = [
         2 ether,
         2 ether,
         2 ether,
         2 ether,
         2 ether
     ];
-    uint8[] public categorySteps = [4, 8, 12, 16, 24];
-
-    EnumerableSet.UintSet private multipliersArray;
-    uint64[] private _multipliers;
+    uint16[] public categorySteps = [4, 8, 12, 16, 24];
 
     ERC20MintableMock public loanToken;
     ERC20MintableMock public collateralToken;
@@ -92,13 +87,12 @@ contract MoreMarketsTest is Test {
         markets.createMarket(marketParams);
         Id id = marketParams.id();
 
-        for (uint64 i; i < numberOfPremiumBuckets; ) {
-            markets.setLltvToCategory(id, i, premiumLltvs[i]);
-            unchecked {
-                ++i;
-            }
-        }
-        markets.setCategoryMultipliers(categoryMultipliers, categorySteps);
+        markets.setCategoryInfo(
+            id,
+            categoryMultipliers,
+            categorySteps,
+            premiumLltvs
+        );
 
         loanToken.mint(address(owner), 1000000 ether);
         loanToken.approve(address(markets), 1000000 ether);
@@ -106,13 +100,6 @@ contract MoreMarketsTest is Test {
         collateralToken.approve(address(markets), 1000000 ether);
 
         markets.supply(marketParams, 10000 ether, 0, owner, "");
-
-        _getAvailableMultipliers(5, categorySteps, categoryMultipliers);
-        multipliersArray.add(1 ether);
-        for (uint256 i = 0; i < multipliersArray.length(); ++i) {
-            _multipliers.push(uint64(multipliersArray.at(i)));
-        }
-        markets.setAvailableMultipliers(_multipliers);
     }
 
     function test_deployment() public view {
@@ -138,7 +125,11 @@ contract MoreMarketsTest is Test {
             owner,
             owner
         );
-        assertEq(markets._userLastMultiplier(owner), 1.25 ether);
+        (, , , uint64 lastMultiplier) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        assertEq(lastMultiplier, 1.25 ether);
     }
 
     function test_borrow_checkBorrowMultipliersForCategoryE() public {
@@ -409,23 +400,31 @@ contract MoreMarketsTest is Test {
         markets.supplyCollateral(marketParams, 1000 ether, owner, "");
 
         markets.borrow(marketParams, 999 ether, 0, owner, owner);
-        assertEq(markets._userLastMultiplier(owner), 2 ether);
+        (, , , uint64 lastMultiplier) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        assertEq(lastMultiplier, 2 ether);
 
         // to 820
         markets.repay(marketParams, 179 ether, 0, owner, "");
-        assertEq(markets._userLastMultiplier(owner), 1.25 ether);
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        assertEq(lastMultiplier, 1.25 ether);
 
         // to 890
         markets.borrow(marketParams, 70 ether, 0, owner, owner);
-        assertEq(markets._userLastMultiplier(owner), 1.5 ether);
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        assertEq(lastMultiplier, 1.5 ether);
 
         // to 930
         markets.borrow(marketParams, 40 ether, 0, owner, owner);
-        assertEq(markets._userLastMultiplier(owner), 1.75 ether);
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        assertEq(lastMultiplier, 1.75 ether);
 
         // to 951
         markets.borrow(marketParams, 21 ether, 0, owner, owner);
-        assertEq(markets._userLastMultiplier(owner), 2 ether);
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        assertEq(lastMultiplier, 2 ether);
 
         // to 1001
         vm.expectRevert("insufficient collateral");
@@ -454,7 +453,11 @@ contract MoreMarketsTest is Test {
         markets.supplyCollateral(marketParams, 1000 ether, owner, "");
 
         markets.borrow(marketParams, 1999 ether, 0, owner, owner);
-        assertApproxEqAbs(markets._userLastMultiplier(owner), 2 ether, 10 ** 3);
+        (, , , uint64 lastMultiplier) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        assertApproxEqAbs(lastMultiplier, 2 ether, 10 ** 3);
 
         uint256 multiplierStep = (uint256(1 ether)).wDivUp(
             uint256(categorySteps[4]) * 10 ** 18
@@ -462,24 +465,23 @@ contract MoreMarketsTest is Test {
 
         // to 820
         markets.repay(marketParams, 1179 ether, 0, owner, "");
-        assertApproxEqAbs(
-            markets._userLastMultiplier(owner),
-            1 ether + multiplierStep,
-            10 ** 3
-        );
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        assertApproxEqAbs(lastMultiplier, 1 ether + multiplierStep, 10 ** 3);
 
         // to 890
         markets.borrow(marketParams, 70 ether, 0, owner, owner);
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
         assertApproxEqAbs(
-            markets._userLastMultiplier(owner),
+            lastMultiplier,
             1 ether + multiplierStep * 2,
             10 ** 3
         );
 
         // to 930
         markets.borrow(marketParams, 40 ether, 0, owner, owner);
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
         assertApproxEqAbs(
-            markets._userLastMultiplier(owner),
+            lastMultiplier,
             1 ether + multiplierStep * 3,
             10 ** 3
         );
@@ -490,7 +492,8 @@ contract MoreMarketsTest is Test {
 
         // to 2000
         markets.borrow(marketParams, 1070 ether, 0, owner, owner);
-        assertApproxEqAbs(markets._userLastMultiplier(owner), 2 ether, 10 ** 3);
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        assertApproxEqAbs(lastMultiplier, 2 ether, 10 ** 3);
     }
 
     // should correctly distribute debt and yield
@@ -551,11 +554,11 @@ contract MoreMarketsTest is Test {
         markets.supplyCollateral(marketParams, 1000 ether, userE, "");
         markets.borrow(marketParams, userEAmountToBorrow, 0, userE, userE);
         uint64 eUserMultiplier = 1.5 ether;
-        assertApproxEqAbs(
-            markets._userLastMultiplier(userE),
-            eUserMultiplier,
-            10 ** 3
+        (, , , uint256 lastMultiplier) = markets.position(
+            marketParams.id(),
+            userE
         );
+        assertApproxEqAbs(lastMultiplier, eUserMultiplier, 10 ** 3);
 
         startHoax(userB);
         uint256 userBAmountToBorrow = 1399 ether;
@@ -564,11 +567,8 @@ contract MoreMarketsTest is Test {
         markets.supplyCollateral(marketParams, 1000 ether, userB, "");
         markets.borrow(marketParams, userBAmountToBorrow, 0, userB, userB);
         uint64 bUserMultiplier = 1.75 ether;
-        assertApproxEqAbs(
-            markets._userLastMultiplier(userB),
-            bUserMultiplier,
-            10 ** 3
-        );
+        (, , , lastMultiplier) = markets.position(marketParams.id(), userB);
+        assertApproxEqAbs(lastMultiplier, bUserMultiplier, 10 ** 3);
 
         startHoax(userNonPrem);
         uint256 userNonPremAmountToBorrow = 700 ether;
@@ -583,11 +583,11 @@ contract MoreMarketsTest is Test {
             userNonPrem
         );
         uint64 nonPremUserMultiplier = 1 ether;
-        assertApproxEqAbs(
-            markets._userLastMultiplier(userNonPrem),
-            nonPremUserMultiplier,
-            10 ** 3
+        (, , , lastMultiplier) = markets.position(
+            marketParams.id(),
+            userNonPrem
         );
+        assertApproxEqAbs(lastMultiplier, nonPremUserMultiplier, 10 ** 3);
 
         uint256 timeToSkip = 1000;
         skip(timeToSkip);
@@ -653,11 +653,11 @@ contract MoreMarketsTest is Test {
 
         // lenders interest calculated correctly
         // since owner lended 10000 and oneMoreLender lended 5000 at the same time, their ratio should be 2 / 1
-        (uint256 ownerSupplyShares, , ) = markets.position(
+        (uint256 ownerSupplyShares, , , ) = markets.position(
             marketParams.id(),
             owner
         );
-        (uint256 oneMoreLenderSupplyShares, , ) = markets.position(
+        (uint256 oneMoreLenderSupplyShares, , , ) = markets.position(
             marketParams.id(),
             oneMoreLender
         );
@@ -693,25 +693,44 @@ contract MoreMarketsTest is Test {
         startHoax(owner);
         markets.supplyCollateral(marketParams, 1000 ether, owner, "");
 
-        markets.borrow(marketParams, 1000 ether, 0, owner, owner);
+        markets.borrow(marketParams, 1600 ether, 0, owner, owner);
+        skip(2000);
 
-        uint256 newPrice = oracle.price() / 2;
-        oracle.setPrice(newPrice);
+        // uint256 newPrice = oracle.price() / 2;
+        // oracle.setPrice(newPrice);
 
         // console.log("liquidate1");
-        markets.liquidate(marketParams, owner, 500 ether, 0, "");
-        // console.log("liquidate2");
-        markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // console.log("liquidate3");
-        markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // console.log("liquidate4");
-        markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // console.log("liquidate5");
-        markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // console.log("liquidate6");
-        markets.liquidate(marketParams, owner, 99 ether, 0, "");
-        // console.log("liquidate7");
-        markets.liquidate(marketParams, owner, 1 ether, 0, "");
+        // markets.liquidate(marketParams, owner, 500 ether, 0, "");
+        // // console.log("liquidate2");
+        // markets.liquidate(marketParams, owner, 100 ether, 0, "");
+        // // console.log("liquidate3");
+        // markets.liquidate(marketParams, owner, 100 ether, 0, "");
+        // // console.log("liquidate4");
+        // markets.liquidate(marketParams, owner, 100 ether, 0, "");
+        // // console.log("liquidate5");
+        // markets.liquidate(marketParams, owner, 100 ether, 0, "");
+        // // console.log("liquidate6");
+        // markets.liquidate(marketParams, owner, 99 ether, 0, "");
+        // // console.log("liquidate7");
+        // markets.liquidate(marketParams, owner, 1 ether, 0, "");
+
+        markets.liquidate(marketParams, owner, 1000 ether, 0, "");
+        (, , , uint64 lastMultiplier) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        uint256 borrowAsstes = markets.totalBorrowAssetsForMultiplier(
+            marketParams.id(),
+            lastMultiplier
+        );
+        (, uint256 borrowShares, uint256 collateral, ) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        console.log(borrowAsstes);
+        console.log(borrowShares);
+        console.log(collateral);
+        // markets.liquidate(marketParams, owner, 1 ether, 0, "");
     }
 
     function _checkCorrectMultipliersOnBorrow(
@@ -727,11 +746,16 @@ contract MoreMarketsTest is Test {
         );
 
         markets.borrow(marketParams, defaultBorrow - 1, 0, owner, owner);
-        assertEq(markets._userLastMultiplier(owner), 1 ether);
+        (, , , uint64 lastMultiplier) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        assertEq(lastMultiplier, 1 ether);
         for (uint256 i = 0; i < numberOfSteps; ) {
             markets.borrow(marketParams, borrowStep, 0, owner, owner);
+            (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
             assertApproxEqAbs(
-                markets._userLastMultiplier(owner),
+                lastMultiplier,
                 1 ether + multiplierStep * (i + 1),
                 10 ** 3
             );
@@ -755,37 +779,20 @@ contract MoreMarketsTest is Test {
         );
 
         markets.borrow(marketParams, maxBorrow, 0, owner, owner);
-        assertApproxEqAbs(markets._userLastMultiplier(owner), 2 ether, 10 ** 3);
+        (, , , uint64 lastMultiplier) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        assertApproxEqAbs(lastMultiplier, 2 ether, 10 ** 3);
         for (uint256 i = 0; i < numberOfSteps; ) {
             markets.repay(marketParams, borrowStep, 0, owner, "");
+            (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
             assertApproxEqAbs(
-                markets._userLastMultiplier(owner),
+                lastMultiplier,
                 2 ether - multiplierStep * (i + 1),
                 10 ** 3
             );
 
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    function _getAvailableMultipliers(
-        uint256 numberOfCategories,
-        uint8[] memory steps,
-        uint64[] memory multipliers
-    ) internal {
-        for (uint256 i; i < numberOfCategories; ) {
-            uint256 multiplierStep = (uint256(multipliers[i]) - 1 ether).wDivUp(
-                uint256(steps[i]) * 10 ** 18
-            );
-            for (uint256 j; j < steps[i]; ) {
-                uint256 multiplier = multiplierStep * (j + 1);
-                multipliersArray.add(multiplier + 1 ether);
-                unchecked {
-                    ++j;
-                }
-            }
             unchecked {
                 ++i;
             }
@@ -806,7 +813,10 @@ contract MoreMarketsTest is Test {
         );
         markets.repay(marketParams, amountToRepay, 0, user, "");
 
-        (, uint256 borrowShares, ) = markets.position(marketParams.id(), user);
+        (, uint256 borrowShares, , ) = markets.position(
+            marketParams.id(),
+            user
+        );
         assertApproxEqAbs(borrowShares, 0, 10 ** 3);
 
         assertApproxEqAbs(
@@ -853,7 +863,10 @@ contract MoreMarketsTest is Test {
             userMultiplier
         );
         markets.repay(marketParams, 0, sharesToRepay, user, "");
-        (, uint256 borrowShares, ) = markets.position(marketParams.id(), user);
+        (, uint256 borrowShares, , ) = markets.position(
+            marketParams.id(),
+            user
+        );
         assertApproxEqAbs(borrowShares, 0, 10 ** 3);
         assertApproxEqAbs(
             markets.totalBorrowSharesForMultiplier(
@@ -891,7 +904,10 @@ contract MoreMarketsTest is Test {
 
         uint256 userLoanBalanceBefore = loanToken.balanceOf(user);
         uint256 marketLoanBalanceBefore = loanToken.balanceOf(address(markets));
-        (uint256 supplyShares, , ) = markets.position(marketParams.id(), user);
+        (uint256 supplyShares, , , ) = markets.position(
+            marketParams.id(),
+            user
+        );
         (uint128 totalSupplyAssets, uint128 totalSupplyShares, , , , ) = markets
             .market(marketParams.id());
         markets.withdraw(marketParams, 0, supplyShares, user, user);
@@ -924,7 +940,7 @@ contract MoreMarketsTest is Test {
             marketLoanBalanceBefore - amountToWithdraw,
             10
         );
-        (supplyShares, , ) = markets.position(marketParams.id(), user);
+        (supplyShares, , , ) = markets.position(marketParams.id(), user);
         assertApproxEqAbs(supplyShares, 0, 10 ** 3);
     }
 }
