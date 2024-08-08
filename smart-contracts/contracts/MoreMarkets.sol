@@ -54,7 +54,6 @@ contract MoreMarkets is IMoreMarkets {
     /// @inheritdoc IMoreMarkets
     mapping(Id => MarketParams) public idToMarketParams;
 
-    // mapping(Id => mapping(uint64 => uint256)) public scoreToCustomLltv;
     mapping(Id => mapping(uint64 => uint256))
         public totalBorrowAssetsForMultiplier;
     mapping(Id => mapping(uint64 => uint256))
@@ -62,11 +61,7 @@ contract MoreMarkets is IMoreMarkets {
     mapping(Id => mapping(uint8 => CategoryInfo)) private _categoryInfo;
     mapping(Id => EnumerableSet.UintSet) private _availableMultipliers;
 
-    // mapping(uint8 => uint64) private _categoryMultiplier;
-    // mapping(uint8 => uint8) private _categoryNumberOfSteps;
-
     Id[] private _arrayOfMarkets;
-    // EnumerableSet.UintSet private _availableMultipliers;
     ICredoraMetrics public credoraMetrics;
 
     /* CONSTRUCTOR */

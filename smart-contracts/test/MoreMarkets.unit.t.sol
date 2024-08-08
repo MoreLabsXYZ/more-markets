@@ -696,40 +696,25 @@ contract MoreMarketsTest is Test {
         markets.borrow(marketParams, 1600 ether, 0, owner, owner);
         skip(2000);
 
-        // uint256 newPrice = oracle.price() / 2;
-        // oracle.setPrice(newPrice);
+        uint256 newPrice = oracle.price() / 2;
+        oracle.setPrice(newPrice);
 
         // console.log("liquidate1");
-        // markets.liquidate(marketParams, owner, 500 ether, 0, "");
-        // // console.log("liquidate2");
-        // markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // // console.log("liquidate3");
-        // markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // // console.log("liquidate4");
-        // markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // // console.log("liquidate5");
-        // markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // // console.log("liquidate6");
-        // markets.liquidate(marketParams, owner, 99 ether, 0, "");
-        // // console.log("liquidate7");
-        // markets.liquidate(marketParams, owner, 1 ether, 0, "");
+        markets.liquidate(marketParams, owner, 500 ether, 0, "");
+        // console.log("liquidate2");
+        markets.liquidate(marketParams, owner, 100 ether, 0, "");
+        // console.log("liquidate3");
+        markets.liquidate(marketParams, owner, 100 ether, 0, "");
+        // console.log("liquidate4");
+        markets.liquidate(marketParams, owner, 100 ether, 0, "");
+        // console.log("liquidate5");
+        markets.liquidate(marketParams, owner, 100 ether, 0, "");
+        // console.log("liquidate6");
+        markets.liquidate(marketParams, owner, 99 ether, 0, "");
+        // console.log("liquidate7");
+        markets.liquidate(marketParams, owner, 1 ether, 0, "");
 
-        markets.liquidate(marketParams, owner, 1000 ether, 0, "");
-        (, , , uint64 lastMultiplier) = markets.position(
-            marketParams.id(),
-            owner
-        );
-        uint256 borrowAsstes = markets.totalBorrowAssetsForMultiplier(
-            marketParams.id(),
-            lastMultiplier
-        );
-        (, uint256 borrowShares, uint256 collateral, ) = markets.position(
-            marketParams.id(),
-            owner
-        );
-        console.log(borrowAsstes);
-        console.log(borrowShares);
-        console.log(collateral);
+        // markets.liquidate(marketParams, owner, 1000 ether, 0, "");
         // markets.liquidate(marketParams, owner, 1 ether, 0, "");
     }
 
