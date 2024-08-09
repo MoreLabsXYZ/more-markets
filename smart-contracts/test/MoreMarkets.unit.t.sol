@@ -2,13 +2,15 @@
 pragma solidity ^0.8.13;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
+
+// error NothingToClaim();
 
 contract MoreMarketsTest is Test {
     using MarketParamsLib for MarketParams;
@@ -112,6 +114,30 @@ contract MoreMarketsTest is Test {
         assertTrue(markets.isIrmEnabled(address(irm)));
         assertEq(address(markets.credoraMetrics()), address(credora));
         assertEq(markets.owner(), owner);
+    }
+
+    function test_createMarket_shouldDeployCorrectDebtToken() public {
+        marketParams = MarketParams(
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1]
+        );
+        markets.createMarket(marketParams);
+
+        assertEq(
+            DebtToken(markets.idToDebtToken(marketParams.id())).owner(),
+            address(markets)
+        );
+        assertEq(
+            DebtToken(markets.idToDebtToken(marketParams.id())).name(),
+            "MyToken debt token"
+        );
+        assertEq(
+            DebtToken(markets.idToDebtToken(marketParams.id())).symbol(),
+            "dtMTK"
+        );
     }
 
     function test_borrow_correctlyWithShares() public {
@@ -705,23 +731,204 @@ contract MoreMarketsTest is Test {
         uint256 newPrice = oracle.price() / 2;
         oracle.setPrice(newPrice);
 
-        // console.log("liquidate1");
         markets.liquidate(marketParams, owner, 500 ether, 0, "");
-        // console.log("liquidate2");
         markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // console.log("liquidate3");
         markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // console.log("liquidate4");
         markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // console.log("liquidate5");
         markets.liquidate(marketParams, owner, 100 ether, 0, "");
-        // console.log("liquidate6");
         markets.liquidate(marketParams, owner, 99 ether, 0, "");
-        // console.log("liquidate7");
         markets.liquidate(marketParams, owner, 1 ether, 0, "");
+    }
 
-        // markets.liquidate(marketParams, owner, 1000 ether, 0, "");
-        // markets.liquidate(marketParams, owner, 1 ether, 0, "");
+    function test_liquidate_undercollateralizedPositionShouldCreateDebtTokens()
+        public
+    {
+        address borrowerB = address(0xbbbb);
+
+        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+
+        (
+            uint256 totalSupplySharesBefore,
+            ,
+            uint128 totalBorrowAssetsBefore,
+            ,
+            ,
+
+        ) = markets.market(marketParams.id());
+
+        startHoax(owner);
+
+        uint256 liquidatorBalanceBefore = loanToken.balanceOf(owner);
+        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+
+        uint256 liquidatorBalanceAfter = loanToken.balanceOf(owner);
+        uint256 generatedDebtTokens = markets.totalDebtAssetsGenerated(
+            marketParams.id()
+        );
+
+        assertEq(
+            liquidatorBalanceBefore -
+                liquidatorBalanceAfter +
+                generatedDebtTokens,
+            totalBorrowAssetsBefore
+        );
+
+        (
+            uint128 totalSypplyAssetsAfter,
+            ,
+            uint128 totalBorrowAssetsAfter,
+            ,
+            ,
+
+        ) = markets.market(marketParams.id());
+
+        assertEq(
+            totalSupplySharesBefore - generatedDebtTokens,
+            totalSypplyAssetsAfter
+        );
+
+        assertEq(totalBorrowAssetsAfter, 0);
+    }
+
+    function test_claimDebtTokens_lenderShouldBeAbleToClaim() public {
+        address borrowerB = address(0xbbbb);
+        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+
+        startHoax(owner);
+        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+        uint256 debtTokens = markets.totalDebtAssetsGenerated(
+            marketParams.id()
+        );
+
+        markets.claimDebtTokens(marketParams, owner, owner);
+
+        DebtToken marketsDebtToken = DebtToken(
+            markets.idToDebtToken(marketParams.id())
+        );
+
+        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
+    }
+
+    function test_claimDebtTokens_newLenderUnableToClaimPreviouslyGeneratedDebt()
+        public
+    {
+        address borrowerB = address(0xbbbb);
+        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+
+        startHoax(owner);
+        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+
+        // new supplier enters the market and should be unable to claim debt tokens
+        address newSupplier = address(0xaaaa);
+        startHoax(owner);
+        collateralToken.mint(address(newSupplier), 1000000 ether);
+        loanToken.mint(address(newSupplier), 1000000 ether);
+        startHoax(newSupplier);
+        loanToken.approve(address(markets), 1000000 ether);
+        markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
+
+        vm.expectRevert(NothingToClaim.selector);
+        markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
+    }
+
+    function test_claimDebtTokens_LenderShouldBeAbleToClaimAfterWithdraw()
+        public
+    {
+        address borrowerB = address(0xbbbb);
+        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+
+        startHoax(owner);
+        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+        uint256 debtTokens = markets.totalDebtAssetsGenerated(
+            marketParams.id()
+        );
+
+        (uint256 supplyShares, , , , , ) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        markets.withdraw(marketParams, 0, supplyShares, owner, owner);
+
+        markets.claimDebtTokens(marketParams, owner, owner);
+        (supplyShares, , , , , ) = markets.position(marketParams.id(), owner);
+
+        DebtToken marketsDebtToken = DebtToken(
+            markets.idToDebtToken(marketParams.id())
+        );
+
+        assertEq(supplyShares, 0);
+        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
+    }
+
+    function test_claimDebtTokens_NewLenderShouldBeAbleToClaimAfterNewLiquidation()
+        public
+    {
+        address borrowerB = address(0xbbbb);
+        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+
+        startHoax(owner);
+        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+
+        // new supplier enters the market and should be unable to claim debt tokens
+        address newSupplier = address(0xaaaa);
+        startHoax(owner);
+        collateralToken.mint(address(newSupplier), 1000000 ether);
+        loanToken.mint(address(newSupplier), 1000000 ether);
+        startHoax(newSupplier);
+        loanToken.approve(address(markets), 1000000 ether);
+        uint256 debtTokens = markets.totalDebtAssetsGenerated(
+            marketParams.id()
+        );
+        markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
+
+        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+
+        startHoax(owner);
+        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+
+        uint256 newGeneratedDebtTokens = markets.totalDebtAssetsGenerated(
+            marketParams.id()
+        ) - debtTokens;
+
+        (uint256 ownerSupplyShares, , , , , ) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        (uint256 newSupplierSupplyShares, , , , , ) = markets.position(
+            marketParams.id(),
+            newSupplier
+        );
+        (, uint256 totalSupplyShares, , , , ) = markets.market(
+            marketParams.id()
+        );
+
+        uint256 ownerDebtTokens = newGeneratedDebtTokens.mulDivDown(
+            ownerSupplyShares,
+            totalSupplyShares
+        );
+        uint256 newSupplierDebtTokens = newGeneratedDebtTokens.mulDivDown(
+            newSupplierSupplyShares,
+            totalSupplyShares
+        );
+
+        DebtToken marketsDebtToken = DebtToken(
+            markets.idToDebtToken(marketParams.id())
+        );
+
+        markets.claimDebtTokens(marketParams, owner, owner);
+        assertApproxEqAbs(
+            marketsDebtToken.balanceOf(owner),
+            debtTokens + ownerDebtTokens,
+            1e5
+        );
+
+        startHoax(newSupplier);
+        markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
+        assertApproxEqAbs(
+            marketsDebtToken.balanceOf(newSupplier),
+            newSupplierDebtTokens,
+            1e5
+        );
     }
 
     function _checkCorrectMultipliersOnBorrow(
@@ -939,5 +1146,40 @@ contract MoreMarketsTest is Test {
         );
         (supplyShares, , , , , ) = markets.position(marketParams.id(), user);
         assertApproxEqAbs(supplyShares, 0, 10 ** 3);
+    }
+
+    function _setupLiquidation(
+        address borrowerB,
+        uint256 collateral,
+        uint256 borrow
+    ) internal {
+        startHoax(credoraAdmin);
+        credora.setData(
+            0,
+            abi.encode(
+                borrowerB,
+                uint64(700 * 10 ** 6),
+                uint64(0),
+                bytes8(""),
+                uint64(0),
+                uint64(0),
+                uint64(0)
+            ),
+            ""
+        );
+        credora.grantPermission(borrowerB, address(markets), type(uint128).max);
+
+        startHoax(owner);
+        collateralToken.mint(address(borrowerB), 1000000 ether);
+        loanToken.mint(address(borrowerB), 1000000 ether);
+
+        startHoax(borrowerB);
+        collateralToken.approve(address(markets), 1000000 ether);
+        markets.supplyCollateral(marketParams, collateral, borrowerB, "");
+
+        markets.borrow(marketParams, borrow, 0, borrowerB, borrowerB);
+        skip(2000);
+
+        markets.accrueInterest(marketParams);
     }
 }
