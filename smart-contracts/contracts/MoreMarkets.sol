@@ -7,7 +7,8 @@ import {IMorphoLiquidateCallback, IMorphoRepayCallback, IMorphoSupplyCallback, I
 import "@morpho-org/morpho-blue/src/libraries/ConstantsLib.sol";
 import {ICredoraMetrics} from "./interfaces/ICredoraMetrics.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {DebtToken} from "./tokens/DebtToken.sol";
+import {IDebtTokenFactory} from "./interfaces/factories/IDebtTokenFactory.sol";
+import {IDebtToken} from "./interfaces/tokens/IDebtToken.sol";
 import "hardhat/console.sol";
 
 /// @title MoreMarkets
@@ -55,7 +56,7 @@ contract MoreMarkets is IMoreMarkets {
     /// @inheritdoc IMoreMarkets
     mapping(Id => MarketParams) public idToMarketParams;
 
-    mapping(Id => DebtToken) public idToDebtToken;
+    mapping(Id => address) public idToDebtToken;
     mapping(Id => uint256) public totalDebtAssets;
     mapping(Id => uint256) public lastTotalDebtAssets;
     mapping(Id => uint256) public tps;
@@ -69,17 +70,20 @@ contract MoreMarkets is IMoreMarkets {
 
     Id[] private _arrayOfMarkets;
     ICredoraMetrics public credoraMetrics;
+    address public debtTokenFactory;
 
     /* CONSTRUCTOR */
 
     /// @param newOwner The new owner of the contract.
-    constructor(address newOwner) {
+    constructor(address newOwner, address factory) {
         require(newOwner != address(0), ErrorsLib.ZERO_ADDRESS);
 
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(DOMAIN_TYPEHASH, block.chainid, address(this))
         );
         owner = newOwner;
+
+        debtTokenFactory = factory;
 
         emit EventsLib.SetOwner(newOwner);
     }
@@ -200,7 +204,11 @@ contract MoreMarkets is IMoreMarkets {
         market[id].lastUpdate = uint128(block.timestamp);
         idToMarketParams[id] = marketParams;
 
-        idToDebtToken[id] = new DebtToken(address(this));
+        idToDebtToken[id] = IDebtTokenFactory(debtTokenFactory).create(
+            "Debt token",
+            "DBT",
+            address(this)
+        );
 
         _availableMultipliers[id].add(1e18);
 
@@ -345,7 +353,7 @@ contract MoreMarkets is IMoreMarkets {
 
         position[id][onBehalf].debtTokenMissed += uint128(claimAmount);
 
-        idToDebtToken[id].mint(receiver, claimAmount);
+        IDebtToken(idToDebtToken[id]).mint(receiver, claimAmount);
 
         // emit Claimed(to, claimAmount);
     }
@@ -905,8 +913,8 @@ contract MoreMarkets is IMoreMarkets {
         uint256 _totalDebtAssets = totalDebtAssets[id];
         uint256 _totalSupplyShares = market[id].totalSupplyShares;
 
-        uint256 amountForLastPeriod = lastTotalDebtAssets[id] -
-            _totalDebtAssets;
+        uint256 amountForLastPeriod = _totalDebtAssets -
+            lastTotalDebtAssets[id];
 
         if (_totalSupplyShares > 0) {
             tps[id] += amountForLastPeriod / _totalSupplyShares;
