@@ -6,7 +6,8 @@ import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, MarketParamsLib, Even
 import {IMorphoLiquidateCallback, IMorphoRepayCallback, IMorphoSupplyCallback, IMorphoSupplyCollateralCallback, IMorphoFlashLoanCallback} from "@morpho-org/morpho-blue/src/interfaces/IMorphoCallbacks.sol";
 import "@morpho-org/morpho-blue/src/libraries/ConstantsLib.sol";
 import {ICredoraMetrics} from "./interfaces/ICredoraMetrics.sol";
-import {EnumerableSet} from "../test/utils/EnumerableSet.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {DebtToken} from "./tokens/DebtToken.sol";
 import "hardhat/console.sol";
 
 /// @title MoreMarkets
@@ -53,6 +54,11 @@ contract MoreMarkets is IMoreMarkets {
     mapping(address => uint256) public nonce;
     /// @inheritdoc IMoreMarkets
     mapping(Id => MarketParams) public idToMarketParams;
+
+    mapping(Id => DebtToken) public idToDebtToken;
+    mapping(Id => uint256) public totalDebtAssets;
+    mapping(Id => uint256) public lastTotalDebtAssets;
+    mapping(Id => uint256) public tps;
 
     mapping(Id => mapping(uint64 => uint256))
         public totalBorrowAssetsForMultiplier;
@@ -194,6 +200,8 @@ contract MoreMarkets is IMoreMarkets {
         market[id].lastUpdate = uint128(block.timestamp);
         idToMarketParams[id] = marketParams;
 
+        idToDebtToken[id] = new DebtToken(address(this));
+
         _availableMultipliers[id].add(1e18);
 
         emit EventsLib.CreateMarket(id, marketParams);
@@ -237,6 +245,11 @@ contract MoreMarkets is IMoreMarkets {
         position[id][onBehalf].supplyShares += shares.toUint128();
         market[id].totalSupplyShares += shares.toUint128();
         market[id].totalSupplyAssets += assets.toUint128();
+
+        //debt token managment
+        _updateTps(id);
+        position[id][onBehalf].debtTokenMissed += (shares.wMulDown(tps[id]))
+            .toUint128();
 
         emit EventsLib.Supply(id, msg.sender, onBehalf, assets, shares);
 
@@ -287,6 +300,11 @@ contract MoreMarkets is IMoreMarkets {
         market[id].totalSupplyShares -= shares.toUint128();
         market[id].totalSupplyAssets -= assets.toUint128();
 
+        //debt token managment
+        _updateTps(id);
+        position[id][onBehalf].debtTokenGained += (shares.wMulDown(tps[id]))
+            .toUint128();
+
         require(
             market[id].totalBorrowAssets <= market[id].totalSupplyAssets,
             ErrorsLib.INSUFFICIENT_LIQUIDITY
@@ -304,6 +322,32 @@ contract MoreMarkets is IMoreMarkets {
         IERC20(marketParams.loanToken).safeTransfer(receiver, assets);
 
         return (assets, shares);
+    }
+
+    function claimDebtTokens(
+        MarketParams memory marketParams,
+        address onBehalf,
+        address receiver
+    ) external {
+        Id id = marketParams.id();
+        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        require(receiver != address(0), ErrorsLib.ZERO_ADDRESS);
+        // No need to verify that onBehalf != address(0) thanks to the following authorization check.
+        require(_isSenderAuthorized(onBehalf), ErrorsLib.UNAUTHORIZED);
+
+        _updateTps(id);
+
+        uint256 claimAmount = (position[id][onBehalf].supplyShares *
+            uint128(tps[id])) /
+            10 ** 18 -
+            position[id][onBehalf].debtTokenMissed +
+            position[id][onBehalf].debtTokenGained;
+
+        position[id][onBehalf].debtTokenMissed += uint128(claimAmount);
+
+        idToDebtToken[id].mint(receiver, claimAmount);
+
+        // emit Claimed(to, claimAmount);
     }
 
     /* BORROW MANAGEMENT */
@@ -498,7 +542,7 @@ contract MoreMarkets is IMoreMarkets {
 
         _accrueInterest(marketParams, id);
 
-        uint64 lastCategory = position[id][borrower].lastMultiplier;
+        uint64 lastMultiplier = position[id][borrower].lastMultiplier;
         {
             // uint256 collateralPrice = IOracle(marketParams.oracle).price();
 
@@ -529,14 +573,14 @@ contract MoreMarkets is IMoreMarkets {
                 repaidShares = seizedAssetsQuoted
                     .wDivUp(liquidationIncentiveFactor)
                     .toSharesUp(
-                        totalBorrowAssetsForMultiplier[id][lastCategory],
-                        totalBorrowSharesForMultiplier[id][lastCategory]
+                        totalBorrowAssetsForMultiplier[id][lastMultiplier],
+                        totalBorrowSharesForMultiplier[id][lastMultiplier]
                     );
             } else {
                 seizedAssets = repaidShares
                     .toAssetsDown(
-                        totalBorrowAssetsForMultiplier[id][lastCategory],
-                        totalBorrowSharesForMultiplier[id][lastCategory]
+                        totalBorrowAssetsForMultiplier[id][lastMultiplier],
+                        totalBorrowSharesForMultiplier[id][lastMultiplier]
                     )
                     .wMulDown(liquidationIncentiveFactor)
                     .mulDivDown(
@@ -546,16 +590,16 @@ contract MoreMarkets is IMoreMarkets {
             }
         }
         uint256 repaidAssets = repaidShares.toAssetsUp(
-            totalBorrowAssetsForMultiplier[id][lastCategory],
-            totalBorrowSharesForMultiplier[id][lastCategory]
+            totalBorrowAssetsForMultiplier[id][lastMultiplier],
+            totalBorrowSharesForMultiplier[id][lastMultiplier]
         );
 
         position[id][borrower].borrowShares -= repaidShares.toUint128();
-        totalBorrowSharesForMultiplier[id][lastCategory] -= repaidShares
+        totalBorrowSharesForMultiplier[id][lastMultiplier] -= repaidShares
             .toUint128();
-        totalBorrowAssetsForMultiplier[id][lastCategory] = UtilsLib
+        totalBorrowAssetsForMultiplier[id][lastMultiplier] = UtilsLib
             .zeroFloorSub(
-                totalBorrowAssetsForMultiplier[id][lastCategory],
+                totalBorrowAssetsForMultiplier[id][lastMultiplier],
                 repaidAssets
             )
             .toUint128();
@@ -569,22 +613,27 @@ contract MoreMarkets is IMoreMarkets {
         if (position[id][borrower].collateral == 0) {
             badDebtShares = position[id][borrower].borrowShares;
             badDebtAssets = UtilsLib.min(
-                totalBorrowAssetsForMultiplier[id][lastCategory],
+                totalBorrowAssetsForMultiplier[id][lastMultiplier],
                 badDebtShares.toAssetsUp(
-                    totalBorrowAssetsForMultiplier[id][lastCategory],
-                    totalBorrowSharesForMultiplier[id][lastCategory]
+                    totalBorrowAssetsForMultiplier[id][lastMultiplier],
+                    totalBorrowSharesForMultiplier[id][lastMultiplier]
                 )
             );
 
             market[id].totalBorrowAssets -= badDebtAssets.toUint128();
 
             market[id].totalSupplyAssets -= badDebtAssets.toUint128();
-            totalBorrowAssetsForMultiplier[id][lastCategory] -= badDebtAssets
+            totalBorrowAssetsForMultiplier[id][lastMultiplier] -= badDebtAssets
                 .toUint128();
-            totalBorrowSharesForMultiplier[id][lastCategory] -= badDebtShares
+            totalBorrowSharesForMultiplier[id][lastMultiplier] -= badDebtShares
                 .toUint128();
             // market[id].totalBorrowShares -= badDebtShares.toUint128();
             position[id][borrower].borrowShares = 0;
+
+            // if user is prem, then issue debt tokens
+            if (lastMultiplier != 1e18) {
+                totalDebtAssets[id] += badDebtAssets;
+            }
         }
 
         // `repaidAssets` may be greater than `totalBorrowAssets` by 1.
@@ -849,6 +898,23 @@ contract MoreMarkets is IMoreMarkets {
 
         return maxBorrow >= borrowed;
     }
+
+    /* DEBT TOKENS MANAGMENT */
+
+    function _updateTps(Id id) internal {
+        uint256 _totalDebtAssets = totalDebtAssets[id];
+        uint256 _totalSupplyShares = market[id].totalSupplyShares;
+
+        uint256 amountForLastPeriod = lastTotalDebtAssets[id] -
+            _totalDebtAssets;
+
+        if (_totalSupplyShares > 0) {
+            tps[id] += amountForLastPeriod / _totalSupplyShares;
+        }
+        lastTotalDebtAssets[id] = _totalDebtAssets;
+    }
+
+    /* USERS' POSITIONS MANAGMENT */
 
     function _updatePosition(
         MarketParams memory marketParams,

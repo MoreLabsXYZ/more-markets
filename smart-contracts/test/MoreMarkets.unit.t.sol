@@ -125,7 +125,7 @@ contract MoreMarketsTest is Test {
             owner,
             owner
         );
-        (, , , uint64 lastMultiplier) = markets.position(
+        (, , , uint64 lastMultiplier, , ) = markets.position(
             marketParams.id(),
             owner
         );
@@ -400,7 +400,7 @@ contract MoreMarketsTest is Test {
         markets.supplyCollateral(marketParams, 1000 ether, owner, "");
 
         markets.borrow(marketParams, 999 ether, 0, owner, owner);
-        (, , , uint64 lastMultiplier) = markets.position(
+        (, , , uint64 lastMultiplier, , ) = markets.position(
             marketParams.id(),
             owner
         );
@@ -408,22 +408,22 @@ contract MoreMarketsTest is Test {
 
         // to 820
         markets.repay(marketParams, 179 ether, 0, owner, "");
-        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), owner);
         assertEq(lastMultiplier, 1.25 ether);
 
         // to 890
         markets.borrow(marketParams, 70 ether, 0, owner, owner);
-        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), owner);
         assertEq(lastMultiplier, 1.5 ether);
 
         // to 930
         markets.borrow(marketParams, 40 ether, 0, owner, owner);
-        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), owner);
         assertEq(lastMultiplier, 1.75 ether);
 
         // to 951
         markets.borrow(marketParams, 21 ether, 0, owner, owner);
-        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), owner);
         assertEq(lastMultiplier, 2 ether);
 
         // to 1001
@@ -453,7 +453,7 @@ contract MoreMarketsTest is Test {
         markets.supplyCollateral(marketParams, 1000 ether, owner, "");
 
         markets.borrow(marketParams, 1999 ether, 0, owner, owner);
-        (, , , uint64 lastMultiplier) = markets.position(
+        (, , , uint64 lastMultiplier, , ) = markets.position(
             marketParams.id(),
             owner
         );
@@ -465,12 +465,12 @@ contract MoreMarketsTest is Test {
 
         // to 820
         markets.repay(marketParams, 1179 ether, 0, owner, "");
-        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), owner);
         assertApproxEqAbs(lastMultiplier, 1 ether + multiplierStep, 10 ** 3);
 
         // to 890
         markets.borrow(marketParams, 70 ether, 0, owner, owner);
-        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), owner);
         assertApproxEqAbs(
             lastMultiplier,
             1 ether + multiplierStep * 2,
@@ -479,7 +479,7 @@ contract MoreMarketsTest is Test {
 
         // to 930
         markets.borrow(marketParams, 40 ether, 0, owner, owner);
-        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), owner);
         assertApproxEqAbs(
             lastMultiplier,
             1 ether + multiplierStep * 3,
@@ -492,7 +492,7 @@ contract MoreMarketsTest is Test {
 
         // to 2000
         markets.borrow(marketParams, 1070 ether, 0, owner, owner);
-        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), owner);
         assertApproxEqAbs(lastMultiplier, 2 ether, 10 ** 3);
     }
 
@@ -554,7 +554,7 @@ contract MoreMarketsTest is Test {
         markets.supplyCollateral(marketParams, 1000 ether, userE, "");
         markets.borrow(marketParams, userEAmountToBorrow, 0, userE, userE);
         uint64 eUserMultiplier = 1.5 ether;
-        (, , , uint256 lastMultiplier) = markets.position(
+        (, , , uint256 lastMultiplier, , ) = markets.position(
             marketParams.id(),
             userE
         );
@@ -567,7 +567,7 @@ contract MoreMarketsTest is Test {
         markets.supplyCollateral(marketParams, 1000 ether, userB, "");
         markets.borrow(marketParams, userBAmountToBorrow, 0, userB, userB);
         uint64 bUserMultiplier = 1.75 ether;
-        (, , , lastMultiplier) = markets.position(marketParams.id(), userB);
+        (, , , lastMultiplier, , ) = markets.position(marketParams.id(), userB);
         assertApproxEqAbs(lastMultiplier, bUserMultiplier, 10 ** 3);
 
         startHoax(userNonPrem);
@@ -583,7 +583,7 @@ contract MoreMarketsTest is Test {
             userNonPrem
         );
         uint64 nonPremUserMultiplier = 1 ether;
-        (, , , lastMultiplier) = markets.position(
+        (, , , lastMultiplier, , ) = markets.position(
             marketParams.id(),
             userNonPrem
         );
@@ -653,11 +653,11 @@ contract MoreMarketsTest is Test {
 
         // lenders interest calculated correctly
         // since owner lended 10000 and oneMoreLender lended 5000 at the same time, their ratio should be 2 / 1
-        (uint256 ownerSupplyShares, , , ) = markets.position(
+        (uint256 ownerSupplyShares, , , , , ) = markets.position(
             marketParams.id(),
             owner
         );
-        (uint256 oneMoreLenderSupplyShares, , , ) = markets.position(
+        (uint256 oneMoreLenderSupplyShares, , , , , ) = markets.position(
             marketParams.id(),
             oneMoreLender
         );
@@ -731,14 +731,17 @@ contract MoreMarketsTest is Test {
         );
 
         markets.borrow(marketParams, defaultBorrow - 1, 0, owner, owner);
-        (, , , uint64 lastMultiplier) = markets.position(
+        (, , , uint64 lastMultiplier, , ) = markets.position(
             marketParams.id(),
             owner
         );
         assertEq(lastMultiplier, 1 ether);
         for (uint256 i = 0; i < numberOfSteps; ) {
             markets.borrow(marketParams, borrowStep, 0, owner, owner);
-            (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+            (, , , lastMultiplier, , ) = markets.position(
+                marketParams.id(),
+                owner
+            );
             assertApproxEqAbs(
                 lastMultiplier,
                 1 ether + multiplierStep * (i + 1),
@@ -764,14 +767,17 @@ contract MoreMarketsTest is Test {
         );
 
         markets.borrow(marketParams, maxBorrow, 0, owner, owner);
-        (, , , uint64 lastMultiplier) = markets.position(
+        (, , , uint64 lastMultiplier, , ) = markets.position(
             marketParams.id(),
             owner
         );
         assertApproxEqAbs(lastMultiplier, 2 ether, 10 ** 3);
         for (uint256 i = 0; i < numberOfSteps; ) {
             markets.repay(marketParams, borrowStep, 0, owner, "");
-            (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+            (, , , lastMultiplier, , ) = markets.position(
+                marketParams.id(),
+                owner
+            );
             assertApproxEqAbs(
                 lastMultiplier,
                 2 ether - multiplierStep * (i + 1),
@@ -798,7 +804,7 @@ contract MoreMarketsTest is Test {
         );
         markets.repay(marketParams, amountToRepay, 0, user, "");
 
-        (, uint256 borrowShares, , ) = markets.position(
+        (, uint256 borrowShares, , , , ) = markets.position(
             marketParams.id(),
             user
         );
@@ -848,7 +854,7 @@ contract MoreMarketsTest is Test {
             userMultiplier
         );
         markets.repay(marketParams, 0, sharesToRepay, user, "");
-        (, uint256 borrowShares, , ) = markets.position(
+        (, uint256 borrowShares, , , , ) = markets.position(
             marketParams.id(),
             user
         );
@@ -889,7 +895,7 @@ contract MoreMarketsTest is Test {
 
         uint256 userLoanBalanceBefore = loanToken.balanceOf(user);
         uint256 marketLoanBalanceBefore = loanToken.balanceOf(address(markets));
-        (uint256 supplyShares, , , ) = markets.position(
+        (uint256 supplyShares, , , , , ) = markets.position(
             marketParams.id(),
             user
         );
@@ -925,7 +931,7 @@ contract MoreMarketsTest is Test {
             marketLoanBalanceBefore - amountToWithdraw,
             10
         );
-        (supplyShares, , , ) = markets.position(marketParams.id(), user);
+        (supplyShares, , , , , ) = markets.position(marketParams.id(), user);
         assertApproxEqAbs(supplyShares, 0, 10 ** 3);
     }
 }
