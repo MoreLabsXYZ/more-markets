@@ -8,6 +8,8 @@ struct Position {
     uint128 borrowShares;
     uint128 collateral;
     uint64 lastMultiplier;
+    uint128 debtTokenMissed;
+    uint128 debtTokenGained;
 }
 
 struct CategoryInfo {
@@ -27,7 +29,9 @@ interface IMoreMarkets is IMorphoBase {
             uint128 supplyShares,
             uint128 borrowShares,
             uint128 collateral,
-            uint64 lastMultiplier
+            uint64 lastMultiplier,
+            uint128 debtTokenMissed,
+            uint128 debtTokenGained
         );
 
     /// @notice The state of the market corresponding to `id`.

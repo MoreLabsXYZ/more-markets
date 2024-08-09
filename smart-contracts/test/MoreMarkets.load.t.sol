@@ -3,11 +3,13 @@ pragma solidity ^0.8.13;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
+import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
+import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
-import {EnumerableSet} from "./utils/EnumerableSet.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract MoreMarketsTest is Test {
     using MarketParamsLib for MarketParams;
@@ -24,6 +26,8 @@ contract MoreMarketsTest is Test {
         OracleMock(0xC1aB56955958Ac8379567157740F18AAadD8cD04);
 
     MoreMarkets public markets;
+    DebtTokenFactory public debtTokenFactory;
+    DebtToken public debtToken;
     address public owner = address(0x89a76D7a4D006bDB9Efd0923A346fAe9437D434F);
     AdaptiveCurveIrm public irm;
 
@@ -68,7 +72,9 @@ contract MoreMarketsTest is Test {
         );
         vm.selectFork(sepoliaFork);
 
-        markets = new MoreMarkets(owner);
+        debtToken = new DebtToken();
+        debtTokenFactory = new DebtTokenFactory(address(debtToken));
+        markets = new MoreMarkets(owner, address(debtTokenFactory));
         irm = new AdaptiveCurveIrm(address(markets));
 
         startHoax(owner);

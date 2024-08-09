@@ -6,8 +6,14 @@ import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, MarketParamsLib, Even
 import {IMorphoLiquidateCallback, IMorphoRepayCallback, IMorphoSupplyCallback, IMorphoSupplyCollateralCallback, IMorphoFlashLoanCallback} from "@morpho-org/morpho-blue/src/interfaces/IMorphoCallbacks.sol";
 import "@morpho-org/morpho-blue/src/libraries/ConstantsLib.sol";
 import {ICredoraMetrics} from "./interfaces/ICredoraMetrics.sol";
-import {EnumerableSet} from "../test/utils/EnumerableSet.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IDebtTokenFactory} from "./interfaces/factories/IDebtTokenFactory.sol";
+import {IDebtToken} from "./interfaces/tokens/IDebtToken.sol";
 import "hardhat/console.sol";
+
+// TODO: need to think if we have to move it to library
+error NothingToClaim();
 
 /// @title MoreMarkets
 /// @author Morpho Labs
@@ -54,6 +60,11 @@ contract MoreMarkets is IMoreMarkets {
     /// @inheritdoc IMoreMarkets
     mapping(Id => MarketParams) public idToMarketParams;
 
+    mapping(Id => address) public idToDebtToken;
+    mapping(Id => uint256) public totalDebtAssetsGenerated;
+    mapping(Id => uint256) public lastTotalDebtAssetsGenerated;
+    mapping(Id => uint256) public tps;
+
     mapping(Id => mapping(uint64 => uint256))
         public totalBorrowAssetsForMultiplier;
     mapping(Id => mapping(uint64 => uint256))
@@ -63,17 +74,20 @@ contract MoreMarkets is IMoreMarkets {
 
     Id[] private _arrayOfMarkets;
     ICredoraMetrics public credoraMetrics;
+    address public debtTokenFactory;
 
     /* CONSTRUCTOR */
 
     /// @param newOwner The new owner of the contract.
-    constructor(address newOwner) {
+    constructor(address newOwner, address factory) {
         require(newOwner != address(0), ErrorsLib.ZERO_ADDRESS);
 
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(DOMAIN_TYPEHASH, block.chainid, address(this))
         );
         owner = newOwner;
+
+        debtTokenFactory = factory;
 
         emit EventsLib.SetOwner(newOwner);
     }
@@ -194,6 +208,21 @@ contract MoreMarkets is IMoreMarkets {
         market[id].lastUpdate = uint128(block.timestamp);
         idToMarketParams[id] = marketParams;
 
+        // debt token creation
+        {
+            string memory name = IERC20Metadata(marketParams.loanToken).name();
+            string memory symbol = IERC20Metadata(marketParams.loanToken)
+                .symbol();
+            uint8 decimals = IERC20Metadata(marketParams.loanToken).decimals();
+
+            idToDebtToken[id] = IDebtTokenFactory(debtTokenFactory).create(
+                string(abi.encodePacked(name, " debt token")),
+                string(abi.encodePacked("dt", symbol)),
+                decimals,
+                address(this)
+            );
+        }
+
         _availableMultipliers[id].add(1e18);
 
         emit EventsLib.CreateMarket(id, marketParams);
@@ -222,6 +251,7 @@ contract MoreMarkets is IMoreMarkets {
         require(onBehalf != address(0), ErrorsLib.ZERO_ADDRESS);
 
         _accrueInterest(marketParams, id);
+        _updateTps(id);
 
         if (assets > 0)
             shares = assets.toSharesDown(
@@ -237,6 +267,11 @@ contract MoreMarkets is IMoreMarkets {
         position[id][onBehalf].supplyShares += shares.toUint128();
         market[id].totalSupplyShares += shares.toUint128();
         market[id].totalSupplyAssets += assets.toUint128();
+
+        //debt token distribution managment
+        position[id][onBehalf].debtTokenMissed += (
+            shares.mulDivDown(tps[id], 1e24)
+        ).toUint128();
 
         emit EventsLib.Supply(id, msg.sender, onBehalf, assets, shares);
 
@@ -271,6 +306,7 @@ contract MoreMarkets is IMoreMarkets {
         require(_isSenderAuthorized(onBehalf), ErrorsLib.UNAUTHORIZED);
 
         _accrueInterest(marketParams, id);
+        _updateTps(id);
 
         if (assets > 0)
             shares = assets.toSharesUp(
@@ -286,6 +322,11 @@ contract MoreMarkets is IMoreMarkets {
         position[id][onBehalf].supplyShares -= shares.toUint128();
         market[id].totalSupplyShares -= shares.toUint128();
         market[id].totalSupplyAssets -= assets.toUint128();
+
+        //debt token distribution managment
+        position[id][onBehalf].debtTokenGained += (
+            shares.mulDivDown(tps[id], 1e24)
+        ).toUint128();
 
         require(
             market[id].totalBorrowAssets <= market[id].totalSupplyAssets,
@@ -304,6 +345,36 @@ contract MoreMarkets is IMoreMarkets {
         IERC20(marketParams.loanToken).safeTransfer(receiver, assets);
 
         return (assets, shares);
+    }
+
+    function claimDebtTokens(
+        MarketParams memory marketParams,
+        address onBehalf,
+        address receiver
+    ) external {
+        Id id = marketParams.id();
+        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        require(receiver != address(0), ErrorsLib.ZERO_ADDRESS);
+        // No need to verify that onBehalf != address(0) thanks to the following authorization check.
+        require(_isSenderAuthorized(onBehalf), ErrorsLib.UNAUTHORIZED);
+
+        _updateTps(id);
+
+        // div by 1e6, since shares have 24 decimal and debt tokens are 18
+        uint256 claimAmount = position[id][onBehalf].supplyShares.mulDivDown(
+            tps[id],
+            1e24
+        ) -
+            position[id][onBehalf].debtTokenMissed +
+            position[id][onBehalf].debtTokenGained;
+
+        if (claimAmount == 0) revert NothingToClaim();
+
+        position[id][onBehalf].debtTokenMissed += uint128(claimAmount);
+
+        IDebtToken(idToDebtToken[id]).mint(receiver, claimAmount);
+
+        // emit Claimed(to, claimAmount);
     }
 
     /* BORROW MANAGEMENT */
@@ -498,10 +569,8 @@ contract MoreMarkets is IMoreMarkets {
 
         _accrueInterest(marketParams, id);
 
-        uint64 lastCategory = position[id][borrower].lastMultiplier;
+        uint64 lastMultiplier = position[id][borrower].lastMultiplier;
         {
-            // uint256 collateralPrice = IOracle(marketParams.oracle).price();
-
             require(
                 !_isHealthy(
                     marketParams,
@@ -529,14 +598,14 @@ contract MoreMarkets is IMoreMarkets {
                 repaidShares = seizedAssetsQuoted
                     .wDivUp(liquidationIncentiveFactor)
                     .toSharesUp(
-                        totalBorrowAssetsForMultiplier[id][lastCategory],
-                        totalBorrowSharesForMultiplier[id][lastCategory]
+                        totalBorrowAssetsForMultiplier[id][lastMultiplier],
+                        totalBorrowSharesForMultiplier[id][lastMultiplier]
                     );
             } else {
                 seizedAssets = repaidShares
                     .toAssetsDown(
-                        totalBorrowAssetsForMultiplier[id][lastCategory],
-                        totalBorrowSharesForMultiplier[id][lastCategory]
+                        totalBorrowAssetsForMultiplier[id][lastMultiplier],
+                        totalBorrowSharesForMultiplier[id][lastMultiplier]
                     )
                     .wMulDown(liquidationIncentiveFactor)
                     .mulDivDown(
@@ -546,16 +615,16 @@ contract MoreMarkets is IMoreMarkets {
             }
         }
         uint256 repaidAssets = repaidShares.toAssetsUp(
-            totalBorrowAssetsForMultiplier[id][lastCategory],
-            totalBorrowSharesForMultiplier[id][lastCategory]
+            totalBorrowAssetsForMultiplier[id][lastMultiplier],
+            totalBorrowSharesForMultiplier[id][lastMultiplier]
         );
 
         position[id][borrower].borrowShares -= repaidShares.toUint128();
-        totalBorrowSharesForMultiplier[id][lastCategory] -= repaidShares
+        totalBorrowSharesForMultiplier[id][lastMultiplier] -= repaidShares
             .toUint128();
-        totalBorrowAssetsForMultiplier[id][lastCategory] = UtilsLib
+        totalBorrowAssetsForMultiplier[id][lastMultiplier] = UtilsLib
             .zeroFloorSub(
-                totalBorrowAssetsForMultiplier[id][lastCategory],
+                totalBorrowAssetsForMultiplier[id][lastMultiplier],
                 repaidAssets
             )
             .toUint128();
@@ -569,22 +638,27 @@ contract MoreMarkets is IMoreMarkets {
         if (position[id][borrower].collateral == 0) {
             badDebtShares = position[id][borrower].borrowShares;
             badDebtAssets = UtilsLib.min(
-                totalBorrowAssetsForMultiplier[id][lastCategory],
+                totalBorrowAssetsForMultiplier[id][lastMultiplier],
                 badDebtShares.toAssetsUp(
-                    totalBorrowAssetsForMultiplier[id][lastCategory],
-                    totalBorrowSharesForMultiplier[id][lastCategory]
+                    totalBorrowAssetsForMultiplier[id][lastMultiplier],
+                    totalBorrowSharesForMultiplier[id][lastMultiplier]
                 )
             );
 
             market[id].totalBorrowAssets -= badDebtAssets.toUint128();
 
             market[id].totalSupplyAssets -= badDebtAssets.toUint128();
-            totalBorrowAssetsForMultiplier[id][lastCategory] -= badDebtAssets
+            totalBorrowAssetsForMultiplier[id][lastMultiplier] -= badDebtAssets
                 .toUint128();
-            totalBorrowSharesForMultiplier[id][lastCategory] -= badDebtShares
+            totalBorrowSharesForMultiplier[id][lastMultiplier] -= badDebtShares
                 .toUint128();
             // market[id].totalBorrowShares -= badDebtShares.toUint128();
             position[id][borrower].borrowShares = 0;
+
+            // if user is prem, then issue debt tokens
+            if (lastMultiplier != 1e18) {
+                totalDebtAssetsGenerated[id] += badDebtAssets;
+            }
         }
 
         // `repaidAssets` may be greater than `totalBorrowAssets` by 1.
@@ -850,6 +924,28 @@ contract MoreMarkets is IMoreMarkets {
         return maxBorrow >= borrowed;
     }
 
+    /* DEBT TOKENS MANAGMENT */
+
+    function _updateTps(Id id) internal {
+        uint256 _totalDebtAssetsGenerated = totalDebtAssetsGenerated[id];
+        uint256 _totalSupplyShares = market[id].totalSupplyShares;
+
+        uint256 amountForLastPeriod = _totalDebtAssetsGenerated -
+            lastTotalDebtAssetsGenerated[id];
+
+        if (_totalSupplyShares > 0) {
+            // TODO: need to think: for more accurate tps we can multiply by bigger number and then divide in claimDebtTokens, supply and withdraw functions
+            // shares' decimal is 24
+            tps[id] += (amountForLastPeriod).mulDivDown(
+                1e24,
+                _totalSupplyShares
+            );
+        }
+        lastTotalDebtAssetsGenerated[id] = _totalDebtAssetsGenerated;
+    }
+
+    /* USERS' POSITIONS MANAGMENT */
+
     function _updatePosition(
         MarketParams memory marketParams,
         Id id,
@@ -956,7 +1052,6 @@ contract MoreMarkets is IMoreMarkets {
             abi.encodeWithSignature("getScore(address)", borrower)
         );
 
-        // console.log("check1");
         uint256 maxBorrowByDefault = uint256(position[id][borrower].collateral)
             .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
             .wMulDown(marketParams.lltv);
