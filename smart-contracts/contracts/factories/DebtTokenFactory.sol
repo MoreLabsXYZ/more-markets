@@ -15,9 +15,6 @@ contract DebtTokenFactory is ERC165, AccessControl, IDebtTokenFactory {
     // Address of debt token implementation
     address internal _implementation;
 
-    // Deployer role, that have ability to change implementations addresses.
-    bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
-
     /**
      * @dev Function that initializes state of smart contract at the moment
      * of deploy.
@@ -25,7 +22,6 @@ contract DebtTokenFactory is ERC165, AccessControl, IDebtTokenFactory {
      */
     constructor(address implementation) {
         _setImplementationAddress(implementation);
-        _grantRole(DEPLOYER_ROLE, msg.sender);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
@@ -35,20 +31,13 @@ contract DebtTokenFactory is ERC165, AccessControl, IDebtTokenFactory {
     }
 
     /// @inheritdoc IDebtTokenFactory
-    function setImplementationAddress(
-        address implementation
-    ) external onlyRole(DEPLOYER_ROLE) {
-        _setImplementationAddress(implementation);
-    }
-
-    /// @inheritdoc IDebtTokenFactory
     function create(
-        string memory _symbol,
         string memory _name,
+        string memory _symbol,
         address _owner
     ) external returns (address instance) {
         instance = Clones.clone(_implementation);
-        IDebtToken(instance).initialize(_symbol, _name, _owner);
+        IDebtToken(instance).initialize(_name, _symbol, _owner);
 
         emit DebtTokenCreated(msg.sender, instance);
     }
@@ -74,10 +63,7 @@ contract DebtTokenFactory is ERC165, AccessControl, IDebtTokenFactory {
         if (!_checkIfAddressIsValid(implementation))
             revert InvalidImplementationAddress();
 
-        address oldImplementation = _implementation;
         _implementation = implementation;
-
-        emit ImplementationAddressChanged(oldImplementation, implementation);
     }
 
     /**

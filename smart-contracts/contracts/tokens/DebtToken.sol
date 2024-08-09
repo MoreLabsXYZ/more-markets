@@ -7,8 +7,8 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 
 contract DebtToken is ERC20Upgradeable, OwnableUpgradeable {
     function initialize(
-        string memory symbol,
         string memory name,
+        string memory symbol,
         address deployer
     ) external initializer {
         __ERC20_init(name, symbol);
