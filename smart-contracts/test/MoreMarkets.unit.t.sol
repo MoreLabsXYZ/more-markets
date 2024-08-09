@@ -2,19 +2,21 @@
 pragma solidity ^0.8.13;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, UtilsLib, SharesMathLib, WAD, NothingToClaim} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
+import "@morpho-org/morpho-blue/src/libraries/ConstantsLib.sol";
 
 // error NothingToClaim();
 
 contract MoreMarketsTest is Test {
     using MarketParamsLib for MarketParams;
     using MathLib for uint256;
+    using SharesMathLib for uint256;
 
     uint256 sepoliaFork;
 
@@ -731,6 +733,7 @@ contract MoreMarketsTest is Test {
         uint256 newPrice = oracle.price() / 2;
         oracle.setPrice(newPrice);
 
+        uint256 ownerCollateralBalanceBefore = collateralToken.balanceOf(owner);
         markets.liquidate(marketParams, owner, 500 ether, 0, "");
         markets.liquidate(marketParams, owner, 100 ether, 0, "");
         markets.liquidate(marketParams, owner, 100 ether, 0, "");
@@ -738,6 +741,88 @@ contract MoreMarketsTest is Test {
         markets.liquidate(marketParams, owner, 100 ether, 0, "");
         markets.liquidate(marketParams, owner, 99 ether, 0, "");
         markets.liquidate(marketParams, owner, 1 ether, 0, "");
+        // markets.liquidate(marketParams, owner, 1000 ether, 0, "");
+
+        assertEq(
+            ownerCollateralBalanceBefore,
+            collateralToken.balanceOf(owner) - 1000 ether
+        );
+    }
+
+    function test_liquidate_undercollateralizedPositionWithShares() public {
+        startHoax(credoraAdmin);
+        credora.setData(
+            0,
+            abi.encode(
+                owner,
+                uint64(700 * 10 ** 6),
+                uint64(0),
+                bytes8(""),
+                uint64(0),
+                uint64(0),
+                uint64(0)
+            ),
+            ""
+        );
+        credora.grantPermission(owner, address(markets), type(uint128).max);
+
+        startHoax(owner);
+        markets.supplyCollateral(marketParams, 1000 ether, owner, "");
+
+        markets.borrow(marketParams, 1600 ether, 0, owner, owner);
+        (, uint256 borrowShares, uint256 collateralPos, , , ) = markets
+            .position(marketParams.id(), owner);
+        skip(2000);
+
+        uint256 newPrice = oracle.price() / 2;
+        oracle.setPrice(newPrice);
+
+        markets.accrueInterest(marketParams);
+
+        uint256 collateral = 1000 ether;
+        uint256 seizedAssetsQuoted = collateral.mulDivUp(
+            oracle.price(),
+            ORACLE_PRICE_SCALE
+        );
+
+        uint256 liquidationIncentiveFactor = UtilsLib.min(
+            MAX_LIQUIDATION_INCENTIVE_FACTOR,
+            WAD.wDivDown(
+                WAD - LIQUIDATION_CURSOR.wMulDown(WAD - marketParams.lltv)
+            )
+        );
+
+        (, , , uint64 lastMultiplier, , ) = markets.position(
+            marketParams.id(),
+            owner
+        );
+
+        uint256 totalBorrowAssetsForMultiplier = markets
+            .totalBorrowAssetsForMultiplier(marketParams.id(), lastMultiplier);
+
+        uint256 totalBorrowSharesForMultiplier = markets
+            .totalBorrowSharesForMultiplier(marketParams.id(), lastMultiplier);
+
+        uint256 repaidShares = seizedAssetsQuoted
+            .wDivUp(liquidationIncentiveFactor)
+            .toSharesUp(
+                totalBorrowAssetsForMultiplier,
+                totalBorrowSharesForMultiplier
+            );
+
+        uint256 ownerCollateralBalanceBefore = collateralToken.balanceOf(owner);
+        markets.liquidate(marketParams, owner, 0, repaidShares, "");
+
+        (, borrowShares, collateralPos, , , ) = markets.position(
+            marketParams.id(),
+            owner
+        );
+        assertEq(borrowShares, 0);
+        assertEq(collateralPos, 0);
+        assertEq(
+            ownerCollateralBalanceBefore,
+            collateralToken.balanceOf(owner) - 1000 ether
+        );
     }
 
     function test_liquidate_undercollateralizedPositionShouldCreateDebtTokens()
@@ -817,6 +902,9 @@ contract MoreMarketsTest is Test {
 
         startHoax(owner);
         markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+        uint256 debtTokens = markets.totalDebtAssetsGenerated(
+            marketParams.id()
+        );
 
         // new supplier enters the market and should be unable to claim debt tokens
         address newSupplier = address(0xaaaa);
@@ -829,6 +917,15 @@ contract MoreMarketsTest is Test {
 
         vm.expectRevert(NothingToClaim.selector);
         markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
+
+        startHoax(owner);
+        markets.claimDebtTokens(marketParams, owner, owner);
+
+        DebtToken marketsDebtToken = DebtToken(
+            markets.idToDebtToken(marketParams.id())
+        );
+
+        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
     }
 
     function test_claimDebtTokens_LenderShouldBeAbleToClaimAfterWithdraw()
