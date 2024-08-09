@@ -21,32 +21,36 @@ contract DebtTokenFactoryTest is Test {
         debtToken = new DebtToken();
     }
 
-    function test_initialize() public {
+    function test_initialize(uint8 decimals) public {
+        vm.assume(decimals < 70);
         string memory name = "Debt token";
         string memory symbol = "DBT";
 
-        debtToken.initialize(name, symbol, deployer);
+        debtToken.initialize(name, symbol, decimals, deployer);
 
         assertEq(debtToken.name(), name);
         assertEq(debtToken.symbol(), symbol);
         assertEq(debtToken.owner(), deployer);
+        assertEq(debtToken.decimals(), decimals);
     }
 
     function test_initialize_shouldRevertIfAlreadyInitialized() public {
         string memory name = "Debt token";
         string memory symbol = "DBT";
+        uint8 decimals = 18;
 
-        debtToken.initialize(name, symbol, deployer);
+        debtToken.initialize(name, symbol, decimals, deployer);
 
         vm.expectRevert("Initializable: contract is already initialized");
-        debtToken.initialize(name, symbol, deployer);
+        debtToken.initialize(name, symbol, decimals, deployer);
     }
 
     function test_mint_shouldMintIfCalledByOwner() public {
         string memory name = "Debt token";
         string memory symbol = "DBT";
+        uint8 decimals = 18;
 
-        debtToken.initialize(name, symbol, deployer);
+        debtToken.initialize(name, symbol, decimals, deployer);
 
         assertEq(debtToken.totalSupply(), 0);
         assertEq(debtToken.balanceOf(deployer), 0);
@@ -61,8 +65,9 @@ contract DebtTokenFactoryTest is Test {
     function test_mint_shouldRevertIfNotCalledByOwner() public {
         string memory name = "Debt token";
         string memory symbol = "DBT";
+        uint8 decimals = 18;
 
-        debtToken.initialize(name, symbol, deployer);
+        debtToken.initialize(name, symbol, decimals, deployer);
 
         assertEq(debtToken.totalSupply(), 0);
         assertEq(debtToken.balanceOf(deployer), 0);

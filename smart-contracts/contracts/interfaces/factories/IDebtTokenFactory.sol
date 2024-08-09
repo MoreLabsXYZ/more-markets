@@ -26,11 +26,13 @@ interface IDebtTokenFactory is IERC165 {
      * the provided parameters.
      * @param _name name of debt token token.
      * @param _symbol symbol of debt token token.
+     * @param _decimals decimals of debt token token.
      * @param _owner address of owner for the new debt token contract.
      */
     function create(
         string memory _name,
         string memory _symbol,
+        uint8 _decimals,
         address _owner
     ) external returns (address instance);
 }

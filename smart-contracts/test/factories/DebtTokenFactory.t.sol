@@ -32,14 +32,17 @@ contract DebtTokenFactoryTest is Test {
         assertTrue(factory.hasRole(factory.DEFAULT_ADMIN_ROLE(), deployer));
     }
 
-    function test_create_andThenMint() public {
+    function test_create_andThenMint(uint8 decimals) public {
+        vm.assume(decimals < 70);
+
         string memory name = "Debt token";
         string memory symbol = "DBT";
         DebtToken newDebtToken = DebtToken(
-            factory.create(name, symbol, deployer)
+            factory.create(name, symbol, decimals, deployer)
         );
         assertEq(newDebtToken.name(), name);
         assertEq(newDebtToken.symbol(), symbol);
+        assertEq(newDebtToken.decimals(), decimals);
 
         assertEq(newDebtToken.owner(), deployer);
 

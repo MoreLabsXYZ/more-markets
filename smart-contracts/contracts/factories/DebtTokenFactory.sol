@@ -34,10 +34,11 @@ contract DebtTokenFactory is ERC165, AccessControl, IDebtTokenFactory {
     function create(
         string memory _name,
         string memory _symbol,
+        uint8 _decimals,
         address _owner
     ) external returns (address instance) {
         instance = Clones.clone(_implementation);
-        IDebtToken(instance).initialize(_name, _symbol, _owner);
+        IDebtToken(instance).initialize(_name, _symbol, _decimals, _owner);
 
         emit DebtTokenCreated(msg.sender, instance);
     }

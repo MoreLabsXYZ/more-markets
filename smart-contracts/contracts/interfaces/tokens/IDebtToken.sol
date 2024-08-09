@@ -10,6 +10,7 @@ interface IDebtToken is IERC20MetadataUpgradeable {
     function initialize(
         string memory symbol,
         string memory name,
+        uint8 decimals,
         address deployer
     ) external;
 
