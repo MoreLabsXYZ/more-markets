@@ -64,3 +64,20 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+
+### How to deploy contracts
+
+before running scripts fill the `.env` and run:
+
+`source .env`
+
+deploy on sepolia:
+
+`forge script --chain sepolia script/Deploy.s.sol:DeployMarketContracts --rpc-url $SEPOLIA_RPC_URL --broadcast -vvvv`
+
+deploy on flow:
+
+`forge script --chain flow script/Deploy.s.sol:DeployMarketContracts --rpc-url $FLOW_RPC_URL --broadcast -vvvv`
+
+add `--verify` to verify the contracts
