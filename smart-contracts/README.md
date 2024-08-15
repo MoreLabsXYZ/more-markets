@@ -78,6 +78,8 @@ deploy on sepolia:
 
 deploy on flow:
 
-`forge script --chain flow script/Deploy.s.sol:DeployMarketContracts --rpc-url $FLOW_RPC_URL --broadcast -vvvv`
+`forge script --chain flow script/Deploy.s.sol:DeployMarketContracts --rpc-url $FLOW_RPC_URL --broadcast --slow -vvvv`
 
 add `--verify` to verify the contracts
+
+use `--slow` in case of using flow public RPC, otherwise txs fails during the deployment.

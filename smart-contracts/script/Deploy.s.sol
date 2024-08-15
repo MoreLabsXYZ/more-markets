@@ -51,7 +51,7 @@ contract DeployMarketContracts is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         credoraAdmin = vm.envAddress("CREDORA_ADMIN");
-        owner = vm.envAddress("OWNER");
+        owner = address(uint160(vm.envUint("OWNER")));
         credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
         oracleMock = OracleMock(vm.envAddress("ORACLE"));
 
