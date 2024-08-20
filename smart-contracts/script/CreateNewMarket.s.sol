@@ -10,22 +10,15 @@ import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 
 contract DeployCrowdfunding is Script {
-    ICredoraMetrics public credora =
-        ICredoraMetrics(address(0xA1CE4fD8470718eB3e8248E40ab489856E125F59));
-    address public credoraAdmin =
-        address(0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab);
-    OracleMock public oracle =
-        OracleMock(0xC1aB56955958Ac8379567157740F18AAadD8cD04);
+    ICredoraMetrics public credora;
+    address public credoraAdmin;
+    OracleMock public oracle;
 
-    MoreMarkets public markets =
-        MoreMarkets(0xABCDABCDABCDABCDABCDABCDABCDABCDABCDABCD);
-    DebtTokenFactory public debtTokenFactorye =
-        DebtTokenFactory(0xABCDABCDABCDABCDABCDABCDABCDABCDABCDABCD);
-    DebtToken public debtToken =
-        DebtToken(0xABCDABCDABCDABCDABCDABCDABCDABCDABCDABCD);
-    address public owner = address(0x89a76D7a4D006bDB9Efd0923A346fAe9437D434F);
-    AdaptiveCurveIrm public irm =
-        AdaptiveCurveIrm(0xABCDABCDABCDABCDABCDABCDABCDABCDABCDABCD);
+    MoreMarkets public markets;
+    DebtTokenFactory public debtTokenFactorye;
+    DebtToken public debtToken;
+    address public owner;
+    AdaptiveCurveIrm public irm;
 
     uint256[] public lltvs = [
         800000000000000000,
@@ -59,7 +52,17 @@ contract DeployCrowdfunding is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // Start broadcasting for deployment
+        // Start broadcasting for deploymentcredoraAdmin = vm.envAddress("CREDORA_ADMIN");
+        owner = address(uint160(vm.envUint("OWNER")));
+        credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
+        oracleMock = OracleMock(vm.envAddress("ORACLE"));
+        markets = MoreMarkets(vm.envAddress("MARKETS"));
+        debtTokenFactorye = DebtTokenFactory(
+            vm.envAddress("DEBT_TOKEN_FACTORY")
+        );
+        debtToken = DebtToken(vm.envAddress("DEBT_TOKEN"));
+        irm = AdaptiveCurveIrm(vm.envAddress("IRM"));
+
         vm.startBroadcast(deployerPrivateKey);
 
         // minting mocks for testnet
@@ -93,6 +96,6 @@ contract DeployCrowdfunding is Script {
         markets.supply(marketParams, 10000 ether, 0, owner, "");
 
         // Start broadcasting for deployment
-        vm.startBroadcast(deployerPrivateKey);
+        vm.stopBroadcast();
     }
 }
