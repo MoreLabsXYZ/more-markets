@@ -17,7 +17,7 @@ contract CreateNewVaults is Script {
         uint256 initialTimelock = 12345;
         address asset = 0x0000000000000000000000000000000000000000;
         string memory name = "MOCK_VAULT";
-        string memory symbol = MCKVLT;
+        string memory symbol = "MCKVLT";
         bytes32 salt = "12345";
 
         vm.startBroadcast(deployerPrivateKey);

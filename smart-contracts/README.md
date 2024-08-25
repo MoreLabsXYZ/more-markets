@@ -84,10 +84,19 @@ add `--verify` to verify the contracts
 
 use `--slow` in case of using flow public RPC, otherwise txs fails during the deployment.
 
+deploy vaults factory 
+
+`forge script --chain 545 script/DeployVaults.s.sol:DeployVaults --rpc-url $FLOW_RPC_URL --broadcast --slow -vvvv`
+
 
 ## Creating new market contract
 
 `forge script --chain flow script/CreateNewMarket.s.sol:CreateNewMarket --rpc-url $FLOW_RPC_URL --broadcast --slow -vvvv`
 
+script to retrive information about existing markets
 
 `forge script --chain 545 script/getMarketsData.s.sol:getMarketsData --rpc-url $FLOW_RPC_URL --broadcast --slow -vvvv`
+
+script to call owner setters on the Markets contract
+
+forge script --chain 545 script/ownerSettersMarkets.s.sol:ownerSettersMarkets --rpc-url $FLOW_RPC_URL --broadcast --slow -vvvv

@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MoreVaultsFactory} from "../contracts/MoreVaultsFactory.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract DeployVaults is Script {
     MoreVaultsFactory vaultsFactory;
@@ -11,7 +12,7 @@ contract DeployVaults is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address morpho = vm.envAddress("MORPHO");
+        address morpho = vm.envAddress("MARKETS");
 
         vm.startBroadcast(deployerPrivateKey);
 

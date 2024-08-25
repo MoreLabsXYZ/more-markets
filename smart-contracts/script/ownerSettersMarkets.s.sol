@@ -12,7 +12,7 @@ import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, MarketParamsLib, Even
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-contract getMarketsData is Script {
+contract ownerSettersMarkets is Script {
     using MarketParamsLib for MarketParams;
     ICredoraMetrics public credora;
     address public credoraAdmin;
@@ -45,7 +45,7 @@ contract getMarketsData is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // @dev uncomment
-        markets.setCredora(credora);
+        markets.setCredora(address(credora));
 
         // markets.enableIrm(irm);
 
