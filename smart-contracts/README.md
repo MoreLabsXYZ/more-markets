@@ -83,3 +83,11 @@ deploy on flow:
 add `--verify` to verify the contracts
 
 use `--slow` in case of using flow public RPC, otherwise txs fails during the deployment.
+
+
+## Creating new market contract
+
+`forge script --chain flow script/CreateNewMarket.s.sol:CreateNewMarket --rpc-url $FLOW_RPC_URL --broadcast --slow -vvvv`
+
+
+`forge script --chain 545 script/getMarketsData.s.sol:getMarketsData --rpc-url $FLOW_RPC_URL --broadcast --slow -vvvv`

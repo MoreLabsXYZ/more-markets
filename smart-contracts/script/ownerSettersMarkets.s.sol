@@ -8,10 +8,11 @@ import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
+import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, MarketParamsLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "@morpho-org/morpho-blue/src/Morpho.sol";
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-contract CreateNewMarket is Script {
+contract getMarketsData is Script {
     using MarketParamsLib for MarketParams;
     ICredoraMetrics public credora;
     address public credoraAdmin;
@@ -23,31 +24,6 @@ contract CreateNewMarket is Script {
     address public owner;
     AdaptiveCurveIrm public irm;
 
-    uint256[] public lltvs = [
-        800000000000000000,
-        945000000000000000,
-        965000000000000000
-    ];
-
-    uint8 numberOfPremiumBuckets = 5;
-    uint128[] public premiumLltvs = [
-        1000000000000000000,
-        1200000000000000000,
-        1400000000000000000,
-        1600000000000000000,
-        2000000000000000000
-    ];
-    uint112[] public categoryMultipliers = [
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether
-    ];
-    uint16[] public categorySteps = [4, 8, 12, 16, 24];
-
-    ERC20MintableMock public loanToken;
-    ERC20MintableMock public collateralToken;
     MarketParams public marketParams;
 
     function setUp() public {}
@@ -68,35 +44,15 @@ contract CreateNewMarket is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // minting mocks for testnet
-        loanToken = new ERC20MintableMock(owner, "doge", "DOGE");
-        collateralToken = new ERC20MintableMock(owner, "USDC Token", "USDC");
-        // minting mocks for testnet
+        // @dev uncomment
+        markets.setCredora(credora);
 
-        // create a market
-        marketParams = MarketParams(
-            address(loanToken),
-            address(collateralToken),
-            address(oracle),
-            address(irm),
-            lltvs[0]
-        );
-        markets.createMarket(marketParams);
-        Id id = marketParams.id();
+        // markets.enableIrm(irm);
 
-        markets.setCategoryInfo(
-            id,
-            categoryMultipliers,
-            categorySteps,
-            premiumLltvs
-        );
-
-        loanToken.mint(address(owner), 1000000 ether);
-        loanToken.approve(address(markets), 1000000 ether);
-        collateralToken.mint(address(owner), 1000000 ether);
-        collateralToken.approve(address(markets), 1000000 ether);
-
-        markets.supply(marketParams, 10000 ether, 0, owner, "");
+        // uint256 lltv = 12345;
+        // markets.enableLltv(lltv);
+        // address feeRecipient = ;
+        // markets.setFeeRecipient(feeRecipient);
 
         // Start broadcasting for deployment
         vm.stopBroadcast();

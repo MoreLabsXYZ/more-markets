@@ -82,8 +82,12 @@ contract MoreMarketsTest is Test {
             }
         }
 
-        loanToken = new ERC20MintableMock(owner);
-        collateralToken = new ERC20MintableMock(owner);
+        loanToken = new ERC20MintableMock(owner, "Loan Mock Token", "LMT");
+        collateralToken = new ERC20MintableMock(
+            owner,
+            "Collateral Mock Token",
+            "CMT"
+        );
 
         marketParams = MarketParams(
             address(loanToken),
@@ -237,6 +241,7 @@ contract MoreMarketsTest is Test {
             categorySteps[2]
         );
     }
+
     function test_borrow_checkBorrowMultipliersForCategoryB() public {
         startHoax(credoraAdmin);
         credora.setData(
@@ -265,6 +270,7 @@ contract MoreMarketsTest is Test {
             categorySteps[3]
         );
     }
+
     function test_borrow_checkBorrowMultipliersForCategoryA() public {
         startHoax(credoraAdmin);
         credora.setData(
@@ -367,6 +373,7 @@ contract MoreMarketsTest is Test {
             categorySteps[2]
         );
     }
+
     function test_repay_checkBorrowMultipliersForCategoryB() public {
         startHoax(credoraAdmin);
         credora.setData(
@@ -395,6 +402,7 @@ contract MoreMarketsTest is Test {
             categorySteps[3]
         );
     }
+
     function test_repay_checkBorrowMultipliersForCategoryA() public {
         startHoax(credoraAdmin);
         credora.setData(

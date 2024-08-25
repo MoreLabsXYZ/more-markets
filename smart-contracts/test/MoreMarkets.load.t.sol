@@ -88,8 +88,12 @@ contract MoreMarketsTest is Test {
             }
         }
 
-        loanToken = new ERC20MintableMock(owner);
-        collateralToken = new ERC20MintableMock(owner);
+        loanToken = new ERC20MintableMock(owner, "Loan Mock Token", "LMT");
+        collateralToken = new ERC20MintableMock(
+            owner,
+            "Collateral Mock Token",
+            "CMT"
+        );
 
         marketParams = MarketParams(
             address(loanToken),

@@ -8,7 +8,11 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract ERC20MintableMock is ERC20, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    constructor(address defaultAdmin) ERC20("MyToken", "MTK") {
+    constructor(
+        address defaultAdmin,
+        string memory name,
+        string memory symbol
+    ) ERC20(name, symbol) {
         _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
     }
 
