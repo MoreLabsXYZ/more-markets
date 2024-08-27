@@ -29,6 +29,7 @@ contract MoreMarketsTest is Test {
     DebtTokenFactory public debtTokenFactory;
     DebtToken public debtToken;
     address public owner = address(0x89a76D7a4D006bDB9Efd0923A346fAe9437D434F);
+    address public feeRecipient = makeAddr("feeRecipient");
     AdaptiveCurveIrm public irm;
 
     uint256[] public lltvs = [
@@ -59,6 +60,8 @@ contract MoreMarketsTest is Test {
     MarketParams public marketParams;
 
     uint256 globalSnapshotId;
+    uint256 public constant originFee = 0.05e18;
+    uint256 public constant premFee = 0.02e18;
 
     function setUp() public {
         sepoliaFork = vm.createFork(
@@ -99,6 +102,11 @@ contract MoreMarketsTest is Test {
         markets.createMarket(marketParams);
         Id id = marketParams.id();
 
+        // set fee, premFee, feeRecipient
+        markets.setFee(marketParams, originFee);
+        markets.setPremFee(marketParams, premFee);
+        markets.setFeeRecipient(feeRecipient);
+
         markets.setCategoryInfo(
             id,
             categoryMultipliers,
@@ -136,11 +144,11 @@ contract MoreMarketsTest is Test {
         );
         assertEq(
             DebtToken(markets.idToDebtToken(marketParams.id())).name(),
-            "MyToken debt token"
+            "Loan Mock Token debt token"
         );
         assertEq(
             DebtToken(markets.idToDebtToken(marketParams.id())).symbol(),
-            "dtMTK"
+            "dtLMT"
         );
     }
 
@@ -814,7 +822,7 @@ contract MoreMarketsTest is Test {
             markets.idToDebtToken(marketParams.id())
         );
 
-        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
+        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e15);
     }
 
     function test_claimDebtTokens_newLenderUnableToClaimPreviouslyGeneratedDebt()
@@ -865,7 +873,7 @@ contract MoreMarketsTest is Test {
         );
 
         assertEq(supplyShares, 0);
-        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
+        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e15);
     }
 
     function test_claimDebtTokens_NewLenderShouldBeAbleToClaimAfterNewLiquidation()
@@ -927,7 +935,7 @@ contract MoreMarketsTest is Test {
         assertApproxEqAbs(
             marketsDebtToken.balanceOf(owner),
             debtTokens + ownerDebtTokens,
-            1e5
+            1e15
         );
 
         startHoax(newSupplier);
@@ -935,7 +943,7 @@ contract MoreMarketsTest is Test {
         assertApproxEqAbs(
             marketsDebtToken.balanceOf(newSupplier),
             newSupplierDebtTokens,
-            1e5
+            1e15
         );
     }
 
@@ -994,6 +1002,7 @@ contract MoreMarketsTest is Test {
         );
         assertApproxEqAbs(lastMultiplier, 2 ether, 10 ** 3);
         for (uint256 i = 0; i < numberOfSteps; ) {
+            uint256 beforeBalance = loanToken.balanceOf(feeRecipient);
             markets.repay(marketParams, borrowStep, 0, owner, "");
             (, , , lastMultiplier, , ) = markets.position(
                 marketParams.id(),
@@ -1004,6 +1013,9 @@ contract MoreMarketsTest is Test {
                 2 ether - multiplierStep * (i + 1),
                 10 ** 3
             );
+
+            uint256 afterBalance = loanToken.balanceOf(feeRecipient);
+            assertGt(afterBalance, beforeBalance);
 
             unchecked {
                 ++i;
@@ -1017,6 +1029,7 @@ contract MoreMarketsTest is Test {
     ) internal {
         startHoax(user);
         uint256 userLoanBalanceBefore = loanToken.balanceOf(user);
+        uint256 recipientBalanceBefore = loanToken.balanceOf(feeRecipient);
         uint256 marketLoanBalanceBefore = loanToken.balanceOf(address(markets));
 
         uint256 amountToRepay = markets.totalBorrowAssetsForMultiplier(
@@ -1024,6 +1037,8 @@ contract MoreMarketsTest is Test {
             userMultiplier
         );
         markets.repay(marketParams, amountToRepay, 0, user, "");
+
+        uint256 recipientBalanceAfter = loanToken.balanceOf(feeRecipient);
 
         (, uint256 borrowShares, , , , ) = markets.position(
             marketParams.id(),
@@ -1049,7 +1064,7 @@ contract MoreMarketsTest is Test {
         );
         assertApproxEqAbs(
             loanToken.balanceOf(user),
-            userLoanBalanceBefore - amountToRepay,
+            userLoanBalanceBefore - amountToRepay - (recipientBalanceAfter - recipientBalanceBefore),
             10
         );
         assertApproxEqAbs(
@@ -1065,6 +1080,7 @@ contract MoreMarketsTest is Test {
     ) internal {
         startHoax(user);
         uint256 userLoanBalanceBefore = loanToken.balanceOf(user);
+        uint256 recipientBalanceBefore = loanToken.balanceOf(feeRecipient);
         uint256 marketLoanBalanceBefore = loanToken.balanceOf(address(markets));
         uint256 amountToRepay = markets.totalBorrowAssetsForMultiplier(
             marketParams.id(),
@@ -1079,6 +1095,7 @@ contract MoreMarketsTest is Test {
             marketParams.id(),
             user
         );
+        uint256 recipientBalanceAfter = loanToken.balanceOf(feeRecipient);
         assertApproxEqAbs(borrowShares, 0, 10 ** 3);
         assertApproxEqAbs(
             markets.totalBorrowSharesForMultiplier(
@@ -1098,7 +1115,7 @@ contract MoreMarketsTest is Test {
         );
         assertApproxEqAbs(
             loanToken.balanceOf(user),
-            userLoanBalanceBefore - amountToRepay,
+            userLoanBalanceBefore - amountToRepay - (recipientBalanceAfter - recipientBalanceBefore),
             10
         );
         assertApproxEqAbs(

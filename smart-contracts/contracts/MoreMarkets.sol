@@ -59,6 +59,8 @@ contract MoreMarkets is IMoreMarkets {
     mapping(address => uint256) public nonce;
     /// @inheritdoc IMoreMarkets
     mapping(Id => MarketParams) public idToMarketParams;
+    /// @dev premFees
+    mapping(Id => uint128) public premFees;
 
     mapping(Id => address) public idToDebtToken;
     mapping(Id => uint256) public totalDebtAssetsGenerated;
@@ -183,6 +185,21 @@ contract MoreMarkets is IMoreMarkets {
         market[id].fee = uint128(newFee);
 
         emit EventsLib.SetFee(id, newFee);
+    }
+
+    function setPremFee(
+        MarketParams memory marketParams,
+        uint256 premFee
+    ) external onlyOwner {
+        Id id = marketParams.id();
+        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        require(premFee != premFees[id], ErrorsLib.ALREADY_SET);
+        require(premFee <= MAX_FEE, ErrorsLib.MAX_FEE_EXCEEDED);
+
+        // update state
+        premFees[id] = uint128(premFee);
+
+        emit SetPremFee(id, premFee);
     }
 
     /// @inheritdoc IMorphoBase
@@ -399,7 +416,7 @@ contract MoreMarkets is IMoreMarkets {
 
         _accrueInterest(marketParams, id);
 
-        assets = _updatePosition(
+        (assets, ) = _updatePosition(
             marketParams,
             id,
             onBehalf,
@@ -450,7 +467,8 @@ contract MoreMarkets is IMoreMarkets {
 
         _accrueInterest(marketParams, id);
 
-        assets = _updatePosition(
+        uint256 premFeeAmount;
+        (assets, premFeeAmount) = _updatePosition(
             marketParams,
             id,
             onBehalf,
@@ -470,6 +488,13 @@ contract MoreMarkets is IMoreMarkets {
             address(this),
             assets
         );
+
+        if (premFeeAmount > 0)
+            IERC20(marketParams.loanToken).safeTransferFrom(
+                msg.sender,
+                feeRecipient,
+                premFeeAmount
+            );
 
         return (assets, shares);
     }
@@ -953,7 +978,7 @@ contract MoreMarkets is IMoreMarkets {
         uint256 assets,
         uint256 shares,
         UPDATE_TYPE updateType
-    ) internal returns (uint256) {
+    ) internal returns (uint256, uint256) {
         uint64 lastMultiplier = position[id][borrower].lastMultiplier;
         if (shares > 0)
             if (updateType == UPDATE_TYPE.BORROW) {
@@ -996,6 +1021,29 @@ contract MoreMarkets is IMoreMarkets {
             totalBorrowAssetsForMultiplier[id][lastMultiplier],
             totalBorrowSharesForMultiplier[id][lastMultiplier]
         );
+
+        // if user is prem
+        uint256 feeAmount;
+        if (lastMultiplier != 1e18) {
+            uint256 borrowed = borrowedSharesBefore
+                .toAssetsUp(
+                    totalBorrowAssetsForMultiplier[id][lastMultiplier],
+                    totalBorrowSharesForMultiplier[id][lastMultiplier]
+                );
+
+            uint256 lltvMaxBorrow = uint256(position[id][borrower].collateral)
+                .mulDivDown(IOracle(marketParams.oracle).price(), ORACLE_PRICE_SCALE)
+                .wMulDown(marketParams.lltv);
+
+            if (borrowed > lltvMaxBorrow) {
+                unchecked {
+                    feeAmount = borrowed - lltvMaxBorrow;
+                    feeAmount = feeAmount > assets ? assets : feeAmount;
+                    feeAmount = feeAmount.wMulDown(premFees[id]);    
+                }
+            }
+        }
+
         if (lastMultiplier != currentMultiplier) {
             _updateCategory(
                 id,
@@ -1026,7 +1074,8 @@ contract MoreMarkets is IMoreMarkets {
                 .zeroFloorSub(market[id].totalBorrowAssets, assets)
                 .toUint128();
         }
-        return assets;
+
+        return (assets, feeAmount);
     }
 
     function _getMultiplier(

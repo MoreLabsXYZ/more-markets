@@ -19,6 +19,9 @@ struct CategoryInfo {
 }
 
 interface IMoreMarkets is IMorphoBase {
+    /// @notice Emitted `premFee` is set to `newFee`.
+    event SetPremFee(Id indexed id, uint256 premFee);
+
     function position(
         Id id,
         address user

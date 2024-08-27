@@ -13,7 +13,7 @@ contract CreateNewVaults is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vaultsFactory = MoreVaultsFactory(vm.envAddress("VAULTS_FACTORY"));
 
-        address initialOwner = "0x0000000000000000000000000000000000000000";
+        address initialOwner = 0x0000000000000000000000000000000000000000;
         uint256 initialTimelock = 12345;
         address asset = 0x0000000000000000000000000000000000000000;
         string memory name = "MOCK_VAULT";
