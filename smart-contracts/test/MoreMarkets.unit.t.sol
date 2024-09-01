@@ -136,11 +136,11 @@ contract MoreMarketsTest is Test {
         );
         assertEq(
             DebtToken(markets.idToDebtToken(marketParams.id())).name(),
-            "MyToken debt token"
+            "Loan Mock Token debt token"
         );
         assertEq(
             DebtToken(markets.idToDebtToken(marketParams.id())).symbol(),
-            "dtMTK"
+            "dtLMT"
         );
     }
 
@@ -855,7 +855,13 @@ contract MoreMarketsTest is Test {
             marketParams.id(),
             owner
         );
-        markets.withdraw(marketParams, 0, supplyShares, owner, owner);
+        (uint assetsWithdrawn, uint sharesWithdrawn) = markets.withdraw(
+            marketParams,
+            0,
+            supplyShares,
+            owner,
+            owner
+        );
 
         markets.claimDebtTokens(marketParams, owner, owner);
         (supplyShares, , , , , ) = markets.position(marketParams.id(), owner);
@@ -866,6 +872,9 @@ contract MoreMarketsTest is Test {
 
         assertEq(supplyShares, 0);
         assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
+        assertTrue(
+            marketsDebtToken.balanceOf(owner) + assetsWithdrawn > 10000 ether
+        );
     }
 
     function test_claimDebtTokens_NewLenderShouldBeAbleToClaimAfterNewLiquidation()
@@ -1122,7 +1131,15 @@ contract MoreMarketsTest is Test {
         );
         (uint128 totalSupplyAssets, uint128 totalSupplyShares, , , , ) = markets
             .market(marketParams.id());
-        markets.withdraw(marketParams, 0, supplyShares, user, user);
+        (uint assetsWithdrawn, uint sharesWithdrawn) = markets.withdraw(
+            marketParams,
+            0,
+            supplyShares,
+            user,
+            user
+        );
+
+        assertEq(assetsWithdrawn, amountToWithdraw);
 
         (
             uint128 newTotalSupplyAssets,
