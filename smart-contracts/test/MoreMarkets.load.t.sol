@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.20;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
@@ -38,20 +38,14 @@ contract MoreMarketsTest is Test {
     ];
 
     uint8 numberOfPremiumBuckets = 5;
-    uint128[] public premiumLltvs = [
+    uint256[] public premiumLltvs = [
         1000000000000000000,
         1200000000000000000,
         1400000000000000000,
         1600000000000000000,
         2000000000000000000
     ];
-    uint112[] public categoryMultipliers = [
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether
-    ];
+    uint96 public categoryMultiplier = 2 ether;
     uint16[] public categorySteps = [4, 8, 12, 16, 24];
 
     EnumerableSet.UintSet private multipliersArray;
@@ -96,21 +90,17 @@ contract MoreMarketsTest is Test {
         );
 
         marketParams = MarketParams(
+            true,
             address(loanToken),
             address(collateralToken),
             address(oracle),
             address(irm),
-            lltvs[0]
-        );
-        markets.createMarket(marketParams);
-        Id id = marketParams.id();
-
-        markets.setCategoryInfo(
-            id,
-            categoryMultipliers,
-            categorySteps,
+            lltvs[0],
+            address(credora),
+            categoryMultiplier,
             premiumLltvs
         );
+        markets.createMarket(marketParams);
 
         loanToken.mint(address(owner), 1000000000 ether);
         loanToken.approve(address(markets), 1000000000 ether);
@@ -119,7 +109,7 @@ contract MoreMarketsTest is Test {
 
         markets.supply(marketParams, 1000000000 ether, 0, owner, "");
 
-        _getAvailableMultipliers(5, categorySteps, categoryMultipliers);
+        _getAvailableMultipliers(categoryMultiplier);
         multipliersArray.add(1 ether);
         for (uint256 i = 0; i < multipliersArray.length(); ++i) {
             _multipliers.push(uint64(multipliersArray.at(i)));
@@ -231,16 +221,13 @@ contract MoreMarketsTest is Test {
         return defaultBorrow + borrowStep * numberOfStep + 1;
     }
 
-    function _getAvailableMultipliers(
-        uint256 numberOfCategories,
-        uint16[] memory steps,
-        uint112[] memory multipliers
-    ) internal {
-        for (uint256 i; i < numberOfCategories; ) {
-            uint256 multiplierStep = (uint256(multipliers[i]) - 1 ether).wDivUp(
-                uint256(steps[i]) * 10 ** 18
-            );
-            for (uint256 j; j < steps[i]; ) {
+    function _getAvailableMultipliers(uint96 marketMultiplier) internal {
+        for (uint256 i; i < marketParams.categoryLltv.length; ) {
+            uint256 categoryStepNumber = (marketParams.categoryLltv[i] -
+                marketParams.lltv) / 50000000000000000;
+            uint256 multiplierStep = (uint256(marketMultiplier) - 1 ether)
+                .wDivUp(uint256(categoryStepNumber) * 10 ** 18);
+            for (uint256 j; j < categoryStepNumber; ) {
                 uint256 multiplier = multiplierStep * (j + 1);
                 multipliersArray.add(multiplier + 1 ether);
                 unchecked {
