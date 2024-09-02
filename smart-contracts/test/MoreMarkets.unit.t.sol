@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.21;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
@@ -38,20 +38,14 @@ contract MoreMarketsTest is Test {
     ];
 
     uint8 numberOfPremiumBuckets = 5;
-    uint128[] public premiumLltvs = [
+    uint256[] public premiumLltvs = [
         1000000000000000000,
         1200000000000000000,
         1400000000000000000,
         1600000000000000000,
         2000000000000000000
     ];
-    uint112[] public categoryMultipliers = [
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether
-    ];
+    uint96 public categoryMultiplier = 2 ether;
     uint16[] public categorySteps = [4, 8, 12, 16, 24];
 
     ERC20MintableMock public loanToken;
@@ -90,21 +84,17 @@ contract MoreMarketsTest is Test {
         );
 
         marketParams = MarketParams(
+            true,
             address(loanToken),
             address(collateralToken),
             address(oracle),
             address(irm),
-            lltvs[0]
-        );
-        markets.createMarket(marketParams);
-        Id id = marketParams.id();
-
-        markets.setCategoryInfo(
-            id,
-            categoryMultipliers,
-            categorySteps,
+            lltvs[0],
+            address(credora),
+            categoryMultiplier,
             premiumLltvs
         );
+        markets.createMarket(marketParams);
 
         loanToken.mint(address(owner), 1000000 ether);
         loanToken.approve(address(markets), 1000000 ether);
@@ -122,11 +112,15 @@ contract MoreMarketsTest is Test {
 
     function test_createMarket_shouldDeployCorrectDebtToken() public {
         marketParams = MarketParams(
+            true,
             address(loanToken),
             address(collateralToken),
             address(oracle),
             address(irm),
-            lltvs[1]
+            lltvs[1],
+            address(credora),
+            categoryMultiplier,
+            premiumLltvs
         );
         markets.createMarket(marketParams);
 
@@ -142,6 +136,133 @@ contract MoreMarketsTest is Test {
             DebtToken(markets.idToDebtToken(marketParams.id())).symbol(),
             "dtLMT"
         );
+    }
+
+    function test_createMarket_shouldAbleToDeployMarketWithDifferentCategoriesLltv()
+        public
+    {
+        marketParams = MarketParams(
+            true,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1],
+            address(credora),
+            categoryMultiplier,
+            premiumLltvs
+        );
+        markets.createMarket(marketParams);
+
+        assertEq(
+            DebtToken(markets.idToDebtToken(marketParams.id())).owner(),
+            address(markets)
+        );
+
+        uint256[] memory newPremiumLltvs = premiumLltvs;
+        newPremiumLltvs[4] = 2000000000000000001;
+
+        marketParams = MarketParams(
+            true,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1],
+            address(credora),
+            categoryMultiplier,
+            newPremiumLltvs
+        );
+        markets.createMarket(marketParams);
+        (
+            bool isPrem,
+            ,
+            ,
+            ,
+            ,
+            ,
+            address CAS,
+            uint96 irxMaxLltv,
+            uint256[] memory lltvsFromContract
+        ) = markets.idToMarketParams(marketParams.id());
+        assertEq(isPrem, true);
+        assertEq(address(credora), CAS);
+        assertEq(categoryMultiplier, irxMaxLltv);
+        for (uint256 i = 0; i < lltvsFromContract.length; ) {
+            assertEq(newPremiumLltvs[i], lltvsFromContract[i]);
+            unchecked {
+                ++i;
+            }
+        }
+
+        vm.expectRevert("market already created");
+        markets.createMarket(marketParams);
+    }
+
+    function test_createMarket_shouldRevertIfProvidedNotFiveLltvs() public {
+        uint256[] memory newPremiumLltvs = new uint256[](4);
+        marketParams = MarketParams(
+            true,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1],
+            address(credora),
+            categoryMultiplier,
+            newPremiumLltvs
+        );
+
+        vm.expectRevert("5 categories required");
+        markets.createMarket(marketParams);
+
+        uint256[] memory newPremiumLltvs2 = new uint256[](6);
+        marketParams = MarketParams(
+            true,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1],
+            address(credora),
+            categoryMultiplier,
+            newPremiumLltvs2
+        );
+
+        vm.expectRevert("5 categories required");
+        markets.createMarket(marketParams);
+    }
+
+    function test_createMarket_shouldRevertIfIrxLessThanOne() public {
+        marketParams = MarketParams(
+            true,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1],
+            address(credora),
+            1e18 - 1,
+            premiumLltvs
+        );
+
+        vm.expectRevert(
+            "interest rate premium multiplier can't be less than 1e18"
+        );
+        markets.createMarket(marketParams);
+
+        marketParams = MarketParams(
+            true,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1],
+            address(credora),
+            1e18,
+            premiumLltvs
+        );
+        markets.createMarket(marketParams);
     }
 
     function test_borrow_correctlyWithShares() public {
@@ -182,6 +303,48 @@ contract MoreMarketsTest is Test {
             1000 ether,
             categorySteps[0]
         );
+    }
+
+    function test_borrow_checkBorrowInNonPremMarketWithACategoryShouldntBeAbleToBorrowOverDefaultLltv()
+        public
+    {
+        marketParams = MarketParams(
+            false,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[0], // 80%
+            address(credora),
+            categoryMultiplier,
+            premiumLltvs
+        );
+        markets.createMarket(marketParams);
+        markets.supply(marketParams, 10000 ether, 0, owner, "");
+
+        startHoax(credoraAdmin);
+        credora.setData(
+            0,
+            abi.encode(
+                owner,
+                uint64(800 * 10 ** 6),
+                uint64(0),
+                bytes8("AAA+"),
+                uint64(0),
+                uint64(0),
+                uint64(0)
+            ),
+            ""
+        );
+        credora.grantPermission(owner, address(markets), type(uint128).max);
+
+        startHoax(owner);
+        markets.supplyCollateral(marketParams, 1000 ether, owner, "");
+
+        vm.expectRevert("insufficient collateral");
+        markets.borrow(marketParams, 800 ether + 1, 0, owner, owner);
+
+        markets.borrow(marketParams, 800 ether, 0, owner, owner);
     }
 
     function test_borrow_checkBorrowMultipliersForCategoryD() public {
@@ -748,7 +911,7 @@ contract MoreMarketsTest is Test {
         markets.liquidate(marketParams, owner, 1 ether, 0, "");
     }
 
-    function test_liquidate_undercollateralizedPositionShouldCreateDebtTokens()
+    function test_liquidate_undercollateralizedPositionShouldGenerateDebtTokens()
         public
     {
         address borrowerB = address(0xbbbb);

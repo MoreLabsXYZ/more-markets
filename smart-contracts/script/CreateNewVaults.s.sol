@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MoreVaultsFactory} from "../contracts/MoreVaultsFactory.sol";
@@ -13,6 +13,7 @@ contract CreateNewVaults is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vaultsFactory = MoreVaultsFactory(vm.envAddress("VAULTS_FACTORY"));
 
+
         // TODO script can be improved by reading these values from the environment or JSON CONFIG
         address initialOwner = 0x2690eEF879dF58B97ec7CF830F7627Fb1B51f826;
         uint256 initialTimelock = 100;
@@ -23,6 +24,7 @@ contract CreateNewVaults is Script {
         string memory symbol1 = "MCKVLT1";
 
         bytes32 salt = "1";
+
         vm.startBroadcast(deployerPrivateKey);
 
         vaultsFactory.createMetaMorpho(
