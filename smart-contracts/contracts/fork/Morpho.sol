@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.21;
 
 import {Id, IMorphoStaticTyping, IMorphoBase, MarketParams, Position, Market, Authorization, Signature} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 import {IMorphoLiquidateCallback, IMorphoRepayCallback, IMorphoSupplyCallback, IMorphoSupplyCollateralCallback, IMorphoFlashLoanCallback} from "@morpho-org/morpho-blue/src/interfaces/IMorphoCallbacks.sol";

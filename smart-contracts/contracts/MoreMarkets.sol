@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity 0.8.21;
 
 import {IMoreMarkets, Position, CategoryInfo, MarketParams, Market, Id, Authorization, Signature, IMoreMarketsBase} from "./interfaces/IMoreMarkets.sol";
 import {IIrm} from "./interfaces/IIrm.sol";
