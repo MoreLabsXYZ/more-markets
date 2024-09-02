@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.5.0;
 
-import {IIrm} from "@morpho-org/morpho-blue/src/interfaces/IIrm.sol";
-import {Id} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {IIrm} from "./IIrm.sol";
+import {Id} from "./IMoreMarkets.sol";
 
 /// @title IAdaptiveCurveIrm
 /// @author Morpho Labs

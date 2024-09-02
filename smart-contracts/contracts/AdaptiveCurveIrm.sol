@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {IIrm} from "@morpho-org/morpho-blue/src/interfaces/IIrm.sol";
+import {IIrm} from "./interfaces/IIrm.sol";
 import {IAdaptiveCurveIrm} from "./interfaces/IAdaptiveCurveIrm.sol";
 
-import {UtilsLib} from "./libraries/UtilsLib.sol";
-import {ErrorsLib} from "./libraries/ErrorsLib.sol";
-import {ExpLib} from "./libraries/ExpLib.sol";
-import {MathLib, WAD_INT as WAD} from "./libraries/MathLib.sol";
-import {ConstantsLib} from "./libraries/ConstantsLib.sol";
-import {MarketParamsLib} from "@morpho-org/morpho-blue/src/libraries/MarketParamsLib.sol";
-import {Id, MarketParams, Market} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {UtilsLib} from "./libraries/irm/UtilsLib.sol";
+import {ErrorsLib} from "./libraries/irm/ErrorsLib.sol";
+import {ExpLib} from "./libraries/irm/ExpLib.sol";
+import {MathLib, WAD_INT as WAD} from "./libraries/irm/MathLib.sol";
+import {ConstantsLib} from "./libraries/irm/ConstantsLib.sol";
+import {MarketParamsLib} from "./libraries/MarketParamsLib.sol";
+import {MarketParams, Market, Id} from "./interfaces/IMoreMarkets.sol";
 import {MathLib as MorphoMathLib} from "@morpho-org/morpho-blue/src/libraries/MathLib.sol";
 
 /// @title AdaptiveCurveIrm

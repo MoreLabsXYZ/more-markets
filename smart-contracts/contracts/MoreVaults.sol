@@ -4,10 +4,10 @@ pragma solidity 0.8.21;
 import {MarketConfig, PendingUint192, PendingAddress, MarketAllocation, IMetaMorphoBase, IMetaMorphoStaticTyping} from "./interfaces/IMetaMorpho.sol";
 import {Id, MarketParams, Market, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
-import {PendingUint192, PendingAddress, PendingLib} from "./libraries/PendingLib.sol";
-import {ConstantsLib} from "./libraries/ConstantsLib.sol";
-import {ErrorsLib} from "./libraries/ErrorsLib.sol";
-import {EventsLib} from "./libraries/EventsLib.sol";
+import {PendingUint192, PendingAddress, PendingLib} from "./libraries/vaults/PendingLib.sol";
+import {ConstantsLib} from "./libraries/vaults/ConstantsLib.sol";
+import {ErrorsLib} from "./libraries/vaults/ErrorsLib.sol";
+import {EventsLib} from "./libraries/vaults/EventsLib.sol";
 import {WAD} from "@morpho-org/morpho-blue/src/libraries/MathLib.sol";
 import {UtilsLib} from "@morpho-org/morpho-blue/src/libraries/UtilsLib.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
