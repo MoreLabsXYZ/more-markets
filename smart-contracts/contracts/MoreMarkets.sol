@@ -114,33 +114,6 @@ contract MoreMarkets is IMoreMarkets {
         credoraMetrics = ICredoraMetrics(credora);
     }
 
-    // function setCategoryInfo(
-    //     Id id,
-    //     uint112[] memory categoryMultipliers,
-    //     uint16[] memory categoryNumberOfSteps,
-    //     uint128[] memory categoryLltv
-    // ) external onlyOwner {
-    //     for (uint8 i; i < categoryMultipliers.length; ) {
-    //         _categoryInfo[id][i].multiplier = categoryMultipliers[i];
-    //         _categoryInfo[id][i].numberOfSteps = categoryNumberOfSteps[i];
-    //         _categoryInfo[id][i].lltv = categoryLltv[i];
-
-    //         // calculate available multipliers
-    //         uint256 multiplierStep = (uint256(categoryMultipliers[i]) - 1e18)
-    //             .wDivUp(uint256(categoryNumberOfSteps[i]) * 10 ** 18);
-    //         for (uint256 j; j < categoryNumberOfSteps[i]; ) {
-    //             uint256 multiplier = multiplierStep * (j + 1);
-    //             _availableMultipliers[id].add(multiplier + 1e18);
-    //             unchecked {
-    //                 ++j;
-    //             }
-    //         }
-    //         unchecked {
-    //             ++i;
-    //         }
-    //     }
-    // }
-
     /// @inheritdoc IMoreMarketsBase
     function setOwner(address newOwner) external onlyOwner {
         require(newOwner != owner, ErrorsLib.ALREADY_SET);
@@ -205,7 +178,6 @@ contract MoreMarkets is IMoreMarkets {
         require(isIrmEnabled[marketParams.irm], ErrorsLib.IRM_NOT_ENABLED);
         require(isLltvEnabled[marketParams.lltv], ErrorsLib.LLTV_NOT_ENABLED);
         require(market[id].lastUpdate == 0, ErrorsLib.MARKET_ALREADY_CREATED);
-        // TODO: add error to lib
         require(marketParams.categoryLltv.length == 5, "5 categories required");
         require(
             marketParams.irxMaxLltv >= 1e18,

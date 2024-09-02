@@ -31,16 +31,8 @@ contract getMarketsData is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // Start broadcasting for deploymentcredoraAdmin = vm.envAddress("CREDORA_ADMIN");
         owner = address(uint160(vm.envUint("OWNER")));
-        // credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
-        // oracle = OracleMock(vm.envAddress("ORACLE"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
-        // debtTokenFactory = DebtTokenFactory(
-        //     vm.envAddress("DEBT_TOKEN_FACTORY")
-        // );
-        // debtToken = DebtToken(vm.envAddress("DEBT_TOKEN"));
-        // irm = AdaptiveCurveIrm(vm.envAddress("IRM"));
 
         vm.startBroadcast(deployerPrivateKey);
 
