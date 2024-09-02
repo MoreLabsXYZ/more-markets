@@ -8,7 +8,7 @@ import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
-import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, MarketParamsLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "@morpho-org/morpho-blue/src/Morpho.sol";
+import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "@morpho-org/morpho-blue/src/Morpho.sol";
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
@@ -47,45 +47,47 @@ contract supplyToMarket is Script {
         Id[] memory memAr = markets.arrayOfMarkets();
         uint256 length = memAr.length;
         console.log("lenght of memAr is %d", length);
+        MarketParams memory marketParams;
         for (uint i = 0; i < length; i++) {
             console.log("- - - - - - - - - - - - - - - - - - - - - - - - - -");
-            // console.log("market id is ", memAr[i]);
-            (
-                uint128 totalSupplyAssets,
-                uint128 totalSupplyShares,
-                uint128 totalBorrowAssets,
-                uint128 totalBorrowShares,
-                uint128 lastUpdate,
-                uint128 fee
-            ) = markets.market(memAr[i]);
-            (
-                address loanToken,
-                address collateralToken,
-                address marketOracle,
-                address marketIrm,
-                uint256 lltv
-            ) = markets.idToMarketParams(memAr[i]);
-            MarketParams memory marketParams = MarketParams({
-                loanToken: loanToken,
-                collateralToken: collateralToken,
-                oracle: marketOracle,
-                irm: marketIrm,
-                lltv: lltv
-            });
-            ERC20MintableMock(collateralToken).approve(
+            {
+                (
+                    bool isPremium,
+                    address loanToken,
+                    address collateralToken,
+                    address marketOracle,
+                    address marketIrm,
+                    uint256 lltv,
+                    address CAS,
+                    uint96 irxMaxLltv,
+                    uint256[] memory categoryLltv
+                ) = markets.idToMarketParams(memAr[i]);
+                marketParams = MarketParams(
+                    isPremium,
+                    loanToken,
+                    collateralToken,
+                    marketOracle,
+                    marketIrm,
+                    lltv,
+                    CAS,
+                    irxMaxLltv,
+                    categoryLltv
+                );
+            }
+            ERC20MintableMock(marketParams.collateralToken).approve(
                 address(markets),
                 100000 ether
             );
-            // markets.supplyCollateral(marketParams, 10 ether, owner, "");
-            // markets.borrow(marketParams, 0, 1 ether, owner, owner);
-            // ERC20MintableMock(loanToken).mint(
-            //     0x2cc510002cE9D04ac6f837277e411468cA10c1A5,
-            //     10000 ether
-            // );
-            // ERC20MintableMock(collateralToken).mint(
-            //     0x2cc510002cE9D04ac6f837277e411468cA10c1A5,
-            //     10000 ether
-            // );
+            markets.supplyCollateral(marketParams, 10 ether, owner, "");
+            markets.borrow(marketParams, 0, 1 ether, owner, owner);
+            ERC20MintableMock(marketParams.loanToken).mint(
+                0x2cc510002cE9D04ac6f837277e411468cA10c1A5,
+                10000 ether
+            );
+            ERC20MintableMock(marketParams.collateralToken).mint(
+                0x2cc510002cE9D04ac6f837277e411468cA10c1A5,
+                10000 ether
+            );
         }
 
         // Start broadcasting for deployment

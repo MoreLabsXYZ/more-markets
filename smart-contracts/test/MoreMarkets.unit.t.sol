@@ -1018,7 +1018,7 @@ contract MoreMarketsTest is Test {
             marketParams.id(),
             owner
         );
-        (uint assetsWithdrawn, uint sharesWithdrawn) = markets.withdraw(
+        (uint256 assetsWithdrawn, ) = markets.withdraw(
             marketParams,
             0,
             supplyShares,
@@ -1294,7 +1294,7 @@ contract MoreMarketsTest is Test {
         );
         (uint128 totalSupplyAssets, uint128 totalSupplyShares, , , , ) = markets
             .market(marketParams.id());
-        (uint assetsWithdrawn, uint sharesWithdrawn) = markets.withdraw(
+        (uint256 assetsWithdrawn, ) = markets.withdraw(
             marketParams,
             0,
             supplyShares,

@@ -334,25 +334,25 @@ interface IMoreMarkets is IMoreMarketsBase {
             uint128 fee
         );
 
-    // /// @notice The market params corresponding to `id`.
-    // /// @dev This mapping is not used in Morpho. It is there to enable reducing the cost associated to calldata on layer
-    // /// 2s by creating a wrapper contract with functions that take `id` as input instead of `marketParams`.
-    // function idToMarketParams(
-    //     Id id
-    // )
-    //     external
-    //     view
-    //     returns (
-    //         bool isPremiumMarket,
-    //         address loanToken,
-    //         address collateralToken,
-    //         address oracle,
-    //         address irm,
-    //         uint256 lltv,
-    //         address creditAttestationService,
-    //         uint96 irxMaxLltv,
-    //         uint256[] memory categoryLltv
-    //     );
+    /// @notice The market params corresponding to `id`.
+    /// @dev This mapping is not used in Morpho. It is there to enable reducing the cost associated to calldata on layer
+    /// 2s by creating a wrapper contract with functions that take `id` as input instead of `marketParams`.
+    function idToMarketParams(
+        Id id
+    )
+        external
+        view
+        returns (
+            bool isPremiumMarket,
+            address loanToken,
+            address collateralToken,
+            address oracle,
+            address irm,
+            uint256 lltv,
+            address creditAttestationService,
+            uint96 irxMaxLltv,
+            uint256[] memory categoryLltv
+        );
 
     function updateBorrower(
         MarketParams memory marketParams,
