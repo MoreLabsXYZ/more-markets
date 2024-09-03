@@ -193,6 +193,10 @@ contract MoreMarkets is IMoreMarkets {
             for (uint8 i; i < NUMBER_OF_CATEGORIES; ) {
                 uint256 categoryStepNumber = (marketParams.categoryLltv[i] -
                     marketParams.lltv) / 50000000000000000;
+                if (categoryStepNumber == 0) {
+                    _availableMultipliers[id].add(marketParams.irxMaxLltv);
+                    continue;
+                }
                 // calculate available multipliers
                 uint256 multiplierStep = (uint256(marketParams.irxMaxLltv) -
                     1e18).wDivUp(categoryStepNumber * 10 ** 18);
@@ -1119,6 +1123,9 @@ contract MoreMarkets is IMoreMarkets {
 
         uint256 categoryStepNumber = (marketParams.categoryLltv[categoryNum] -
             marketParams.lltv) / 50000000000000000;
+        if (categoryStepNumber == 0) {
+            categoryStepNumber = 1;
+        }
         uint256 step = (maxBorrowByScore - maxBorrowByDefault).wDivUp(
             uint256(categoryStepNumber) * 10 ** 18
         );
