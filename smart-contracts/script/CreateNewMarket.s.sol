@@ -11,6 +11,7 @@ import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
+// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
 contract CreateNewMarket is Script {
     using MarketParamsLib for MarketParams;
     ICredoraMetrics public credora;
@@ -54,10 +55,6 @@ contract CreateNewMarket is Script {
         credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
         oracle = OracleMock(vm.envAddress("ORACLE"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
-        debtTokenFactorye = DebtTokenFactory(
-            vm.envAddress("DEBT_TOKEN_FACTORY")
-        );
-        debtToken = DebtToken(vm.envAddress("DEBT_TOKEN"));
         irm = AdaptiveCurveIrm(vm.envAddress("IRM"));
 
         vm.startBroadcast(deployerPrivateKey);

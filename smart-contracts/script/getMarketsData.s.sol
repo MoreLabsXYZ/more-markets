@@ -12,6 +12,7 @@ import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib,
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
+// forge script script/getMarketsData.s.sol:getMarketsData --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
 contract getMarketsData is Script {
     using MarketParamsLib for MarketParams;
     ICredoraMetrics public credora;

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
+import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
@@ -12,8 +13,8 @@ import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib,
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-// // forge script script/supplyToMarket.s.sol:supplyToMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
-contract supplyToMarket is Script {
+// // forge script script/borrowFromMarket.s.sol:borrowFromMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
+contract borrowFromMarket is Script {
     using MarketParamsLib for MarketParams;
     ICredoraMetrics public credora;
     address public credoraAdmin;
@@ -25,14 +26,12 @@ contract supplyToMarket is Script {
     address public owner;
     AdaptiveCurveIrm public irm;
 
-    // MarketParams public marketParams;
-
     function setUp() public {}
 
     function run() external {
+        // vm.startPrank(address(0x5D7de68283A0AFcd5A1411596577CC389CDF4BAE));
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // Start broadcasting for deploymentcredoraAdmin = vm.envAddress("CREDORA_ADMIN");
         owner = address(uint160(vm.envUint("OWNER")));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
 
@@ -74,11 +73,12 @@ contract supplyToMarket is Script {
                 irxMaxLltv: irxMaxLltv,
                 categoryLltv: categoryLltv
             });
-            ERC20MintableMock(loanToken).approve(
+            ERC20MintableMock(collateralToken).approve(
                 address(markets),
                 100000 ether
             );
-            markets.supply(marketParams, 10000 ether, 0, owner, "");
+            // markets.supplyCollateral(marketParams, 10 ether, owner, "");
+            markets.borrow(marketParams, 7 ether, 0, owner, owner);
         }
 
         // Start broadcasting for deployment
