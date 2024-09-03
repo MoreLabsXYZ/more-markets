@@ -17,13 +17,13 @@ contract MoreMarketsTest is Test {
     using EnumerableSet for EnumerableSet.UintSet;
 
     uint256 sepoliaFork;
+    uint256 flowTestnetFork;
 
     ICredoraMetrics public credora =
-        ICredoraMetrics(address(0xA1CE4fD8470718eB3e8248E40ab489856E125F59));
+        ICredoraMetrics(address(0x29306A367e1185BbC2a8E92A54a33c0B52350564));
     address public credoraAdmin =
         address(0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab);
-    OracleMock public oracle =
-        OracleMock(0xC1aB56955958Ac8379567157740F18AAadD8cD04);
+    OracleMock public oracle;
 
     MoreMarkets public markets;
     DebtTokenFactory public debtTokenFactory;
@@ -64,12 +64,16 @@ contract MoreMarketsTest is Test {
         sepoliaFork = vm.createFork(
             "https://eth-sepolia.g.alchemy.com/v2/jXLoZTSjTIhZDB9nNhJsSmvrcMAbdrNT"
         );
-        vm.selectFork(sepoliaFork);
+        flowTestnetFork = vm.createFork("https://testnet.evm.nodes.onflow.org");
+        vm.selectFork(flowTestnetFork);
 
         debtToken = new DebtToken();
         debtTokenFactory = new DebtTokenFactory(address(debtToken));
         markets = new MoreMarkets(owner, address(debtTokenFactory));
         irm = new AdaptiveCurveIrm(address(markets));
+        oracle = new OracleMock();
+        // set price as 1 : 1
+        oracle.setPrice(1000000000000000000000000000000000000);
 
         startHoax(owner);
         markets.enableIrm(address(irm));

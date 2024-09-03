@@ -41,6 +41,7 @@ contract MoreMarkets is IMoreMarkets {
 
     /// @inheritdoc IMoreMarketsBase
     bytes32 public immutable DOMAIN_SEPARATOR;
+    uint256 constant NUMBER_OF_CATEGORIES = 5;
 
     /* STORAGE */
 
@@ -178,7 +179,10 @@ contract MoreMarkets is IMoreMarkets {
         require(isIrmEnabled[marketParams.irm], ErrorsLib.IRM_NOT_ENABLED);
         require(isLltvEnabled[marketParams.lltv], ErrorsLib.LLTV_NOT_ENABLED);
         require(market[id].lastUpdate == 0, ErrorsLib.MARKET_ALREADY_CREATED);
-        require(marketParams.categoryLltv.length == 5, "5 categories required");
+        require(
+            marketParams.categoryLltv.length == NUMBER_OF_CATEGORIES,
+            "5 categories required"
+        );
         require(
             marketParams.irxMaxLltv >= 1e18,
             "interest rate premium multiplier can't be less than 1e18"
@@ -186,7 +190,7 @@ contract MoreMarkets is IMoreMarkets {
         _arrayOfMarkets.push(id);
 
         if (marketParams.isPremiumMarket) {
-            for (uint8 i; i < 5; ) {
+            for (uint8 i; i < NUMBER_OF_CATEGORIES; ) {
                 uint256 categoryStepNumber = (marketParams.categoryLltv[i] -
                     marketParams.lltv) / 50000000000000000;
                 // calculate available multipliers
@@ -936,10 +940,10 @@ contract MoreMarkets is IMoreMarkets {
                     abi.encodeWithSignature("getScore(address)", borrower)
                 );
 
-            uint64 currentScore;
+            uint256 currentScore;
             lastMultiplier = position[id][borrower].lastMultiplier;
             if (success) {
-                currentScore = abi.decode(data, (uint64));
+                currentScore = abi.decode(data, (uint256));
                 uint8 categoryNum = uint8(currentScore / (200 * 10 ** 6));
                 lltvToUse = marketParams.categoryLltv[categoryNum];
             } else {
@@ -1102,10 +1106,10 @@ contract MoreMarkets is IMoreMarkets {
 
         if (borrowed <= maxBorrowByDefault) return 1 * 10 ** 18;
 
-        uint64 currentScore;
+        uint256 currentScore;
         uint8 categoryNum;
         if (success && (data.length > 0)) {
-            currentScore = abi.decode(data, (uint64));
+            currentScore = abi.decode(data, (uint256));
             categoryNum = uint8(currentScore / (200 * 10 ** 6));
         } else revert(ErrorsLib.INSUFFICIENT_COLLATERAL);
 
