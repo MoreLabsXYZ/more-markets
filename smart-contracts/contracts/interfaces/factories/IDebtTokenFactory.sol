@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.21;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 

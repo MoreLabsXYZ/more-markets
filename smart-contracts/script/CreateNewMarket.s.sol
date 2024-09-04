@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
@@ -11,6 +11,7 @@ import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
+// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
 contract CreateNewMarket is Script {
     using MarketParamsLib for MarketParams;
     ICredoraMetrics public credora;
@@ -30,20 +31,14 @@ contract CreateNewMarket is Script {
     ];
 
     uint8 numberOfPremiumBuckets = 5;
-    uint128[] public premiumLltvs = [
+    uint256[] public premiumLltvs = [
         1000000000000000000,
         1200000000000000000,
         1400000000000000000,
         1600000000000000000,
         2000000000000000000
     ];
-    uint112[] public categoryMultipliers = [
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether
-    ];
+    uint96 public categoryMultipliers = 2 ether;
     uint16[] public categorySteps = [4, 8, 12, 16, 24];
 
     ERC20MintableMock public loanToken;
@@ -60,10 +55,6 @@ contract CreateNewMarket is Script {
         credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
         oracle = OracleMock(vm.envAddress("ORACLE"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
-        debtTokenFactorye = DebtTokenFactory(
-            vm.envAddress("DEBT_TOKEN_FACTORY")
-        );
-        debtToken = DebtToken(vm.envAddress("DEBT_TOKEN"));
         irm = AdaptiveCurveIrm(vm.envAddress("IRM"));
 
         vm.startBroadcast(deployerPrivateKey);
@@ -75,21 +66,17 @@ contract CreateNewMarket is Script {
 
         // create a market
         marketParams = MarketParams(
+            true,
             address(loanToken),
             address(collateralToken),
             address(oracle),
             address(irm),
-            lltvs[0]
-        );
-        markets.createMarket(marketParams);
-        Id id = marketParams.id();
-
-        markets.setCategoryInfo(
-            id,
+            lltvs[0],
+            address(credora),
             categoryMultipliers,
-            categorySteps,
             premiumLltvs
         );
+        markets.createMarket(marketParams);
 
         loanToken.mint(address(owner), 1000000 ether);
         loanToken.approve(address(markets), 1000000 ether);

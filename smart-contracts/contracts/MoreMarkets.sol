@@ -1,15 +1,20 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
 
-import {IMoreMarkets, Position, CategoryInfo, MarketParams, Market, Id, Authorization, Signature, IMorphoBase} from "./interfaces/IMoreMarkets.sol";
-import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, MarketParamsLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "@morpho-org/morpho-blue/src/Morpho.sol";
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.21;
+
+import {IMoreMarkets, Position, CategoryInfo, MarketParams, Market, Id, Authorization, Signature, IMoreMarketsBase} from "./interfaces/IMoreMarkets.sol";
+import {IIrm} from "./interfaces/IIrm.sol";
+import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, ErrorsLib, IERC20, IOracle, WAD} from "./fork/Morpho.sol";
 import {IMorphoLiquidateCallback, IMorphoRepayCallback, IMorphoSupplyCallback, IMorphoSupplyCollateralCallback, IMorphoFlashLoanCallback} from "@morpho-org/morpho-blue/src/interfaces/IMorphoCallbacks.sol";
 import "@morpho-org/morpho-blue/src/libraries/ConstantsLib.sol";
+import {EventsLib} from "./libraries/markets/EventsLib.sol";
+import {MarketParamsLib} from "./libraries/MarketParamsLib.sol";
 import {ICredoraMetrics} from "./interfaces/ICredoraMetrics.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IDebtTokenFactory} from "./interfaces/factories/IDebtTokenFactory.sol";
 import {IDebtToken} from "./interfaces/tokens/IDebtToken.sol";
+import "hardhat/console.sol";
 
 // TODO: need to think if we have to move it to library
 error NothingToClaim();
@@ -35,31 +40,30 @@ contract MoreMarkets is IMoreMarkets {
         IDLE
     }
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     bytes32 public immutable DOMAIN_SEPARATOR;
+    uint256 constant NUMBER_OF_CATEGORIES = 5;
 
     /* STORAGE */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     address public owner;
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     address public feeRecipient;
     /// @inheritdoc IMoreMarkets
     mapping(Id => mapping(address => Position)) public position;
     /// @inheritdoc IMoreMarkets
     mapping(Id => Market) public market;
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     mapping(address => bool) public isIrmEnabled;
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     mapping(uint256 => bool) public isLltvEnabled;
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     mapping(address => mapping(address => bool)) public isAuthorized;
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     mapping(address => uint256) public nonce;
-    /// @inheritdoc IMoreMarkets
-    mapping(Id => MarketParams) public idToMarketParams;
-    /// @dev premFees
-    mapping(Id => uint128) public premFees;
+    // /// @inheritdoc IMoreMarkets
+    mapping(Id => MarketParams) private _idToMarketParams;
 
     mapping(Id => address) public idToDebtToken;
     mapping(Id => uint256) public totalDebtAssetsGenerated;
@@ -70,7 +74,7 @@ contract MoreMarkets is IMoreMarkets {
         public totalBorrowAssetsForMultiplier;
     mapping(Id => mapping(uint64 => uint256))
         public totalBorrowSharesForMultiplier;
-    mapping(Id => mapping(uint8 => CategoryInfo)) private _categoryInfo;
+    // mapping(Id => mapping(uint8 => CategoryInfo)) private _categoryInfo;
     mapping(Id => EnumerableSet.UintSet) private _availableMultipliers;
 
     Id[] private _arrayOfMarkets;
@@ -112,34 +116,7 @@ contract MoreMarkets is IMoreMarkets {
         credoraMetrics = ICredoraMetrics(credora);
     }
 
-    function setCategoryInfo(
-        Id id,
-        uint112[] memory categoryMultipliers,
-        uint16[] memory categoryNumberOfSteps,
-        uint128[] memory categoryLltv
-    ) external onlyOwner {
-        for (uint8 i; i < categoryMultipliers.length; ) {
-            _categoryInfo[id][i].multiplier = categoryMultipliers[i];
-            _categoryInfo[id][i].numberOfSteps = categoryNumberOfSteps[i];
-            _categoryInfo[id][i].lltv = categoryLltv[i];
-
-            // calculate available multipliers
-            uint256 multiplierStep = (uint256(categoryMultipliers[i]) - 1e18)
-                .wDivUp(uint256(categoryNumberOfSteps[i]) * 10 ** 18);
-            for (uint256 j; j < categoryNumberOfSteps[i]; ) {
-                uint256 multiplier = multiplierStep * (j + 1);
-                _availableMultipliers[id].add(multiplier + 1e18);
-                unchecked {
-                    ++j;
-                }
-            }
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function setOwner(address newOwner) external onlyOwner {
         require(newOwner != owner, ErrorsLib.ALREADY_SET);
 
@@ -148,7 +125,7 @@ contract MoreMarkets is IMoreMarkets {
         emit EventsLib.SetOwner(newOwner);
     }
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function enableIrm(address irm) external onlyOwner {
         require(!isIrmEnabled[irm], ErrorsLib.ALREADY_SET);
 
@@ -157,7 +134,7 @@ contract MoreMarkets is IMoreMarkets {
         emit EventsLib.EnableIrm(irm);
     }
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function enableLltv(uint256 lltv) external onlyOwner {
         require(!isLltvEnabled[lltv], ErrorsLib.ALREADY_SET);
         require(lltv < WAD, ErrorsLib.MAX_LLTV_EXCEEDED);
@@ -167,7 +144,7 @@ contract MoreMarkets is IMoreMarkets {
         emit EventsLib.EnableLltv(lltv);
     }
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function setFee(
         MarketParams memory marketParams,
         uint256 newFee
@@ -186,22 +163,7 @@ contract MoreMarkets is IMoreMarkets {
         emit EventsLib.SetFee(id, newFee);
     }
 
-    function setPremFee(
-        MarketParams memory marketParams,
-        uint256 premFee
-    ) external onlyOwner {
-        Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
-        require(premFee != premFees[id], ErrorsLib.ALREADY_SET);
-        require(premFee <= MAX_FEE, ErrorsLib.MAX_FEE_EXCEEDED);
-
-        // update state
-        premFees[id] = uint128(premFee);
-
-        emit SetPremFee(id, premFee);
-    }
-
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function setFeeRecipient(address newFeeRecipient) external onlyOwner {
         require(newFeeRecipient != feeRecipient, ErrorsLib.ALREADY_SET);
 
@@ -212,17 +174,49 @@ contract MoreMarkets is IMoreMarkets {
 
     /* MARKET CREATION */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function createMarket(MarketParams memory marketParams) external {
         Id id = marketParams.id();
         require(isIrmEnabled[marketParams.irm], ErrorsLib.IRM_NOT_ENABLED);
         require(isLltvEnabled[marketParams.lltv], ErrorsLib.LLTV_NOT_ENABLED);
         require(market[id].lastUpdate == 0, ErrorsLib.MARKET_ALREADY_CREATED);
+        require(
+            marketParams.categoryLltv.length == NUMBER_OF_CATEGORIES,
+            "5 categories required"
+        );
+        require(
+            marketParams.irxMaxLltv >= 1e18,
+            "interest rate premium multiplier can't be less than 1e18"
+        );
         _arrayOfMarkets.push(id);
+
+        if (marketParams.isPremiumMarket) {
+            for (uint8 i; i < NUMBER_OF_CATEGORIES; ) {
+                uint256 categoryStepNumber = (marketParams.categoryLltv[i] -
+                    marketParams.lltv) / 50000000000000000;
+                if (categoryStepNumber == 0) {
+                    _availableMultipliers[id].add(marketParams.irxMaxLltv);
+                    continue;
+                }
+                // calculate available multipliers
+                uint256 multiplierStep = (uint256(marketParams.irxMaxLltv) -
+                    1e18).wDivUp(categoryStepNumber * 10 ** 18);
+                for (uint256 j; j < categoryStepNumber; ) {
+                    uint256 multiplier = multiplierStep * (j + 1);
+                    _availableMultipliers[id].add(multiplier + 1e18);
+                    unchecked {
+                        ++j;
+                    }
+                }
+                unchecked {
+                    ++i;
+                }
+            }
+        }
 
         // Safe "unchecked" cast.
         market[id].lastUpdate = uint128(block.timestamp);
-        idToMarketParams[id] = marketParams;
+        _idToMarketParams[id] = marketParams;
 
         // debt token creation
         {
@@ -250,7 +244,7 @@ contract MoreMarkets is IMoreMarkets {
 
     /* SUPPLY MANAGEMENT */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function supply(
         MarketParams memory marketParams,
         uint256 assets,
@@ -303,7 +297,7 @@ contract MoreMarkets is IMoreMarkets {
         return (assets, shares);
     }
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function withdraw(
         MarketParams memory marketParams,
         uint256 assets,
@@ -395,7 +389,7 @@ contract MoreMarkets is IMoreMarkets {
 
     /* BORROW MANAGEMENT */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function borrow(
         MarketParams memory marketParams,
         uint256 assets,
@@ -415,7 +409,7 @@ contract MoreMarkets is IMoreMarkets {
 
         _accrueInterest(marketParams, id);
 
-        (assets, ) = _updatePosition(
+        assets = _updatePosition(
             marketParams,
             id,
             onBehalf,
@@ -448,7 +442,7 @@ contract MoreMarkets is IMoreMarkets {
         return (assets, shares);
     }
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function repay(
         MarketParams memory marketParams,
         uint256 assets,
@@ -466,8 +460,7 @@ contract MoreMarkets is IMoreMarkets {
 
         _accrueInterest(marketParams, id);
 
-        uint256 premFeeAmount;
-        (assets, premFeeAmount) = _updatePosition(
+        assets = _updatePosition(
             marketParams,
             id,
             onBehalf,
@@ -488,19 +481,12 @@ contract MoreMarkets is IMoreMarkets {
             assets
         );
 
-        if (premFeeAmount > 0)
-            IERC20(marketParams.loanToken).safeTransferFrom(
-                msg.sender,
-                feeRecipient,
-                premFeeAmount
-            );
-
         return (assets, shares);
     }
 
     /* COLLATERAL MANAGEMENT */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function supplyCollateral(
         MarketParams memory marketParams,
         uint256 assets,
@@ -529,7 +515,7 @@ contract MoreMarkets is IMoreMarkets {
         );
     }
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function withdrawCollateral(
         MarketParams memory marketParams,
         uint256 assets,
@@ -576,7 +562,7 @@ contract MoreMarkets is IMoreMarkets {
 
     /* LIQUIDATION */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function liquidate(
         MarketParams memory marketParams,
         address borrower,
@@ -719,7 +705,7 @@ contract MoreMarkets is IMoreMarkets {
 
     /* FLASH LOANS */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function flashLoan(
         address token,
         uint256 assets,
@@ -738,7 +724,7 @@ contract MoreMarkets is IMoreMarkets {
 
     /* AUTHORIZATION */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function setAuthorization(
         address authorized,
         bool newIsAuthorized
@@ -758,7 +744,7 @@ contract MoreMarkets is IMoreMarkets {
         );
     }
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function setAuthorizationWithSig(
         Authorization memory authorization,
         Signature calldata signature
@@ -809,6 +795,37 @@ contract MoreMarkets is IMoreMarkets {
         );
     }
 
+    function idToMarketParams(
+        Id id
+    )
+        external
+        view
+        returns (
+            bool isPremiumMarket,
+            address loanToken,
+            address collateralToken,
+            address oracle,
+            address irm,
+            uint256 lltv,
+            address creditAttestationService,
+            uint96 irxMaxLltv,
+            uint256[] memory categoryLltv
+        )
+    {
+        uint256[] memory categoryLltvs = _idToMarketParams[id].categoryLltv;
+        return (
+            _idToMarketParams[id].isPremiumMarket,
+            _idToMarketParams[id].loanToken,
+            _idToMarketParams[id].collateralToken,
+            _idToMarketParams[id].oracle,
+            _idToMarketParams[id].irm,
+            _idToMarketParams[id].lltv,
+            _idToMarketParams[id].creditAttestationService,
+            _idToMarketParams[id].irxMaxLltv,
+            categoryLltvs
+        );
+    }
+
     /// @dev Returns whether the sender is authorized to manage `onBehalf`'s positions.
     function _isSenderAuthorized(
         address onBehalf
@@ -818,7 +835,7 @@ contract MoreMarkets is IMoreMarkets {
 
     /* INTEREST MANAGEMENT */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function accrueInterest(MarketParams memory marketParams) external {
         Id id = marketParams.id();
         require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
@@ -920,19 +937,26 @@ contract MoreMarkets is IMoreMarkets {
         uint256 collateralPrice
     ) internal view returns (bool) {
         uint256 lltvToUse;
-        (bool success, bytes memory data) = address(credoraMetrics).staticcall(
-            abi.encodeWithSignature("getScore(address)", borrower)
-        );
+        uint64 lastMultiplier;
 
-        uint64 currentScore;
-        uint64 lastMultiplier = position[id][borrower].lastMultiplier;
-        if (success) {
-            currentScore = abi.decode(data, (uint64));
-            // TODO: decide if this 200 can change
-            uint8 categoryNum = uint8(currentScore / (200 * 10 ** 6));
-            lltvToUse = _categoryInfo[id][categoryNum].lltv;
+        if (marketParams.isPremiumMarket) {
+            (bool success, bytes memory data) = address(credoraMetrics)
+                .staticcall(
+                    abi.encodeWithSignature("getScore(address)", borrower)
+                );
+
+            uint256 currentScore;
+            lastMultiplier = position[id][borrower].lastMultiplier;
+            if (success) {
+                currentScore = abi.decode(data, (uint256));
+                uint8 categoryNum = uint8(currentScore / (200 * 10 ** 18));
+                lltvToUse = marketParams.categoryLltv[categoryNum];
+            } else {
+                lltvToUse = marketParams.lltv;
+            }
         } else {
             lltvToUse = marketParams.lltv;
+            lastMultiplier = 1e18;
         }
 
         uint256 borrowed = uint256(position[id][borrower].borrowShares)
@@ -977,7 +1001,7 @@ contract MoreMarkets is IMoreMarkets {
         uint256 assets,
         uint256 shares,
         UPDATE_TYPE updateType
-    ) internal returns (uint256, uint256) {
+    ) internal returns (uint256) {
         uint64 lastMultiplier = position[id][borrower].lastMultiplier;
         if (shares > 0)
             if (updateType == UPDATE_TYPE.BORROW) {
@@ -992,13 +1016,18 @@ contract MoreMarkets is IMoreMarkets {
                 );
             }
 
-        uint64 currentMultiplier = _getMultiplier(
-            marketParams,
-            id,
-            borrower,
-            assets,
-            updateType
-        );
+        uint64 currentMultiplier;
+        if (marketParams.isPremiumMarket) {
+            currentMultiplier = _getMultiplier(
+                marketParams,
+                id,
+                borrower,
+                assets,
+                updateType
+            );
+        } else {
+            currentMultiplier = lastMultiplier;
+        }
 
         if (assets > 0 && shares == 0)
             if (updateType == UPDATE_TYPE.BORROW) {
@@ -1020,29 +1049,6 @@ contract MoreMarkets is IMoreMarkets {
             totalBorrowAssetsForMultiplier[id][lastMultiplier],
             totalBorrowSharesForMultiplier[id][lastMultiplier]
         );
-
-        // if user is prem
-        uint256 feeAmount;
-        if (lastMultiplier != 1e18) {
-            uint256 borrowed = borrowedSharesBefore
-                .toAssetsUp(
-                    totalBorrowAssetsForMultiplier[id][lastMultiplier],
-                    totalBorrowSharesForMultiplier[id][lastMultiplier]
-                );
-
-            uint256 lltvMaxBorrow = uint256(position[id][borrower].collateral)
-                .mulDivDown(IOracle(marketParams.oracle).price(), ORACLE_PRICE_SCALE)
-                .wMulDown(marketParams.lltv);
-
-            if (borrowed > lltvMaxBorrow) {
-                unchecked {
-                    feeAmount = borrowed - lltvMaxBorrow;
-                    feeAmount = feeAmount > assets ? assets : feeAmount;
-                    feeAmount = feeAmount.wMulDown(premFees[id]);    
-                }
-            }
-        }
-
         if (lastMultiplier != currentMultiplier) {
             _updateCategory(
                 id,
@@ -1073,8 +1079,7 @@ contract MoreMarkets is IMoreMarkets {
                 .zeroFloorSub(market[id].totalBorrowAssets, assets)
                 .toUint128();
         }
-
-        return (assets, feeAmount);
+        return assets;
     }
 
     function _getMultiplier(
@@ -1106,30 +1111,34 @@ contract MoreMarkets is IMoreMarkets {
 
         if (borrowed <= maxBorrowByDefault) return 1 * 10 ** 18;
 
-        uint64 currentScore;
+        uint256 currentScore;
         uint8 categoryNum;
         if (success && (data.length > 0)) {
-            currentScore = abi.decode(data, (uint64));
-            categoryNum = uint8(currentScore / (200 * 10 ** 6));
-        } else revert("insufficient collateral");
+            currentScore = abi.decode(data, (uint256));
+            categoryNum = uint8(currentScore / (200 * 10 ** 18));
+        } else revert(ErrorsLib.INSUFFICIENT_COLLATERAL);
 
         uint256 maxBorrowByScore = uint256(position[id][borrower].collateral)
             .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
-            .wMulDown(_categoryInfo[id][categoryNum].lltv);
+            .wMulDown(marketParams.categoryLltv[categoryNum]);
 
-        uint256 numberOfSteps = _categoryInfo[id][categoryNum].numberOfSteps;
+        uint256 categoryStepNumber = (marketParams.categoryLltv[categoryNum] -
+            marketParams.lltv) / 50000000000000000;
+        if (categoryStepNumber == 0) {
+            categoryStepNumber = 1;
+        }
         uint256 step = (maxBorrowByScore - maxBorrowByDefault).wDivUp(
-            uint256(numberOfSteps) * 10 ** 18
+            uint256(categoryStepNumber) * 10 ** 18
         );
 
         uint256 nextStep = maxBorrowByDefault + step;
-        for (uint64 i = 1; i < numberOfSteps + 1; ) {
+        for (uint64 i = 1; i < categoryStepNumber + 1; ) {
             if (borrowed <= nextStep) {
                 multiplier = uint64(
                     ((
-                        uint256(
-                            _categoryInfo[id][categoryNum].multiplier - 1e18
-                        ).wDivUp(numberOfSteps * 10 ** 18)
+                        uint256(marketParams.irxMaxLltv - 1e18).wDivUp(
+                            categoryStepNumber * 10 ** 18
+                        )
                     ) * i) + 1e18
                 );
                 break;
@@ -1186,7 +1195,7 @@ contract MoreMarkets is IMoreMarkets {
 
     /* STORAGE VIEW */
 
-    /// @inheritdoc IMorphoBase
+    /// @inheritdoc IMoreMarketsBase
     function extSloads(
         bytes32[] calldata slots
     ) external view returns (bytes32[] memory res) {

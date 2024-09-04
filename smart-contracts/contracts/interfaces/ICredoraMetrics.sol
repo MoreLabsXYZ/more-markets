@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.21;
 
 import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
 
@@ -67,7 +67,7 @@ interface ICredoraMetrics {
      * @param entity The entity ID
      * @return The score of the entity
      */
-    function getScore(address entity) external view returns (uint64);
+    function getScore(address entity) external view returns (uint256);
 
     /**
      * @notice Get the NAV of an entity

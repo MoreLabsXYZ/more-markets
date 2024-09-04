@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import {IMetaMorpho} from "./interfaces/IMetaMorpho.sol";
 import {IMetaMorphoFactory} from "./interfaces/IMetaMorphoFactory.sol";
 
-import {EventsLib} from "./libraries/EventsLib.sol";
-import {ErrorsLib} from "./libraries/ErrorsLib.sol";
+import {EventsLib} from "./libraries/vaults/EventsLib.sol";
+import {ErrorsLib} from "./libraries/vaults/ErrorsLib.sol";
 
 import {MoreVaults} from "./MoreVaults.sol";
 
