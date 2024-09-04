@@ -67,7 +67,7 @@ interface ICredoraMetrics {
      * @param entity The entity ID
      * @return The score of the entity
      */
-    function getScore(address entity) external view returns (uint64);
+    function getScore(address entity) external view returns (uint256);
 
     /**
      * @notice Get the NAV of an entity

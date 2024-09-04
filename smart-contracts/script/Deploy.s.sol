@@ -10,6 +10,7 @@ import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
+// // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
 contract DeployMarketContracts is Script {
     ICredoraMetrics public credora;
     address public credoraAdmin;
@@ -50,10 +51,8 @@ contract DeployMarketContracts is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        credoraAdmin = vm.envAddress("CREDORA_ADMIN");
         owner = address(uint160(vm.envUint("OWNER")));
         credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
-        oracleMock = OracleMock(vm.envAddress("ORACLE"));
 
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
