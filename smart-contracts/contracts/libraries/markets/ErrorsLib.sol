@@ -81,21 +81,36 @@ library ErrorsLib {
     /// @notice Thrown when the maximum uint128 is exceeded.
     string internal constant MAX_UINT128_EXCEEDED = "max uint128 exceeded";
 
+    /// @notice Thrown when provided categoryLltvs array has invalid length.
+    /// @param expectedLength The expected length of the array.
+    /// @param providedLength The provided length of the array.
     error InvalidLengthOfCategoriesLltvsArray(
         uint256 expectedLength,
         uint256 providedLength
     );
 
+    /// @notice Thrown when when provided irxMaxValue is not in expected range.
+    /// @param maxAvailableValue The maximum allowed value.
+    /// @param minAvailableValue The minimum allowed value.
+    /// @param providedValue The provided value.
     error InvalidIrxMaxValue(
         uint256 maxAvailableValue,
         uint256 minAvailableValue,
         uint256 providedValue
     );
 
+    /// @notice Thrown when when any of provided categoryLltv values is not in expected range.
+    /// @param numberInArray The index of the invalid value in the array.
+    /// @param maxAvailableValue The maximum allowed value.
+    /// @param minAvailableValue The minimum allowed value.
+    /// @param providedValue The provided value.
     error InvalidCategoryLltvValue(
         uint8 numberInArray,
         uint256 maxAvailableValue,
         uint256 minAvailableValue,
         uint256 providedValue
     );
+
+    /// @notice Thrown when nothing debt tokens to claim by the caller.
+    error NothingToClaim();
 }

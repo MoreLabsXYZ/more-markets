@@ -2,6 +2,7 @@
 pragma solidity >=0.5.0;
 
 import {Id, Market, Authorization, Signature} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {ICreditAttestationService} from "./ICreditAttestationService.sol";
 
 struct MarketParams {
     bool isPremiumMarket;
@@ -64,6 +65,46 @@ interface IMoreMarketsBase {
     /// @notice The `authorizer`'s current nonce. Used to prevent replay attacks with EIP-712 signatures.
     function nonce(address authorizer) external view returns (uint256);
 
+    /// @notice The address of "debtToken" for a given market.
+    function idToDebtToken(Id marketId) external view returns (address);
+
+    /// @notice Total amount of debt assets generated to a given market.
+    function totalDebtAssetsGenerated(
+        Id marketId
+    ) external view returns (uint256);
+
+    /// @notice Last total debt assets generated to a given market that used for further calculation.
+    function lastTotalDebtAssetsGenerated(
+        Id marketId
+    ) external view returns (uint256);
+
+    /// @notice Value of token per share in a given market.
+    function tps(Id marketId) external view returns (uint256);
+
+    /// @notice Total amount of assets borrowed on a given market for particular multiplier.
+    function totalBorrowAssetsForMultiplier(
+        Id marketId,
+        uint64 multiplier
+    ) external view returns (uint256);
+
+    /// @notice Total amount of shares borrowed on a given market for particular multiplier.
+    function totalBorrowSharesForMultiplier(
+        Id marketId,
+        uint64 multiplier
+    ) external view returns (uint256);
+
+    /// @notice Upper limit for irxMaxLltv to set.
+    function irxMaxAvailable() external view returns (uint256);
+
+    /// @notice Upper limit for categoryLltv to set.
+    function maxLltvForCategory() external view returns (uint256);
+
+    /// @notice Address of the debt token factory.
+    function debtTokenFactory() external view returns (address);
+
+    /// @notice Array of ids of created markets.
+    function arrayOfMarkets() external view returns (Id[] memory);
+
     /// @notice Sets `newOwner` as `owner` of the contract.
     /// @dev Warning: No two-step transfer ownership.
     /// @dev Warning: The owner can be set to the zero address.
@@ -76,6 +117,12 @@ interface IMoreMarketsBase {
     /// @notice Enables `lltv` as a possible LLTV for market creation.
     /// @dev Warning: It is not possible to disable a LLTV.
     function enableLltv(uint256 lltv) external;
+
+    /// @notice Sets `irxMaxAvailable` as a upper limit for market creation.
+    function setIrxMax(uint256 irxMaxAvailable) external;
+
+    /// @notice Sets `maxLltvForCategory` as a upper limit of any `categoryLltv` for market creation.
+    function setMaxLltvForCategory(uint256 _maxLltvForCategory) external;
 
     /// @notice Sets the `newFee` for the given market `marketParams`.
     /// @param newFee The new fee, scaled by WAD.
@@ -99,6 +146,11 @@ interface IMoreMarketsBase {
     /// on `transfer` and `transferFrom`. In particular, tokens with fees on transfer are not supported.
     /// - The IRM should not re-enter Morpho.
     /// - The oracle should return a price with the correct scaling.
+    /// - The credit attestation service should be ICreditAttestationService compliant. It should be able to return
+    /// scores of the users by getScores(address) returns(uint256) call and this score should be between 1e18 and 1000 * 1e18.
+    /// Any score higher or equal than 1000 * 1e18 will be considered as 1000 * 1e18.
+    /// - The irxMaxLltv should be between irxMaxAvailable and 1e18.
+    /// - The ltvMaxLltv should be between maxLltvForCategory and default lltv.
     /// @dev Here is a list of properties on the market's dependencies that could break Morpho's liveness properties
     /// (funds could get stuck):
     /// - The token can revert on `transfer` and `transferFrom` for a reason other than an approval or balance issue.
@@ -231,6 +283,28 @@ interface IMoreMarketsBase {
         uint256 assets,
         address onBehalf,
         address receiver
+    ) external;
+
+    /// @notice Claims `assets` of debtToken on behalf of `onBehalf` and sends the assets to `receiver`.
+    /// @dev `msg.sender` must be authorized to manage `onBehalf`'s positions.
+    /// @dev If there are no `assets` to claim than will revert.
+    /// @param marketParams The market to claim debt tokens from.
+    /// @param onBehalf The address of the owner of the debt tokens position.
+    /// @param receiver The address that will receive the debt tokens.
+    function claimDebtTokens(
+        MarketParams memory marketParams,
+        address onBehalf,
+        address receiver
+    ) external;
+
+    /// @notice Function that updates the premium borrower's current interest rate multiplier if conditions are met.
+    /// Since because of fluctuating of the market LTV of the users can change, it has to be checked if the conditions are met
+    /// and update the multiplier of the borrower.
+    /// @param marketParams The market at which position will be updated.
+    /// @param borrower The address of the borrower of which position will be updated.
+    function updateBorrower(
+        MarketParams memory marketParams,
+        address borrower
     ) external;
 
     /// @notice Liquidates the given `repaidShares` of debt asset or seize the given `seizedAssets` of collateral on the

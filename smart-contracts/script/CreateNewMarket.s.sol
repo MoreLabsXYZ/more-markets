@@ -2,10 +2,10 @@
 pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 
@@ -14,7 +14,7 @@ import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 // // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
 contract CreateNewMarket is Script {
     using MarketParamsLib for MarketParams;
-    ICredoraMetrics public credora;
+    ICreditAttestationService public credora;
     address public credoraAdmin;
     OracleMock public oracle;
 
@@ -52,7 +52,7 @@ contract CreateNewMarket is Script {
 
         // Start broadcasting for deploymentcredoraAdmin = vm.envAddress("CREDORA_ADMIN");
         owner = address(uint160(vm.envUint("OWNER")));
-        credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
+        credora = ICreditAttestationService(vm.envAddress("CREDORA_METRICS"));
         oracle = OracleMock(vm.envAddress("ORACLE"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
         irm = AdaptiveCurveIrm(vm.envAddress("IRM"));

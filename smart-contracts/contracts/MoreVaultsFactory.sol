@@ -10,8 +10,7 @@ import {ErrorsLib} from "./libraries/vaults/ErrorsLib.sol";
 import {MoreVaults} from "./MoreVaults.sol";
 
 /// @title MoreVaultsFactory
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
+/// @author MoreMarkets
 /// @notice This contract allows to create More vaults, and to index them easily. Fork of Morpho's MetaMorphoFactory.
 contract MoreVaultsFactory is IMetaMorphoFactory {
     /* IMMUTABLES */
