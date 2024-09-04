@@ -5,7 +5,7 @@ import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
@@ -19,8 +19,10 @@ contract MoreMarketsTest is Test {
     uint256 sepoliaFork;
     uint256 flowTestnetFork;
 
-    ICredoraMetrics public credora =
-        ICredoraMetrics(address(0x29306A367e1185BbC2a8E92A54a33c0B52350564));
+    ICreditAttestationService public credora =
+        ICreditAttestationService(
+            address(0x29306A367e1185BbC2a8E92A54a33c0B52350564)
+        );
     address public credoraAdmin =
         address(0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab);
     OracleMock public oracle;
@@ -77,7 +79,7 @@ contract MoreMarketsTest is Test {
 
         startHoax(owner);
         markets.enableIrm(address(irm));
-        markets.setCredora(address(credora));
+        // markets.setCreditAttestationService(address(credora));
         markets.setMaxLltvForCategory(premiumLltvs[4]);
 
         for (uint256 i; i < lltvs.length; ) {

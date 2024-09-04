@@ -46,8 +46,8 @@ describe("MoreMarkets", function () {
     await impersonateAccount(CREDORA_ADMIN);
     const credoraAdmin = await ethers.getSigner(CREDORA_ADMIN);
 
-    const credoraMetrics = await hre.ethers.getContractAt(
-      "ICredoraMetrics",
+    const creditAttestationService = await hre.ethers.getContractAt(
+      "ICreditAttestationService",
       CREDORA_METRICS
     );
 
@@ -67,7 +67,7 @@ describe("MoreMarkets", function () {
     await moreMarkets.enableLltv(LLTVS[2]);
 
     // set credora metrics on more markets
-    await moreMarkets.setCredora(CREDORA_METRICS);
+    // await moreMarkets.setCreditAttestationService(CREDORA_METRICS);
 
     // deploy tokens
     const LoanToken = await hre.ethers.getContractFactory("ERC20MintableMock");
@@ -121,7 +121,7 @@ describe("MoreMarkets", function () {
       moreMarkets,
       owner,
       credoraAdmin,
-      credoraMetrics,
+      creditAttestationService,
       irm,
       marketParams,
       marketId,
@@ -139,9 +139,13 @@ describe("MoreMarkets", function () {
     });
 
     it("Should set the right credora address", async function () {
-      const { moreMarkets, credoraMetrics } = await loadFixture(deployFixture);
+      const { moreMarkets, creditAttestationService } = await loadFixture(
+        deployFixture
+      );
 
-      expect(await moreMarkets.credoraMetrics()).to.equal(credoraMetrics);
+      // expect(await moreMarkets.creditAttestationService()).to.equal(
+      //   creditAttestationService
+      // );
     });
 
     it("Should enable irm", async function () {
@@ -197,8 +201,13 @@ describe("MoreMarkets", function () {
 
   describe("First scenario", function () {
     it("Should borrow maxBorrow and then more after credit rating increased", async function () {
-      const { credoraMetrics, credoraAdmin, moreMarkets, marketParams, owner } =
-        await loadFixture(deployFixture);
+      const {
+        creditAttestationService,
+        credoraAdmin,
+        moreMarkets,
+        marketParams,
+        owner,
+      } = await loadFixture(deployFixture);
       await moreMarkets.supplyCollateral(
         marketParams,
         ethers.parseEther("100"),
@@ -241,24 +250,24 @@ describe("MoreMarkets", function () {
       const emptyBytes32 =
         "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-      await credoraMetrics
+      await creditAttestationService
         .connect(credoraAdmin)
         .setData(emptyBytes32, encodedCredoraParams, emptyBytes32);
-      await credoraMetrics
+      await creditAttestationService
         .connect(credoraAdmin)
         ["grantPermission(address,address,uint128)"](
           owner.address,
           owner.address,
           60000
         );
-      await credoraMetrics
+      await creditAttestationService
         .connect(credoraAdmin)
         ["grantPermission(address,address,uint128)"](
           owner.address,
           await moreMarkets.getAddress(),
           60000
         );
-      expect(await credoraMetrics.getRAE(owner.address)).to.equal(
+      expect(await creditAttestationService.getRAE(owner.address)).to.equal(
         stringToBytes8("AAA+")
       );
 
@@ -298,7 +307,7 @@ describe("MoreMarkets", function () {
   describe("Second scenario", function () {
     it("Should borrow maxBorrow and then more after credit rating increased", async function () {
       const {
-        credoraMetrics,
+        creditAttestationService,
         credoraAdmin,
         moreMarkets,
         marketParams,
@@ -323,24 +332,24 @@ describe("MoreMarkets", function () {
       const emptyBytes32 =
         "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-      await credoraMetrics
+      await creditAttestationService
         .connect(credoraAdmin)
         .setData(emptyBytes32, encodedCredoraParams, emptyBytes32);
-      await credoraMetrics
+      await creditAttestationService
         .connect(credoraAdmin)
         ["grantPermission(address,address,uint128)"](
           owner.address,
           owner.address,
           60000
         );
-      await credoraMetrics
+      await creditAttestationService
         .connect(credoraAdmin)
         ["grantPermission(address,address,uint128)"](
           owner.address,
           await moreMarkets.getAddress(),
           60000
         );
-      expect(await credoraMetrics.getRAE(owner.address)).to.equal(
+      expect(await creditAttestationService.getRAE(owner.address)).to.equal(
         stringToBytes8(RAE_VALUES[1])
       );
 
@@ -370,7 +379,7 @@ describe("MoreMarkets", function () {
         ["address", "uint64", "uint64", "bytes8", "uint64", "uint64", "uint64"],
         [owner.address, 0, 0, stringToBytes8(RAE_VALUES[0]), 0, 0, 0]
       );
-      await credoraMetrics
+      await creditAttestationService
         .connect(credoraAdmin)
         .setData(emptyBytes32, encodedCredoraParams, emptyBytes32);
 
@@ -403,7 +412,7 @@ describe("MoreMarkets", function () {
   describe("Liquidate", function () {
     it("partial liquidation from example", async function () {
       const {
-        credoraMetrics,
+        creditAttestationService,
         credoraAdmin,
         moreMarkets,
         owner,

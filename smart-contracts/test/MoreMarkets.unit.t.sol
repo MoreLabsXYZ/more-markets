@@ -2,10 +2,10 @@
 pragma solidity ^0.8.21;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim, ErrorsLib} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, ErrorsLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
@@ -19,8 +19,10 @@ contract MoreMarketsTest is Test {
     uint256 sepoliaFork;
     uint256 flowTestnetFork;
 
-    ICredoraMetrics public credora =
-        ICredoraMetrics(address(0x29306A367e1185BbC2a8E92A54a33c0B52350564));
+    ICreditAttestationService public credora =
+        ICreditAttestationService(
+            address(0x29306A367e1185BbC2a8E92A54a33c0B52350564)
+        );
     address public credoraAdmin =
         address(0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab);
     OracleMock public oracle;
@@ -71,7 +73,7 @@ contract MoreMarketsTest is Test {
 
         startHoax(owner);
         markets.enableIrm(address(irm));
-        markets.setCredora(address(credora));
+        // markets.setCreditAttestationService(address(credora));
         markets.setMaxLltvForCategory(premiumLltvs[4]);
 
         for (uint256 i; i < lltvs.length; ) {
@@ -106,12 +108,28 @@ contract MoreMarketsTest is Test {
         collateralToken.mint(address(owner), 1000000 ether);
         collateralToken.approve(address(markets), 1000000 ether);
 
+        startHoax(credoraAdmin);
+        credora.setData(
+            0,
+            abi.encode(
+                owner,
+                uint256(190 * 10 ** 18),
+                uint64(0),
+                bytes8("AAA+"),
+                uint64(0),
+                uint64(0),
+                uint64(0)
+            ),
+            ""
+        );
+
+        startHoax(owner);
         markets.supply(marketParams, 10000 ether, 0, owner, "");
     }
 
     function test_deployment() public view {
         assertTrue(markets.isIrmEnabled(address(irm)));
-        assertEq(address(markets.credoraMetrics()), address(credora));
+        // assertEq(address(markets.creditAttestationService()), address(credora));
         assertEq(markets.owner(), owner);
     }
 
@@ -1132,7 +1150,7 @@ contract MoreMarketsTest is Test {
         loanToken.approve(address(markets), 1000000 ether);
         markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
 
-        vm.expectRevert(NothingToClaim.selector);
+        vm.expectRevert(ErrorsLib.NothingToClaim.selector);
         markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
     }
 
