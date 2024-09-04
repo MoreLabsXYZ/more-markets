@@ -78,6 +78,7 @@ contract MoreMarketsTest is Test {
         startHoax(owner);
         markets.enableIrm(address(irm));
         markets.setCredora(address(credora));
+        markets.setMaxLltvForCategory(premiumLltvs[4]);
 
         for (uint256 i; i < lltvs.length; ) {
             markets.enableLltv(lltvs[i]);
@@ -261,7 +262,7 @@ contract MoreMarketsTest is Test {
                 0,
                 abi.encode(
                     users[i],
-                    uint64((99 + (numOfCategory * 200)) * 10 ** 6),
+                    uint256((99 + (numOfCategory * 200)) * 10 ** 18),
                     uint64(0),
                     bytes8("AAA+"),
                     uint64(0),

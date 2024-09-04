@@ -3,9 +3,10 @@ pragma solidity 0.8.21;
 
 import {IMoreMarkets, Position, CategoryInfo, MarketParams, Market, Id, Authorization, Signature, IMoreMarketsBase} from "./interfaces/IMoreMarkets.sol";
 import {IIrm} from "./interfaces/IIrm.sol";
-import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, ErrorsLib, IERC20, IOracle, WAD} from "./fork/Morpho.sol";
+import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, IERC20, IOracle, WAD} from "./fork/Morpho.sol";
 import {IMorphoLiquidateCallback, IMorphoRepayCallback, IMorphoSupplyCallback, IMorphoSupplyCollateralCallback, IMorphoFlashLoanCallback} from "@morpho-org/morpho-blue/src/interfaces/IMorphoCallbacks.sol";
 import "@morpho-org/morpho-blue/src/libraries/ConstantsLib.sol";
+import {ErrorsLib} from "./libraries/markets/ErrorsLib.sol";
 import {EventsLib} from "./libraries/markets/EventsLib.sol";
 import {MarketParamsLib} from "./libraries/MarketParamsLib.sol";
 import {ICredoraMetrics} from "./interfaces/ICredoraMetrics.sol";
@@ -41,7 +42,8 @@ contract MoreMarkets is IMoreMarkets {
 
     /// @inheritdoc IMoreMarketsBase
     bytes32 public immutable DOMAIN_SEPARATOR;
-    uint256 constant NUMBER_OF_CATEGORIES = 5;
+    /// Number of categories for attestation service score. 0-199 score is 1st category, 200-399 score is 2nd category, etc
+    uint256 constant LENGTH_OF_CATEGORY_LLTVS_ARRAY = 5;
 
     /* STORAGE */
 
@@ -76,9 +78,12 @@ contract MoreMarkets is IMoreMarkets {
     // mapping(Id => mapping(uint8 => CategoryInfo)) private _categoryInfo;
     mapping(Id => EnumerableSet.UintSet) private _availableMultipliers;
 
-    Id[] private _arrayOfMarkets;
+    uint256 public irxMaxAvailable;
+    uint256 public maxLltvForCategory;
     ICredoraMetrics public credoraMetrics;
     address public debtTokenFactory;
+
+    Id[] private _arrayOfMarkets;
 
     /* CONSTRUCTOR */
 
@@ -92,6 +97,9 @@ contract MoreMarkets is IMoreMarkets {
         owner = newOwner;
 
         debtTokenFactory = factory;
+
+        _setIrxMax(2 * 1e18); // x2
+        _setMaxLltvForCategory(1000000000000000000); // 100%
 
         emit EventsLib.SetOwner(newOwner);
     }
@@ -122,6 +130,16 @@ contract MoreMarkets is IMoreMarkets {
         owner = newOwner;
 
         emit EventsLib.SetOwner(newOwner);
+    }
+
+    function setIrxMax(uint256 _irxMaxAvailable) external onlyOwner {
+        _setIrxMax(_irxMaxAvailable);
+    }
+
+    function setMaxLltvForCategory(
+        uint256 _maxLltvForCategory
+    ) external onlyOwner {
+        _setMaxLltvForCategory(_maxLltvForCategory);
     }
 
     /// @inheritdoc IMoreMarketsBase
@@ -179,18 +197,35 @@ contract MoreMarkets is IMoreMarkets {
         require(isIrmEnabled[marketParams.irm], ErrorsLib.IRM_NOT_ENABLED);
         require(isLltvEnabled[marketParams.lltv], ErrorsLib.LLTV_NOT_ENABLED);
         require(market[id].lastUpdate == 0, ErrorsLib.MARKET_ALREADY_CREATED);
-        require(
-            marketParams.categoryLltv.length == NUMBER_OF_CATEGORIES,
-            "5 categories required"
-        );
-        require(
-            marketParams.irxMaxLltv >= 1e18,
-            "interest rate premium multiplier can't be less than 1e18"
-        );
+        if (marketParams.categoryLltv.length != LENGTH_OF_CATEGORY_LLTVS_ARRAY)
+            revert ErrorsLib.InvalidLengthOfCategoriesLltvsArray(
+                LENGTH_OF_CATEGORY_LLTVS_ARRAY,
+                marketParams.categoryLltv.length
+            );
+
+        if (
+            marketParams.irxMaxLltv < 1e18 ||
+            marketParams.irxMaxLltv > irxMaxAvailable
+        )
+            revert ErrorsLib.InvalidIrxMaxValue(
+                irxMaxAvailable,
+                1e18,
+                marketParams.irxMaxLltv
+            );
         _arrayOfMarkets.push(id);
 
         if (marketParams.isPremiumMarket) {
-            for (uint8 i; i < NUMBER_OF_CATEGORIES; ) {
+            for (uint8 i; i < LENGTH_OF_CATEGORY_LLTVS_ARRAY; ) {
+                if (
+                    marketParams.categoryLltv[i] <= marketParams.lltv ||
+                    marketParams.categoryLltv[i] > maxLltvForCategory
+                )
+                    revert ErrorsLib.InvalidCategoryLltvValue(
+                        i,
+                        maxLltvForCategory,
+                        marketParams.lltv,
+                        marketParams.categoryLltv[i]
+                    );
                 uint256 categoryStepNumber = (marketParams.categoryLltv[i] -
                     marketParams.lltv) / 50000000000000000;
                 if (categoryStepNumber == 0) {
@@ -825,6 +860,25 @@ contract MoreMarkets is IMoreMarkets {
         );
     }
 
+    function _setIrxMax(uint256 _irxMaxAvailable) internal {
+        require(irxMaxAvailable != _irxMaxAvailable, ErrorsLib.ALREADY_SET);
+
+        irxMaxAvailable = _irxMaxAvailable;
+
+        emit EventsLib.SetIrxMaxAvailable(_irxMaxAvailable);
+    }
+
+    function _setMaxLltvForCategory(uint256 _maxLltvForCategory) internal {
+        require(
+            maxLltvForCategory != _maxLltvForCategory,
+            ErrorsLib.ALREADY_SET
+        );
+
+        maxLltvForCategory = _maxLltvForCategory;
+
+        emit EventsLib.SetMaxLltvForCategory(_maxLltvForCategory);
+    }
+
     /// @dev Returns whether the sender is authorized to manage `onBehalf`'s positions.
     function _isSenderAuthorized(
         address onBehalf
@@ -948,8 +1002,15 @@ contract MoreMarkets is IMoreMarkets {
             lastMultiplier = position[id][borrower].lastMultiplier;
             if (success) {
                 currentScore = abi.decode(data, (uint256));
-                uint8 categoryNum = uint8(currentScore / (200 * 10 ** 6));
-                lltvToUse = marketParams.categoryLltv[categoryNum];
+                if (currentScore != 0) {
+                    uint8 categoryNum;
+                    if (currentScore < 1000 * 10 ** 18) {
+                        categoryNum = uint8(currentScore / (200 * 10 ** 18));
+                    } else {
+                        categoryNum = 4;
+                    }
+                    lltvToUse = marketParams.categoryLltv[categoryNum];
+                }
             } else {
                 lltvToUse = marketParams.lltv;
             }
@@ -1112,9 +1173,16 @@ contract MoreMarkets is IMoreMarkets {
 
         uint256 currentScore;
         uint8 categoryNum;
+
         if (success && (data.length > 0)) {
             currentScore = abi.decode(data, (uint256));
-            categoryNum = uint8(currentScore / (200 * 10 ** 6));
+            if (currentScore != 0) {
+                if (currentScore < 1000 * 10 ** 18) {
+                    categoryNum = uint8(currentScore / (200 * 10 ** 18));
+                } else {
+                    categoryNum = 4;
+                }
+            }
         } else revert(ErrorsLib.INSUFFICIENT_COLLATERAL);
 
         uint256 maxBorrowByScore = uint256(position[id][borrower].collateral)
