@@ -11,6 +11,7 @@ remappings = [
     "eth-gas-reporter/=node_modules/eth-gas-reporter/",
     "hardhat/=node_modules/hardhat/",
     "forge-std/=lib/forge-std/src/",
+    "solmate/=lib/solmate/src/",
 ]
 gas_reports = ["*"]
 no_match_test = "loadOfContract"

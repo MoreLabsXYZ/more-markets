@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.19;
 
-import {IMorphoBundler} from "../interfaces/IMorphoBundler.sol";
-import {IPublicAllocator, Withdrawal} from "../interfaces/IPublicAllocator.sol";
-import {MarketParams, Signature, Authorization, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {IMorphoBundler} from "../interfaces/bundlers/IMorphoBundler.sol";
+import {MarketParams} from "../interfaces/"
+import {IPublicAllocator, Withdrawal} from "../interfaces/bundlers/IPublicAllocator.sol";
+import {Signature, Authorization, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
 import {ErrorsLib} from "../libraries/ErrorsLib.sol";
-import {SafeTransferLib, ERC20} from "../lib/solmate/src/utils/SafeTransferLib.sol";
+import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
 import {Multicall} from "./Multicall.sol";
 
@@ -332,7 +333,7 @@ abstract contract BaseBundler is Multicall, IMorphoBundler {
         _multicall(abi.decode(data, (bytes[])));
     }
 
-    /// @inheritdoc BaseBundler
+    /// @inheritdoc Multicall
     function _isSenderAuthorized()
         internal
         view

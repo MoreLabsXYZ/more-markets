@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity 0.8.24;
+pragma solidity ^0.8.19;
 
 import {IMulticall} from "../interfaces/bundlers/IMulticall.sol";
 
 import {ErrorsLib} from "../libraries/ErrorsLib.sol";
 import {ConstantsLib} from "../libraries/ConstantsLib.sol";
-import {SafeTransferLib, ERC20} from "../lib/solmate/src/utils/SafeTransferLib.sol";
+import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
 /// @title BaseBundler
 /// @author Morpho Labs
