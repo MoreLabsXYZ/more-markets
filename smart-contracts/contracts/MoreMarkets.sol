@@ -10,7 +10,6 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IDebtTokenFactory} from "./interfaces/factories/IDebtTokenFactory.sol";
 import {IDebtToken} from "./interfaces/tokens/IDebtToken.sol";
-import "hardhat/console.sol";
 
 // TODO: need to think if we have to move it to library
 error NothingToClaim();

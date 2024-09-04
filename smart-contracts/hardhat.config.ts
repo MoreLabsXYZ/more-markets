@@ -35,6 +35,11 @@ const config: HardhatUserConfig = {
       accounts: privateKey !== undefined ? [privateKey] : [],
       gasPrice: 1 * 10 ** 9,
     },
+    flow: {
+      url: 'https://testnet.evm.nodes.onflow.org',
+      accounts: [privateKey], // In practice, this should come from an environment variable and not be commited
+      gas: 500000, // Example gas limit
+    },
   },
   solidity: {
     compilers: [
@@ -60,10 +65,48 @@ const config: HardhatUserConfig = {
           evmVersion: "paris",
         },
       },
+      {
+        version: "0.8.13",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 4000,
+          },
+          viaIR: true,
+          evmVersion: "paris",
+        },
+      },
+      {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 4000,
+          },
+          viaIR: true,
+          evmVersion: "paris",
+        },
+      },
     ],
   },
   gasReporter: {
     enabled: true,
+  },
+  etherscan: {
+    apiKey: {
+      // Is not required by blockscout. Can be any non-empty string
+      'flow': "abc"
+    },
+    customChains: [
+      {
+        network: "flow",
+        chainId: 545,
+        urls: {
+          apiURL: "https://evm-testnet.flowscan.io/api",
+          browserURL: "https://evm-testnet.flowscan.io/",
+        }
+      }
+    ]
   },
 };
 
