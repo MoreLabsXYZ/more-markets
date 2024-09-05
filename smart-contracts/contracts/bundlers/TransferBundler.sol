@@ -5,14 +5,14 @@ import {Math} from "../libraries/Math.sol";
 import {ErrorsLib} from "../libraries/vaults/ErrorsLib.sol";
 import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
-import {MoreMulticall} from "./MoreMulticall.sol";
+import {BaseBundler} from "./BaseBundler.sol";
 
 /// @title TransferBundler
 /// @author Morpho Labs
 /// @custom:contact security@morpho.org
 /// @notice Enables transfer of ERC20 and native tokens.
 /// @dev Assumes that any tokens left on the contract can be seized by anyone.
-abstract contract TransferBundler is MoreMulticall {
+abstract contract TransferBundler is BaseBundler {
     using SafeTransferLib for ERC20;
 
     /* TRANSFER ACTIONS */

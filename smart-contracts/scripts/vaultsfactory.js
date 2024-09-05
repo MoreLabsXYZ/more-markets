@@ -18,7 +18,20 @@ async function main() {
   console.log(await tokenInfo.name());
 
   const vaultsFacotry = await ethers.getContractAt("MoreVaultsFactory", "0xb21fa39418F3AbBAE407124896B84980E7149b3e")
-  console.log(await vaultsFacotry.arraryOfMorphos());
+
+  const vaults = await vaultsFacotry.arrayOfMorphos();
+  for (const vault of vaults) {
+    console.log(vault);
+    const vaultContract = await ethers.getContractAt("MoreVaults", vault);
+    console.log("Asset: ", await vaultContract.asset());
+  }
+
+  // mint some doge
+  {
+    const dogeContract = await ethers.getContractAt("ERC20Mock", "0xC4F1dFC005Cb2285b8A9Ede7c525b0eEdF24F5db");
+    const mintTx = await dogeContract.mint(owner.address, ethers.parseEther("100000"));
+    await mintTx.wait();
+  }
 }
 
 main().catch((error) => {

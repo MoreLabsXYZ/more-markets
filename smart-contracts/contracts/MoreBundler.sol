@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.19;
 
-import {MoreMulticall} from "./bundlers/MoreMulticall.sol";
-import {TransferBundler} from "./bundlers/TransferBundler.sol";
 import {BaseBundler} from "./bundlers/BaseBundler.sol";
+import {TransferBundler} from "./bundlers/TransferBundler.sol";
+import {MorphoBundler} from "./bundlers/MorphoBundler.sol";
 
 /// @title MoreBundler
 /// @notice Bundler contract specific to MoreMarkets.
@@ -18,7 +18,7 @@ contract MoreBundler is TransferBundler, BaseBundler {
     function _isSenderAuthorized()
         internal
         view
-        override(MoreMulticall, BaseBundler)
+        override(BaseBundler, MorphoBundler)
         returns (bool)
     {
         return BaseBundler._isSenderAuthorized();
