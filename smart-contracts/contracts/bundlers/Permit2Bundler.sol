@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.19;
 
-import {IAllowanceTransfer} from "../lib/permit2/src/interfaces/IAllowanceTransfer.sol";
+import {IAllowanceTransfer} from "permit2/interfaces/IAllowanceTransfer.sol";
 
-import {ErrorsLib} from "./libraries/ErrorsLib.sol";
-import {Math} from "../lib/morpho-utils/src/math/Math.sol";
-import {Permit2Lib} from "../lib/permit2/src/libraries/Permit2Lib.sol";
-import {SafeCast160} from "../lib/permit2/src/libraries/SafeCast160.sol";
-import {ERC20} from "../lib/solmate/src/tokens/ERC20.sol";
+import {ErrorsLib} from "../libraries/bundlers/ErrorsLib.sol";
+import {Math} from "../libraries/bundlers/Math.sol";
+import {Permit2Lib} from "permit2/libraries/Permit2Lib.sol";
+import {SafeCast160} from "permit2/libraries/SafeCast160.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 import {BaseBundler} from "./BaseBundler.sol";
 

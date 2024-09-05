@@ -44,7 +44,4 @@ library ConstantsLib {
     /// @notice Maximum rate at target per second (scaled by WAD).
     /// @dev Maximum rate at target = 200% (maximum rate = 800%).
     int256 public constant MAX_RATE_AT_TARGET = 2.0 ether / int256(365 days);
-
-    /// @dev The default value of the initiator of the multicall transaction is not the address zero to save gas.
-    address constant UNSET_INITIATOR = address(1);
 }

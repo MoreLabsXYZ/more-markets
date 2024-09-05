@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.19;
 
-import {Math} from "../libraries/Math.sol";
-import {ErrorsLib} from "../libraries/vaults/ErrorsLib.sol";
+import {Math} from "../libraries/bundlers/Math.sol";
+import {ErrorsLib} from "../libraries/bundlers/ErrorsLib.sol";
 import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
 import {BaseBundler} from "./BaseBundler.sol";

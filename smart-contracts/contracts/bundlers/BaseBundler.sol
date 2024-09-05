@@ -3,8 +3,8 @@ pragma solidity ^0.8.19;
 
 import {IMulticall} from "../interfaces/bundlers/IMulticall.sol";
 
-import {ErrorsLib} from "../libraries/vaults/ErrorsLib.sol";
-import {ConstantsLib} from "../libraries/vaults/ConstantsLib.sol";
+import {ErrorsLib} from "../libraries/bundlers/ErrorsLib.sol";
+import {ConstantsLib} from "../libraries/bundlers/ConstantsLib.sol";
 import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
 /// @title BaseBundler

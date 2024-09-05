@@ -6,7 +6,7 @@ import {MarketParams, IMoreMarketsBase} from "../interfaces/IMoreMarkets.sol";
 import {IPublicAllocator, Withdrawal} from "../interfaces/bundlers/IPublicAllocator.sol";
 import {Signature, Authorization} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
-import {ErrorsLib} from "../libraries/vaults/ErrorsLib.sol";
+import {ErrorsLib} from "../libraries/bundlers/ErrorsLib.sol";
 import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
 import {BaseBundler} from "./BaseBundler.sol";

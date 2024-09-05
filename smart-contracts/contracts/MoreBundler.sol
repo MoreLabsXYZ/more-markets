@@ -5,13 +5,24 @@ import {BaseBundler} from "./bundlers/BaseBundler.sol";
 import {TransferBundler} from "./bundlers/TransferBundler.sol";
 import {MorphoBundler} from "./bundlers/MorphoBundler.sol";
 import {PermitBundler} from "./bundlers/PermitBundler.sol";
+import {Permit2Bundler} from "./bundlers/Permit2Bundler.sol";
+import {ERC4626Bundler} from "./bundlers/ERC4626Bundler.sol";
+import {WNativeBundler} from "./bundlers/WNativeBundler.sol";
+import {ERC20WrapperBundler} from "./bundlers/ERC20WrapperBundler.sol";
 
 /// @title MoreBundler
 /// @notice Bundler contract specific to MoreMarkets.
-contract MoreBundler is TransferBundler, PermitBundler, BaseBundler {
+contract MoreBundler is
+    TransferBundler,
+    PermitBundler,
+    Permit2Bundler,
+    ERC4626Bundler,
+    MorphoBundler,
+    ERC20WrapperBundler
+{
     /* CONSTRUCTOR */
 
-    constructor(address morpho) BaseBundler(morpho) {}
+    constructor(address morpho) MorphoBundler(morpho) {}
 
     /* INTERNAL */
 
