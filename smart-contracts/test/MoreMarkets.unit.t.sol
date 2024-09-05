@@ -2,10 +2,10 @@
 pragma solidity ^0.8.21;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, ErrorsLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
@@ -19,8 +19,15 @@ contract MoreMarketsTest is Test {
     uint256 sepoliaFork;
     uint256 flowTestnetFork;
 
+<<<<<<< HEAD
     ICredoraMetrics public credora =
         ICredoraMetrics(address(0x29306A367e1185BbC2a8E92A54a33c0B52350564));
+=======
+    ICreditAttestationService public credora =
+        ICreditAttestationService(
+            address(0x29306A367e1185BbC2a8E92A54a33c0B52350564)
+        );
+>>>>>>> parallel-to-audit
     address public credoraAdmin =
         address(0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab);
     OracleMock public oracle;
@@ -71,7 +78,8 @@ contract MoreMarketsTest is Test {
 
         startHoax(owner);
         markets.enableIrm(address(irm));
-        markets.setCredora(address(credora));
+        // markets.setCreditAttestationService(address(credora));
+        markets.setMaxLltvForCategory(premiumLltvs[4]);
 
         for (uint256 i; i < lltvs.length; ) {
             markets.enableLltv(lltvs[i]);
@@ -105,13 +113,73 @@ contract MoreMarketsTest is Test {
         collateralToken.mint(address(owner), 1000000 ether);
         collateralToken.approve(address(markets), 1000000 ether);
 
+        startHoax(credoraAdmin);
+        credora.setData(
+            0,
+            abi.encode(
+                owner,
+                uint256(190 * 10 ** 18),
+                uint64(0),
+                bytes8("AAA+"),
+                uint64(0),
+                uint64(0),
+                uint64(0)
+            ),
+            ""
+        );
+
+        startHoax(owner);
         markets.supply(marketParams, 10000 ether, 0, owner, "");
     }
 
     function test_deployment() public view {
         assertTrue(markets.isIrmEnabled(address(irm)));
-        assertEq(address(markets.credoraMetrics()), address(credora));
+        // assertEq(address(markets.creditAttestationService()), address(credora));
         assertEq(markets.owner(), owner);
+    }
+
+    function test_setIrxMax_shouldSetIrxMax() public {
+        assertEq(markets.irxMaxAvailable(), 2 ether);
+        markets.setIrxMax(1.5 ether);
+        assertEq(markets.irxMaxAvailable(), 1.5 ether);
+    }
+
+    function test_setIrxMax_shouldRevertIfSameValueAlreadySet() public {
+        assertEq(markets.irxMaxAvailable(), 2 ether);
+        vm.expectRevert("already set");
+        markets.setIrxMax(2 ether);
+    }
+
+    function test_setIrxMax_shouldRevertIfCalledNotByAnOwner() public {
+        address someUser = address(0x000011111);
+        startHoax(someUser);
+        assertEq(markets.irxMaxAvailable(), 2 ether);
+        vm.expectRevert("not owner");
+        markets.setIrxMax(2 ether);
+    }
+
+    function test_setMaxLltvForCategory_shouldSetMaxLltvForCategory() public {
+        assertEq(markets.maxLltvForCategory(), 2 ether);
+        markets.setMaxLltvForCategory(1.5 ether);
+        assertEq(markets.maxLltvForCategory(), 1.5 ether);
+    }
+
+    function test_setMaxLltvForCategory_shouldRevertIfSameValueAlreadySet()
+        public
+    {
+        assertEq(markets.maxLltvForCategory(), 2 ether);
+        vm.expectRevert("already set");
+        markets.setMaxLltvForCategory(2 ether);
+    }
+
+    function test_setMaxLltvForCategory_shouldRevertIfCalledNotByAnOwner()
+        public
+    {
+        address someUser = address(0x000011111);
+        startHoax(someUser);
+        assertEq(markets.maxLltvForCategory(), 2 ether);
+        vm.expectRevert("not owner");
+        markets.setMaxLltvForCategory(2 ether);
     }
 
     function test_createMarket_shouldDeployCorrectDebtToken() public {
@@ -164,6 +232,7 @@ contract MoreMarketsTest is Test {
         );
 
         uint256[] memory newPremiumLltvs = premiumLltvs;
+        markets.setMaxLltvForCategory(3000000000000000000);
         newPremiumLltvs[4] = 2000000000000000001;
 
         marketParams = MarketParams(
@@ -217,7 +286,13 @@ contract MoreMarketsTest is Test {
             newPremiumLltvs
         );
 
-        vm.expectRevert("5 categories required");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ErrorsLib.InvalidLengthOfCategoriesLltvsArray.selector,
+                5,
+                4
+            )
+        );
         markets.createMarket(marketParams);
 
         uint256[] memory newPremiumLltvs2 = new uint256[](6);
@@ -233,7 +308,13 @@ contract MoreMarketsTest is Test {
             newPremiumLltvs2
         );
 
-        vm.expectRevert("5 categories required");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ErrorsLib.InvalidLengthOfCategoriesLltvsArray.selector,
+                5,
+                6
+            )
+        );
         markets.createMarket(marketParams);
     }
 
@@ -251,10 +332,17 @@ contract MoreMarketsTest is Test {
         );
 
         vm.expectRevert(
-            "interest rate premium multiplier can't be less than 1e18"
+            abi.encodeWithSelector(
+                ErrorsLib.InvalidIrxMaxValue.selector,
+                2e18,
+                1e18,
+                1e18 - 1
+            )
         );
         markets.createMarket(marketParams);
+    }
 
+    function test_createMarket_shouldRevertIfIrxMoreThanAllowed() public {
         marketParams = MarketParams(
             true,
             address(loanToken),
@@ -263,8 +351,73 @@ contract MoreMarketsTest is Test {
             address(irm),
             lltvs[1],
             address(credora),
-            1e18,
+            2e18 + 1,
             premiumLltvs
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ErrorsLib.InvalidIrxMaxValue.selector,
+                2e18,
+                1e18,
+                2e18 + 1
+            )
+        );
+        markets.createMarket(marketParams);
+    }
+
+    function test_createMarket_shouldRevertIfCategoryLltvMoreThanAllowed()
+        public
+    {
+        premiumLltvs[4] = 2000000000000000001;
+        marketParams = MarketParams(
+            true,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1],
+            address(credora),
+            2e18,
+            premiumLltvs
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ErrorsLib.InvalidCategoryLltvValue.selector,
+                4,
+                2e18,
+                lltvs[1],
+                2e18 + 1
+            )
+        );
+        markets.createMarket(marketParams);
+    }
+
+    function test_createMarket_shouldRevertIfCategoryLltvLessThanDefaultLltv()
+        public
+    {
+        premiumLltvs[4] = lltvs[1] - 1;
+        marketParams = MarketParams(
+            true,
+            address(loanToken),
+            address(collateralToken),
+            address(oracle),
+            address(irm),
+            lltvs[1],
+            address(credora),
+            2e18,
+            premiumLltvs
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ErrorsLib.InvalidCategoryLltvValue.selector,
+                4,
+                2e18,
+                lltvs[1],
+                lltvs[1] - 1
+            )
         );
         markets.createMarket(marketParams);
     }
@@ -331,7 +484,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(800 * 10 ** 6),
+                uint256(800 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -357,7 +510,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(201 * 10 ** 6),
+                uint256(201 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -386,7 +539,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(401 * 10 ** 6),
+                uint256(401 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -415,7 +568,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(601 * 10 ** 6),
+                uint256(601 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -444,7 +597,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(800 * 10 ** 6),
+                uint256(800 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -489,7 +642,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(201 * 10 ** 6),
+                uint256(201 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -518,7 +671,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(401 * 10 ** 6),
+                uint256(401 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -547,7 +700,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(601 * 10 ** 6),
+                uint256(601 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -576,7 +729,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(800 * 10 ** 6),
+                uint256(800 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -645,7 +798,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(900 * 10 ** 6),
+                uint256(900 * 10 ** 18),
                 uint64(0),
                 bytes8("AAA+"),
                 uint64(0),
@@ -716,7 +869,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 userE,
-                uint64(100 * 10 ** 6),
+                uint256(100 * 10 ** 18),
                 uint64(0),
                 bytes8(""),
                 uint64(0),
@@ -729,7 +882,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 userB,
-                uint64(700 * 10 ** 6),
+                uint256(700 * 10 ** 18),
                 uint64(0),
                 bytes8(""),
                 uint64(0),
@@ -886,7 +1039,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 owner,
-                uint64(700 * 10 ** 6),
+                uint256(700 * 10 ** 18),
                 uint64(0),
                 bytes8(""),
                 uint64(0),
@@ -1002,7 +1155,7 @@ contract MoreMarketsTest is Test {
         loanToken.approve(address(markets), 1000000 ether);
         markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
 
-        vm.expectRevert(NothingToClaim.selector);
+        vm.expectRevert(ErrorsLib.NothingToClaim.selector);
         markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
     }
 
@@ -1022,7 +1175,7 @@ contract MoreMarketsTest is Test {
             marketParams.id(),
             owner
         );
-        (uint assetsWithdrawn, uint sharesWithdrawn) = markets.withdraw(
+        (uint256 assetsWithdrawn, ) = markets.withdraw(
             marketParams,
             0,
             supplyShares,
@@ -1298,7 +1451,7 @@ contract MoreMarketsTest is Test {
         );
         (uint128 totalSupplyAssets, uint128 totalSupplyShares, , , , ) = markets
             .market(marketParams.id());
-        (uint assetsWithdrawn, uint sharesWithdrawn) = markets.withdraw(
+        (uint256 assetsWithdrawn, ) = markets.withdraw(
             marketParams,
             0,
             supplyShares,
@@ -1350,7 +1503,7 @@ contract MoreMarketsTest is Test {
             0,
             abi.encode(
                 borrowerB,
-                uint64(700 * 10 ** 6),
+                uint256(700 * 10 ** 18),
                 uint64(0),
                 bytes8(""),
                 uint64(0),

@@ -2,20 +2,20 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "@morpho-org/morpho-blue/src/Morpho.sol";
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-// // forge script script/supplyToMarket.s.sol:supplyToMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
+// // forge script script/supplyToMarket.s.sol:supplyToMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
 contract supplyToMarket is Script {
     using MarketParamsLib for MarketParams;
-    ICredoraMetrics public credora;
+    ICreditAttestationService public credora;
     address public credoraAdmin;
     OracleMock public oracle;
 
@@ -85,12 +85,3 @@ contract supplyToMarket is Script {
         vm.stopBroadcast();
     }
 }
-
-// forge verify-contract \
-//   --rpc-url https://evm-testnet.flowscan.io/api/eth-rpc \
-//   --verifier blockscout \
-//   --verifier-url 'https://evm-testnet.flowscan.io/api' \
-//   --chain-id 545\
-//   --constructor-args $(cast abi-encode "constructor(address,address)" 0x89a76D7a4D006bDB9Efd0923A346fAe9437D434F 0xaa0474da608b64f05d41ac9d9dae83acbe4b9090) \
-//   0x665EB1F72f2c0771A9C7305b8d735d5410FF3246 \
-//   contracts/MoreMarkets.sol:MoreMarkets

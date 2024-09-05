@@ -3,20 +3,20 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "@morpho-org/morpho-blue/src/Morpho.sol";
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-// // forge script script/borrowFromMarket.s.sol:borrowFromMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --evm-version shanghai --slow
+// // forge script script/borrowFromMarket.s.sol:borrowFromMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
 contract borrowFromMarket is Script {
     using MarketParamsLib for MarketParams;
-    ICredoraMetrics public credora;
+    ICreditAttestationService public credora;
     address public credoraAdmin;
     OracleMock public oracle;
 
@@ -26,36 +26,16 @@ contract borrowFromMarket is Script {
     address public owner;
     AdaptiveCurveIrm public irm;
 
-    // MarketParams public marketParams;
-
     function setUp() public {}
 
     function run() external {
         // vm.startPrank(address(0x5D7de68283A0AFcd5A1411596577CC389CDF4BAE));
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // Start broadcasting for deploymentcredoraAdmin = vm.envAddress("CREDORA_ADMIN");
         owner = address(uint160(vm.envUint("OWNER")));
-        // credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
-        // oracle = OracleMock(vm.envAddress("ORACLE"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
-        // debtTokenFactorye = DebtTokenFactory(
-        //     vm.envAddress("DEBT_TOKEN_FACTORY")
-        // );
-        // debtToken = DebtToken(vm.envAddress("DEBT_TOKEN"));
-        // irm = AdaptiveCurveIrm(vm.envAddress("IRM"));
 
         vm.startBroadcast(deployerPrivateKey);
-        // bytes32 entity = bytes32(
-        //     uint256(
-        //         uint160(address(0x89a76D7a4D006bDB9Efd0923A346fAe9437D434F))
-        //     )
-        // );
-        // console.log(
-        //     ICredoraMetrics(credora).getScore(
-        //         address(0x89a76D7a4D006bDB9Efd0923A346fAe9437D434F)
-        //     )
-        // );
 
         Id[] memory memAr = markets.arrayOfMarkets();
         uint256 length = memAr.length;
@@ -93,25 +73,12 @@ contract borrowFromMarket is Script {
                 irxMaxLltv: irxMaxLltv,
                 categoryLltv: categoryLltv
             });
-            // ERC20MintableMock(collateralToken).mint(
-            //     address(owner),
-            //     1000000 ether
-            // );
-            // ERC20MintableMock(collateralToken).approve(
-            //     address(markets),
-            //     100000 ether
-            // );
-            // markets.supply(marketParams, 10000 ether, 0, owner, "");
+            ERC20MintableMock(collateralToken).approve(
+                address(markets),
+                100000 ether
+            );
             // markets.supplyCollateral(marketParams, 10 ether, owner, "");
-            markets.borrow(marketParams, 0.4 ether, 0, owner, owner);
-            // ERC20MintableMock(loanToken).mint(
-            //     0x2cc510002cE9D04ac6f837277e411468cA10c1A5,
-            //     10000 ether
-            // );
-            // ERC20MintableMock(collateralToken).mint(
-            //     0x2cc510002cE9D04ac6f837277e411468cA10c1A5,
-            //     10000 ether
-            // );
+            markets.borrow(marketParams, 7 ether, 0, owner, owner);
         }
 
         // Start broadcasting for deployment

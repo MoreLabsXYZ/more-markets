@@ -2,10 +2,10 @@
 pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "../contracts/fork/Morpho.sol";
@@ -15,7 +15,7 @@ import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 // forge script script/getMarketsData.s.sol:getMarketsData --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
 contract getMarketsData is Script {
     using MarketParamsLib for MarketParams;
-    ICredoraMetrics public credora;
+    ICreditAttestationService public credora;
     address public credoraAdmin;
     OracleMock public oracle;
 
@@ -32,16 +32,8 @@ contract getMarketsData is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // Start broadcasting for deploymentcredoraAdmin = vm.envAddress("CREDORA_ADMIN");
         owner = address(uint160(vm.envUint("OWNER")));
-        // credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
-        // oracle = OracleMock(vm.envAddress("ORACLE"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
-        // debtTokenFactory = DebtTokenFactory(
-        //     vm.envAddress("DEBT_TOKEN_FACTORY")
-        // );
-        // debtToken = DebtToken(vm.envAddress("DEBT_TOKEN"));
-        // irm = AdaptiveCurveIrm(vm.envAddress("IRM"));
 
         vm.startBroadcast(deployerPrivateKey);
 

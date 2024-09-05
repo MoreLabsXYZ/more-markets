@@ -2,17 +2,17 @@
 pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, NothingToClaim} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 // // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
 contract DeployMarketContracts is Script {
-    ICredoraMetrics public credora;
+    ICreditAttestationService public credora;
     address public credoraAdmin;
     OracleMock public oracleMock;
 
@@ -52,7 +52,11 @@ contract DeployMarketContracts is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         owner = address(uint160(vm.envUint("OWNER")));
+<<<<<<< HEAD
         credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
+=======
+        credora = ICreditAttestationService(vm.envAddress("CREDORA_METRICS"));
+>>>>>>> parallel-to-audit
 
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
@@ -70,7 +74,7 @@ contract DeployMarketContracts is Script {
         console.log("AdaptiveCurveIrm was deplyed at", address(irm));
 
         markets.enableIrm(address(irm));
-        markets.setCredora(address(credora));
+        // markets.setCreditAttestationService(address(credora));
 
         for (uint256 i; i < lltvs.length; ) {
             markets.enableLltv(lltvs[i]);

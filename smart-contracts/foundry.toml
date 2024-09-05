@@ -15,7 +15,6 @@ remappings = [
     "permit2/=lib/permit2/src/",
 ]
 gas_reports = ["*"]
-no_match_test = "loadOfContract"
 
 optimizer = true
 optimizer_runs = 200

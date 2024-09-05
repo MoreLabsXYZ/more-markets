@@ -17,6 +17,14 @@ library EventsLib {
     /// @param newFee The new fee.
     event SetFee(Id indexed id, uint256 newFee);
 
+    /// @notice Emitted when setting a new irx maximum multiplier which is upper limit for any market.
+    /// @param newIrxMaxAvailable The new irx maximum limit.
+    event SetIrxMaxAvailable(uint256 newIrxMaxAvailable);
+
+    /// @notice Emitted when setting a new max LLTV for any category which is upper limit for any market.
+    /// @param newMaxLltvForCategory The new max LLTV for any category.
+    event SetMaxLltvForCategory(uint256 newMaxLltvForCategory);
+
     /// @notice Emitted when setting a new fee recipient.
     /// @param newFeeRecipient The new fee recipient.
     event SetFeeRecipient(address indexed newFeeRecipient);

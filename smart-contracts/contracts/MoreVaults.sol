@@ -23,8 +23,7 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 import {IERC20, IERC4626, ERC20, ERC4626, Math, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /// @title MoreVaults
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
+/// @author MoreMarkets
 /// @notice ERC4626 compliant vault allowing users to deposit assets to More Markets. Fork of Morpho's metamorpho.
 contract MoreVaults is
     ERC4626,

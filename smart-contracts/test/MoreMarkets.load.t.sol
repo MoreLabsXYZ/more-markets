@@ -5,7 +5,7 @@ import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
-import {ICredoraMetrics} from "../contracts/interfaces/ICredoraMetrics.sol";
+import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
@@ -17,13 +17,15 @@ contract MoreMarketsTest is Test {
     using EnumerableSet for EnumerableSet.UintSet;
 
     uint256 sepoliaFork;
+    uint256 flowTestnetFork;
 
-    ICredoraMetrics public credora =
-        ICredoraMetrics(address(0xA1CE4fD8470718eB3e8248E40ab489856E125F59));
+    ICreditAttestationService public credora =
+        ICreditAttestationService(
+            address(0x29306A367e1185BbC2a8E92A54a33c0B52350564)
+        );
     address public credoraAdmin =
         address(0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab);
-    OracleMock public oracle =
-        OracleMock(0xC1aB56955958Ac8379567157740F18AAadD8cD04);
+    OracleMock public oracle;
 
     MoreMarkets public markets;
     DebtTokenFactory public debtTokenFactory;
@@ -64,16 +66,21 @@ contract MoreMarketsTest is Test {
         sepoliaFork = vm.createFork(
             "https://eth-sepolia.g.alchemy.com/v2/jXLoZTSjTIhZDB9nNhJsSmvrcMAbdrNT"
         );
-        vm.selectFork(sepoliaFork);
+        flowTestnetFork = vm.createFork("https://testnet.evm.nodes.onflow.org");
+        vm.selectFork(flowTestnetFork);
 
         debtToken = new DebtToken();
         debtTokenFactory = new DebtTokenFactory(address(debtToken));
         markets = new MoreMarkets(owner, address(debtTokenFactory));
         irm = new AdaptiveCurveIrm(address(markets));
+        oracle = new OracleMock();
+        // set price as 1 : 1
+        oracle.setPrice(1000000000000000000000000000000000000);
 
         startHoax(owner);
         markets.enableIrm(address(irm));
-        markets.setCredora(address(credora));
+        // markets.setCreditAttestationService(address(credora));
+        markets.setMaxLltvForCategory(premiumLltvs[4]);
 
         for (uint256 i; i < lltvs.length; ) {
             markets.enableLltv(lltvs[i]);
@@ -257,7 +264,7 @@ contract MoreMarketsTest is Test {
                 0,
                 abi.encode(
                     users[i],
-                    uint64((99 + (numOfCategory * 200)) * 10 ** 6),
+                    uint256((99 + (numOfCategory * 200)) * 10 ** 18),
                     uint64(0),
                     bytes8("AAA+"),
                     uint64(0),
