@@ -12,7 +12,7 @@ import {MoreMulticall} from "./MoreMulticall.sol";
 /// @custom:contact security@morpho.org
 /// @notice Enables transfer of ERC20 and native tokens.
 /// @dev Assumes that any tokens left on the contract can be seized by anyone.
-abstract contract TransferBundler is Multicall {
+abstract contract TransferBundler is MoreMulticall {
     using SafeTransferLib for ERC20;
 
     /* TRANSFER ACTIONS */

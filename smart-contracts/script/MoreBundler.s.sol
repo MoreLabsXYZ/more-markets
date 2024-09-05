@@ -2,10 +2,11 @@
 pragma solidity ^0.8.19;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MoreBundle} from "../contracts/MoreBundle.sol";
+import {MoreBundler} from "../contracts/MoreBundler.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract MoreBundlerScript is Script {
-    MoreBundle moreBundle;
+    MoreBundler moreBundler;
 
     function setUp() public {}
 
@@ -15,12 +16,12 @@ contract MoreBundlerScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        moreBundle = new MoreBundle(morpho);
+        moreBundler = new MoreBundler(morpho);
 
         string memory jsonObj = string(
             abi.encodePacked(
-                "{ 'MoreBundle': ",
-                Strings.toHexString(address(moreBundle)),
+                "{ 'MoreBundler': ",
+                Strings.toHexString(address(moreBundler)),
                 "}"
             )
         );

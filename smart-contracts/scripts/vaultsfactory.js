@@ -16,6 +16,9 @@ async function main() {
 
   const tokenInfo = await ethers.getContractAt("ERC20Mock", "0xC4F1dFC005Cb2285b8A9Ede7c525b0eEdF24F5db");
   console.log(await tokenInfo.name());
+
+  const vaultsFacotry = await ethers.getContractAt("MoreVaultsFactory", "0xb21fa39418F3AbBAE407124896B84980E7149b3e")
+  console.log(await vaultsFacotry.arraryOfMorphos());
 }
 
 main().catch((error) => {

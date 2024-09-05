@@ -5,11 +5,9 @@ import {MoreMulticall} from "./bundlers/MoreMulticall.sol";
 import {TransferBundler} from "./bundlers/TransferBundler.sol";
 import {BaseBundler} from "./bundlers/BaseBundler.sol";
 
-/// @title EthereumBundlerV2
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
-/// @notice Bundler contract specific to Ethereum.
-contract EthereumBundlerV2 is TransferBundler, BaseBundler {
+/// @title MoreBundler
+/// @notice Bundler contract specific to MoreMarkets.
+contract MoreBundler is TransferBundler, BaseBundler {
     /* CONSTRUCTOR */
 
     constructor(address morpho) BaseBundler(morpho) {}
@@ -20,7 +18,7 @@ contract EthereumBundlerV2 is TransferBundler, BaseBundler {
     function _isSenderAuthorized()
         internal
         view
-        override(Multicall, BaseBundler)
+        override(MoreMulticall, BaseBundler)
         returns (bool)
     {
         return BaseBundler._isSenderAuthorized();
