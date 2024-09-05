@@ -2,10 +2,10 @@
 pragma solidity ^0.8.19;
 
 import {Math} from "../libraries/Math.sol";
-import {ErrorsLib} from "../libraries/ErrorsLib.sol";
+import {ErrorsLib} from "../libraries/vaults/ErrorsLib.sol";
 import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
-import {Multicall} from "./Multicall.sol";
+import {MoreMulticall} from "./MoreMulticall.sol";
 
 /// @title TransferBundler
 /// @author Morpho Labs

@@ -3,8 +3,8 @@ pragma solidity ^0.8.19;
 
 import {IMulticall} from "../interfaces/bundlers/IMulticall.sol";
 
-import {ErrorsLib} from "../libraries/ErrorsLib.sol";
-import {ConstantsLib} from "../libraries/ConstantsLib.sol";
+import {ErrorsLib} from "../libraries/vaults/ErrorsLib.sol";
+import {ConstantsLib} from "../libraries/vaults/ConstantsLib.sol";
 import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
 /// @title BaseBundler
@@ -15,7 +15,7 @@ import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 /// @dev Every bundler inheriting from this contract must have their external functions payable as they will be
 /// delegate called by the `multicall` function (which is payable, and thus might pass a non-null ETH value). It is
 /// recommended not to rely on `msg.value` as the same value can be reused for multiple calls.
-abstract contract Multicall is IMulticall {
+abstract contract MoreMulticall is IMulticall {
     using SafeTransferLib for ERC20;
 
     /* STORAGE */

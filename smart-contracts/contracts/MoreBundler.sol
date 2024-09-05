@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.19;
 
-import {Multicall} from "./bundlers/Multicall.sol";
+import {MoreMulticall} from "./bundlers/MoreMulticall.sol";
 import {TransferBundler} from "./bundlers/TransferBundler.sol";
 import {BaseBundler} from "./bundlers/BaseBundler.sol";
 

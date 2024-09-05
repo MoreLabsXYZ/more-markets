@@ -2,14 +2,14 @@
 pragma solidity ^0.8.19;
 
 import {IMorphoBundler} from "../interfaces/bundlers/IMorphoBundler.sol";
-import {MarketParams} from "../interfaces/"
+import {MarketParams} from "../interfaces/IMoreMarkets.sol";
 import {IPublicAllocator, Withdrawal} from "../interfaces/bundlers/IPublicAllocator.sol";
 import {Signature, Authorization, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
-import {ErrorsLib} from "../libraries/ErrorsLib.sol";
+import {ErrorsLib} from "../libraries/vaults/ErrorsLib.sol";
 import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
-import {Multicall} from "./Multicall.sol";
+import {MoreMulticall} from "./MoreMulticall.sol";
 
 /// @title MorphoBundler
 /// @author Morpho Labs
