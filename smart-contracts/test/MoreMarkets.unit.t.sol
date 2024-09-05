@@ -19,15 +19,10 @@ contract MoreMarketsTest is Test {
     uint256 sepoliaFork;
     uint256 flowTestnetFork;
 
-<<<<<<< HEAD
-    ICredoraMetrics public credora =
-        ICredoraMetrics(address(0x29306A367e1185BbC2a8E92A54a33c0B52350564));
-=======
     ICreditAttestationService public credora =
         ICreditAttestationService(
             address(0x29306A367e1185BbC2a8E92A54a33c0B52350564)
         );
->>>>>>> parallel-to-audit
     address public credoraAdmin =
         address(0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab);
     OracleMock public oracle;
