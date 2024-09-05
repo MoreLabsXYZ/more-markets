@@ -11,11 +11,7 @@ import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-<<<<<<< HEAD
-// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
-=======
 // // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
->>>>>>> parallel-to-audit
 contract CreateNewMarket is Script {
     using MarketParamsLib for MarketParams;
     ICreditAttestationService public credora;

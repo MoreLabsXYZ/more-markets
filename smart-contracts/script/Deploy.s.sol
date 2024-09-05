@@ -52,11 +52,7 @@ contract DeployMarketContracts is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         owner = address(uint160(vm.envUint("OWNER")));
-<<<<<<< HEAD
-        credora = ICredoraMetrics(vm.envAddress("CREDORA_METRICS"));
-=======
         credora = ICreditAttestationService(vm.envAddress("CREDORA_METRICS"));
->>>>>>> parallel-to-audit
 
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);

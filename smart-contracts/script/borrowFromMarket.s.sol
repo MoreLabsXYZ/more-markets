@@ -1,99 +1,87 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
+import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "@morpho-org/morpho-blue/src/Morpho.sol";
 
-// // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
-contract DeployMarketContracts is Script {
+import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
+
+// // forge script script/borrowFromMarket.s.sol:borrowFromMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
+contract borrowFromMarket is Script {
+    using MarketParamsLib for MarketParams;
     ICreditAttestationService public credora;
     address public credoraAdmin;
-    OracleMock public oracleMock;
+    OracleMock public oracle;
 
     MoreMarkets public markets;
-    DebtTokenFactory public debtTokenFactory;
+    DebtTokenFactory public debtTokenFactorye;
     DebtToken public debtToken;
     address public owner;
     AdaptiveCurveIrm public irm;
 
-    uint256[] public lltvs = [
-        800000000000000000,
-        945000000000000000,
-        965000000000000000
-    ];
-
-    uint8 numberOfPremiumBuckets = 5;
-    uint128[] public premiumLltvs = [
-        1000000000000000000,
-        1200000000000000000,
-        1400000000000000000,
-        1600000000000000000,
-        2000000000000000000
-    ];
-    uint112[] public categoryMultipliers = [
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether,
-        2 ether
-    ];
-    uint16[] public categorySteps = [4, 8, 12, 16, 24];
-
-    MarketParams public marketParams;
-
     function setUp() public {}
 
     function run() external {
+        // vm.startPrank(address(0x5D7de68283A0AFcd5A1411596577CC389CDF4BAE));
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        owner = address(uint160(vm.envUint("OWNER")));
-        credora = ICreditAttestationService(vm.envAddress("CREDORA_METRICS"));
 
-        // Start broadcasting for deployment
+        owner = address(uint160(vm.envUint("OWNER")));
+        markets = MoreMarkets(vm.envAddress("MARKETS"));
+
         vm.startBroadcast(deployerPrivateKey);
 
-        debtToken = new DebtToken();
-        console.log("Debt token was deployed at", address(debtToken));
-        debtTokenFactory = new DebtTokenFactory(address(debtToken));
-        console.log(
-            "Debt token factory was deployed at",
-            address(debtTokenFactory)
-        );
-        markets = new MoreMarkets(owner, address(debtTokenFactory));
-        console.log("More markets was deplyed at", address(markets));
-        irm = new AdaptiveCurveIrm(address(markets));
-        console.log("AdaptiveCurveIrm was deplyed at", address(irm));
-
-        markets.enableIrm(address(irm));
-        // markets.setCreditAttestationService(address(credora));
-
-        for (uint256 i; i < lltvs.length; ) {
-            markets.enableLltv(lltvs[i]);
-            unchecked {
-                ++i;
-            }
+        Id[] memory memAr = markets.arrayOfMarkets();
+        uint256 length = memAr.length;
+        console.log("lenght of memAr is %d", length);
+        for (uint i = 0; i < length; i++) {
+            console.log("- - - - - - - - - - - - - - - - - - - - - - - - - -");
+            // console.log("market id is ", memAr[i]);
+            // (
+            //     uint128 totalSupplyAssets,
+            //     uint128 totalSupplyShares,
+            //     uint128 totalBorrowAssets,
+            //     uint128 totalBorrowShares,
+            //     uint128 lastUpdate,
+            //     uint128 fee
+            // ) = markets.market(memAr[i]);
+            (
+                bool isPremium,
+                address loanToken,
+                address collateralToken,
+                address marketOracle,
+                address marketIrm,
+                uint256 lltv,
+                address creditAttestationService,
+                uint96 irxMaxLltv,
+                uint256[] memory categoryLltv
+            ) = markets.idToMarketParams(memAr[i]);
+            MarketParams memory marketParams = MarketParams({
+                isPremiumMarket: isPremium,
+                loanToken: loanToken,
+                collateralToken: collateralToken,
+                oracle: marketOracle,
+                irm: marketIrm,
+                lltv: lltv,
+                creditAttestationService: creditAttestationService,
+                irxMaxLltv: irxMaxLltv,
+                categoryLltv: categoryLltv
+            });
+            ERC20MintableMock(collateralToken).approve(
+                address(markets),
+                100000 ether
+            );
+            // markets.supplyCollateral(marketParams, 10 ether, owner, "");
+            markets.borrow(marketParams, 7 ether, 0, owner, owner);
         }
 
-        string memory jsonObj = string(
-            abi.encodePacked(
-                "{ 'debtToken': ",
-                Strings.toHexString(address(debtToken)),
-                ", 'debtTokenFactory': ",
-                Strings.toHexString(address(debtTokenFactory)),
-                " , 'markets': ",
-                Strings.toHexString(address(markets)),
-                ", 'irm': ",
-                Strings.toHexString(address(irm)),
-                "}"
-            )
-        );
-        vm.writeJson(jsonObj, "./output/deployedContracts.json");
-
+        // Start broadcasting for deployment
         vm.stopBroadcast();
     }
 }
