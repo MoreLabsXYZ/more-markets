@@ -26,3 +26,7 @@ fs_permissions = [{ access = "write", path = "./output/deployedContracts.json"},
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
 flow="${SEPOLIA_RPC_URL}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+flow={ key = "${ETHERSCAN_API_KEY}"}
