@@ -87,7 +87,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// @param onBehalf The address that will own the increased supply position.
     /// @param data Arbitrary data to pass to the `onMorphoSupply` callback. Pass empty data if not needed.
     function morphoSupply(
-        MarketParams memory marketParams,
+        MarketParams calldata marketParams,
         uint256 assets,
         uint256 shares,
         uint256 slippageAmount,
@@ -132,7 +132,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// @param onBehalf The address that will own the increased collateral position.
     /// @param data Arbitrary data to pass to the `onMorphoSupplyCollateral` callback. Pass empty data if not needed.
     function morphoSupplyCollateral(
-        MarketParams memory marketParams,
+        MarketParams calldata marketParams,
         uint256 assets,
         address onBehalf,
         bytes calldata data
@@ -164,7 +164,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// The minimum amount of assets to borrow in exchange for `shares` otherwise.
     /// @param receiver The address that will receive the borrowed assets.
     function morphoBorrow(
-        MarketParams memory marketParams,
+        MarketParams calldata marketParams,
         uint256 assets,
         uint256 shares,
         uint256 slippageAmount,
@@ -202,7 +202,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// @param onBehalf The address of the owner of the debt position.
     /// @param data Arbitrary data to pass to the `onMorphoRepay` callback. Pass empty data if not needed.
     function morphoRepay(
-        MarketParams memory marketParams,
+        MarketParams calldata marketParams,
         uint256 assets,
         uint256 shares,
         uint256 slippageAmount,
@@ -251,7 +251,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// The minimum amount of assets to withdraw in exchange for `shares` otherwise.
     /// @param receiver The address that will receive the withdrawn assets.
     function morphoWithdraw(
-        MarketParams memory marketParams,
+        MarketParams calldata marketParams,
         uint256 assets,
         uint256 shares,
         uint256 slippageAmount,
@@ -283,7 +283,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// @param assets The amount of collateral to withdraw.
     /// @param receiver The address that will receive the collateral assets.
     function morphoWithdrawCollateral(
-        MarketParams memory marketParams,
+        MarketParams calldata marketParams,
         uint256 assets,
         address receiver
     ) external payable protected {
@@ -302,6 +302,26 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
         _approveMaxTo(token, address(MORPHO));
 
         MORPHO.flashLoan(token, assets, data);
+    }
+
+    /// @notice Reallocates funds from markets of a vault to another market of that same vault.
+    /// @param publicAllocator The address of the public allocator.
+    /// @param vault The address of the vault.
+    /// @param value The value in ETH to pay for the reallocate fee.
+    /// @param withdrawals The list of markets and corresponding amounts to withdraw.
+    /// @param supplyMarketParams The market receiving the funds.
+    function reallocateTo(
+        address publicAllocator,
+        address vault,
+        uint256 value,
+        Withdrawal[] calldata withdrawals,
+        MarketParams calldata supplyMarketParams
+    ) external payable protected {
+        IPublicAllocator(publicAllocator).reallocateTo{value: value}(
+            vault,
+            withdrawals,
+            supplyMarketParams
+        );
     }
 
     /* INTERNAL */

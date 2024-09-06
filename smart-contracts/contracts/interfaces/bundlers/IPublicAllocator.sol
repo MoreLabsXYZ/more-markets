@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-import {Id, MarketParams, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {Id, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {MarketParams, IMoreMarketsBase} from "../IMoreMarkets.sol";
 
 struct FlowCaps {
     uint128 maxIn;
