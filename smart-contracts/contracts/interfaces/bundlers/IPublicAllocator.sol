@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-import {Id, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
-import {MarketParams} from "../IMoreMarkets.sol";
+import {Id} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {MarketParams, IMoreMarkets} from "../IMoreMarkets.sol";
 
 struct FlowCaps {
     uint128 maxIn;
@@ -21,7 +21,7 @@ struct Withdrawal {
 
 /// @dev Copy of the Public Allocator interface but using the struct of morpho-blue imported by the bundler.
 interface IPublicAllocator {
-    function MORPHO() external view returns (IMorpho);
+    function MORE_MARKETS() external view returns (IMoreMarkets);
 
     function owner(address vault) external view returns (address);
 
