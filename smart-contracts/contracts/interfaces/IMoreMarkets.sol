@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-import {Id, Market, Authorization, Signature} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {Id, Authorization, Signature} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 import {ICreditAttestationService} from "./ICreditAttestationService.sol";
 
 struct MarketParams {
@@ -29,6 +29,21 @@ struct CategoryInfo {
     uint112 multiplier;
     uint16 numberOfSteps;
     uint128 lltv;
+}
+
+/// @dev Warning: `totalSupplyAssets` does not contain the accrued interest since the last interest accrual.
+/// @dev Warning: `totalBorrowAssets` does not contain the accrued interest since the last interest accrual.
+/// @dev Warning: `totalSupplyShares` does not contain the additional shares accrued by `feeRecipient` since the last
+/// interest accrual.
+struct Market {
+    uint128 totalSupplyAssets;
+    uint128 totalSupplyShares;
+    uint128 totalBorrowAssets;
+    uint128 totalBorrowShares;
+    uint128 lastUpdate;
+    uint128 fee;
+    bool isPremiumFeeEnabled;
+    uint128 premiumFee;
 }
 
 /// @dev This interface is used for factorizing IMorphoStaticTyping and IMorpho.
@@ -405,7 +420,9 @@ interface IMoreMarkets is IMoreMarketsBase {
             uint128 totalBorrowAssets,
             uint128 totalBorrowShares,
             uint128 lastUpdate,
-            uint128 fee
+            uint128 fee,
+            bool isPremiumFeeEnabled,
+            uint128 premiumFee
         );
 
     /// @notice The market params corresponding to `id`.

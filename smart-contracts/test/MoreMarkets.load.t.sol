@@ -153,7 +153,9 @@ contract MoreMarketsTest is Test {
             uint128 totalBorrowAssets,
             uint128 totalBorrowShares,
             uint128 lastUpdate,
-            uint128 fee
+            uint128 fee,
+            bool isPremiumFeeEnabled,
+            uint128 premiumFee
         ) = markets.market(marketParams.id());
 
         address nonPremUser = address(0x0101);
@@ -172,7 +174,9 @@ contract MoreMarketsTest is Test {
                 totalBorrowAssets,
                 totalBorrowShares,
                 lastUpdate,
-                fee
+                fee,
+                isPremiumFeeEnabled,
+                premiumFee
             )
         );
 

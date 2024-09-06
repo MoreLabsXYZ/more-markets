@@ -2,7 +2,7 @@
 pragma solidity ^0.8.21;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, ErrorsLib} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, ErrorsLib, SharesMathLib} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
@@ -15,6 +15,7 @@ import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 contract MoreMarketsTest is Test {
     using MarketParamsLib for MarketParams;
     using MathLib for uint256;
+    using SharesMathLib for uint256;
 
     uint256 sepoliaFork;
     uint256 flowTestnetFork;
@@ -175,6 +176,379 @@ contract MoreMarketsTest is Test {
         assertEq(markets.maxLltvForCategory(), 2 ether);
         vm.expectRevert("not owner");
         markets.setMaxLltvForCategory(2 ether);
+    }
+
+    function test_setPremiumFee_shouldSetPremiumFeeAndFlag() public {
+        (, , , , , , bool isPremiumFeeEnabled, uint128 premiumFee) = markets
+            .market(marketParams.id());
+        assertEq(isPremiumFeeEnabled, false);
+        assertEq(premiumFee, 0);
+
+        markets.setPremiumFee(marketParams, true, 0.10e18);
+
+        (, , , , , , isPremiumFeeEnabled, premiumFee) = markets.market(
+            marketParams.id()
+        );
+        assertEq(isPremiumFeeEnabled, true);
+        assertEq(premiumFee, 0.10e18);
+    }
+
+    function test_setPremiumFee_shouldSetIfOnlyOneParamDiffer() public {
+        (, , , , , , bool isPremiumFeeEnabled, uint128 premiumFee) = markets
+            .market(marketParams.id());
+        assertEq(isPremiumFeeEnabled, false);
+        assertEq(premiumFee, 0);
+
+        markets.setPremiumFee(marketParams, false, 0.10e18);
+
+        (, , , , , , isPremiumFeeEnabled, premiumFee) = markets.market(
+            marketParams.id()
+        );
+        assertEq(isPremiumFeeEnabled, false);
+        assertEq(premiumFee, 0.10e18);
+
+        markets.setPremiumFee(marketParams, true, 0.10e18);
+
+        (, , , , , , isPremiumFeeEnabled, premiumFee) = markets.market(
+            marketParams.id()
+        );
+        assertEq(isPremiumFeeEnabled, true);
+        assertEq(premiumFee, 0.10e18);
+    }
+
+    function test_setPremiumFee_shouldRevertIfBothParamsTheSame() public {
+        vm.expectRevert("already set");
+        markets.setPremiumFee(marketParams, false, 0);
+    }
+
+    function test_setPremiumFee_shouldRevertIfMarketDoesNotExist() public {
+        marketParams.loanToken = address(0x000011111);
+
+        vm.expectRevert("market not created");
+        markets.setPremiumFee(marketParams, true, 0.10e18);
+    }
+
+    function test_setPremiumFee_shouldRevertIfCalledNotByAnOwner() public {
+        address someUser = address(0x000011111);
+        startHoax(someUser);
+        vm.expectRevert("not owner");
+        markets.setPremiumFee(marketParams, true, 0.10e18);
+    }
+
+    function test_setPremiumFee_shouldRevertIfProvidedFeeExccedsMax() public {
+        vm.expectRevert("max fee exceeded");
+        markets.setPremiumFee(marketParams, false, 0.251e18);
+    }
+
+    function test_setPremiumFee_shouldAccrueInterest() public {
+        markets.supplyCollateral(marketParams, 1000 ether, owner, "");
+        markets.borrow(marketParams, 700 ether, 0, owner, owner);
+        skip(1 days);
+        (
+            uint256 totalSupplyAssetsBefore,
+            ,
+            uint256 totalBorrowAssetsBefore,
+            ,
+            ,
+            ,
+            ,
+
+        ) = markets.market(marketParams.id());
+        markets.setPremiumFee(marketParams, true, 0.10e18);
+
+        (
+            uint256 totalSupplyAssets,
+            ,
+            uint256 totalBorrowAssets,
+            ,
+            ,
+            ,
+            ,
+
+        ) = markets.market(marketParams.id());
+
+        assertGt(totalSupplyAssets, totalSupplyAssetsBefore);
+        assertGt(totalBorrowAssets, totalBorrowAssetsBefore);
+    }
+
+    function test_setPremiumFee_shouldNotMintSharesToRecipientOnSetPremiumFee()
+        public
+    {
+        address newFeeRecipient = address(0x000011111);
+        markets.setFeeRecipient(newFeeRecipient);
+
+        address userNonPrem = address(0x1010);
+        collateralToken.mint(address(userNonPrem), 1000000 ether);
+
+        startHoax(userNonPrem);
+        uint256 userNonPremAmountToBorrow = 700 ether;
+        loanToken.approve(address(markets), 1000000 ether);
+        collateralToken.approve(address(markets), 1000000 ether);
+        markets.supplyCollateral(marketParams, 1000 ether, userNonPrem, "");
+        markets.borrow(
+            marketParams,
+            userNonPremAmountToBorrow,
+            0,
+            userNonPrem,
+            userNonPrem
+        );
+
+        startHoax(owner);
+        markets.supplyCollateral(marketParams, 1000 ether, owner, "");
+        markets.borrow(marketParams, 700 ether, 0, owner, owner);
+
+        (uint128 supplySharesBefore, , , , , ) = markets.position(
+            marketParams.id(),
+            newFeeRecipient
+        );
+
+        skip(1 days);
+        markets.setPremiumFee(marketParams, true, 0.10e18);
+
+        (uint128 supplySharesAfter, , , , , ) = markets.position(
+            marketParams.id(),
+            newFeeRecipient
+        );
+        assertEq(supplySharesBefore, supplySharesAfter);
+    }
+
+    function test_setPremiumFee_shouldCorrectlyCalculatePremiumFeeWhenOneUserIsPremAndOneNot()
+        public
+    {
+        startHoax(credoraAdmin);
+        credora.grantPermission(owner, address(markets), type(uint128).max);
+        address newFeeRecipient = address(0x000011111);
+
+        address userNonPrem = address(0x1010);
+        collateralToken.mint(address(userNonPrem), 1000000 ether);
+
+        uint256 userNonPremAmountToBorrow = 700 ether;
+        uint256 ownerAmountToBorrow = 900 ether; // his LLTV 100%
+
+        startHoax(userNonPrem);
+        loanToken.approve(address(markets), 1000000 ether);
+        collateralToken.approve(address(markets), 1000000 ether);
+        markets.supplyCollateral(marketParams, 1000 ether, userNonPrem, "");
+        markets.borrow(
+            marketParams,
+            userNonPremAmountToBorrow,
+            0,
+            userNonPrem,
+            userNonPrem
+        );
+
+        startHoax(owner);
+        markets.setFeeRecipient(newFeeRecipient);
+        markets.supplyCollateral(marketParams, 1000 ether, owner, "");
+        markets.borrow(marketParams, ownerAmountToBorrow, 0, owner, owner);
+
+        uint256 premFee = 0.10e18;
+        markets.setPremiumFee(marketParams, true, premFee);
+
+        uint256 timeToSkip = 1 days;
+        skip(timeToSkip);
+        (
+            uint128 totalSupplyAssets,
+            uint128 totalSupplyShares,
+            uint128 totalBorrowAssets,
+            uint128 totalBorrowShares,
+            uint128 lastUpdate,
+            uint128 fee,
+            bool isPremiumFeeEnabled,
+            uint128 premiumFee
+        ) = markets.market(marketParams.id());
+        uint256 borrowRate = irm.borrowRateView(
+            marketParams,
+            Market(
+                totalSupplyAssets,
+                totalSupplyShares,
+                totalBorrowAssets,
+                totalBorrowShares,
+                lastUpdate,
+                fee,
+                isPremiumFeeEnabled,
+                premiumFee
+            )
+        );
+        (, , , uint256 ownerLastMultiplier, , ) = markets.position(
+            marketParams.id(),
+            owner
+        );
+
+        uint256 totalBorrowAssetsBefore = totalBorrowAssets;
+        uint256 nonPremUserInterest = userNonPremAmountToBorrow
+            .wMulDown(borrowRate)
+            .wTaylorCompounded(timeToSkip);
+        uint256 ownerInterest = ownerAmountToBorrow
+            .wMulDown(
+                borrowRate.wMulDown(
+                    ownerLastMultiplier + ownerLastMultiplier.wMulDown(premFee)
+                )
+            )
+            .wTaylorCompounded(timeToSkip);
+        uint256 sumOfInterests = nonPremUserInterest + ownerInterest;
+        uint256 totalSupplySharesBefore = totalSupplyShares;
+
+        markets.accrueInterest(marketParams);
+
+        (
+            totalSupplyAssets,
+            totalSupplyShares,
+            totalBorrowAssets,
+            totalBorrowShares,
+            lastUpdate,
+            fee,
+            isPremiumFeeEnabled,
+            premiumFee
+        ) = markets.market(marketParams.id());
+
+        assertEq(sumOfInterests, totalBorrowAssets - totalBorrowAssetsBefore);
+
+        (uint128 feeRecipientSupplySharesAfter, , , , , ) = markets.position(
+            marketParams.id(),
+            newFeeRecipient
+        );
+
+        uint256 feeRecipientAssets = uint256(feeRecipientSupplySharesAfter)
+            .toAssetsDown(totalSupplyAssets, totalSupplyShares);
+
+        (uint128 ownerSupplyShares, , , , , ) = markets.position(
+            marketParams.id(),
+            owner
+        );
+
+        assertApproxEqAbs(
+            uint256(ownerSupplyShares).toAssetsDown(
+                totalSupplyAssets,
+                totalSupplyShares
+            ) +
+                uint256(feeRecipientSupplySharesAfter).toAssetsDown(
+                    totalSupplyAssets,
+                    totalSupplyShares
+                ),
+            totalSupplyAssets,
+            1e2
+        );
+
+        assertEq(
+            feeRecipientSupplySharesAfter,
+            totalSupplyShares - totalSupplySharesBefore
+        );
+
+        assertApproxEqAbs(
+            ownerInterest.wMulDown(premFee),
+            feeRecipientAssets,
+            1
+        );
+    }
+
+    function test_setPremiumFee_shouldCorrectlyCalculatePremiumFeeWhenOneUserIsPremAndOneNotAndDefaultFeeAppliedToo()
+        public
+    {
+        startHoax(credoraAdmin);
+        credora.grantPermission(owner, address(markets), type(uint128).max);
+        address newFeeRecipient = address(0x000011111);
+
+        address userNonPrem = address(0x1010);
+        collateralToken.mint(address(userNonPrem), 1000000 ether);
+
+        uint256 userNonPremAmountToBorrow = 700 ether;
+        uint256 ownerAmountToBorrow = 900 ether; // his LLTV 100%
+
+        startHoax(userNonPrem);
+        loanToken.approve(address(markets), 1000000 ether);
+        collateralToken.approve(address(markets), 1000000 ether);
+        markets.supplyCollateral(marketParams, 1000 ether, userNonPrem, "");
+        markets.borrow(
+            marketParams,
+            userNonPremAmountToBorrow,
+            0,
+            userNonPrem,
+            userNonPrem
+        );
+
+        startHoax(owner);
+        markets.setFeeRecipient(newFeeRecipient);
+        markets.supplyCollateral(marketParams, 1000 ether, owner, "");
+        markets.borrow(marketParams, ownerAmountToBorrow, 0, owner, owner);
+
+        uint256 premFee = 0.10e18;
+        uint256 defaultFee = 0.05e18;
+        markets.setPremiumFee(marketParams, true, premFee);
+        markets.setFee(marketParams, defaultFee);
+
+        uint256 timeToSkip = 1 days;
+        skip(timeToSkip);
+        (
+            uint128 totalSupplyAssets,
+            uint128 totalSupplyShares,
+            uint128 totalBorrowAssets,
+            uint128 totalBorrowShares,
+            uint128 lastUpdate,
+            uint128 fee,
+            bool isPremiumFeeEnabled,
+            uint128 premiumFee
+        ) = markets.market(marketParams.id());
+        uint256 borrowRate = irm.borrowRateView(
+            marketParams,
+            Market(
+                totalSupplyAssets,
+                totalSupplyShares,
+                totalBorrowAssets,
+                totalBorrowShares,
+                lastUpdate,
+                fee,
+                isPremiumFeeEnabled,
+                premiumFee
+            )
+        );
+        (, , , uint256 ownerLastMultiplier, , ) = markets.position(
+            marketParams.id(),
+            owner
+        );
+
+        uint256 totalBorrowAssetsBefore = totalBorrowAssets;
+        uint256 nonPremUserInterest = userNonPremAmountToBorrow
+            .wMulDown(borrowRate)
+            .wTaylorCompounded(timeToSkip);
+        uint256 ownerInterest = ownerAmountToBorrow
+            .wMulDown(
+                borrowRate.wMulDown(
+                    ownerLastMultiplier + ownerLastMultiplier.wMulDown(premFee)
+                )
+            )
+            .wTaylorCompounded(timeToSkip);
+
+        uint256 defaultFeeAssets = (nonPremUserInterest + ownerInterest)
+            .wMulDown(defaultFee);
+        uint256 premiumFeeAssets = ownerInterest.wMulDown(premFee);
+        uint256 totalFee = defaultFeeAssets + premiumFeeAssets;
+
+        uint256 sumOfInterests = nonPremUserInterest + ownerInterest;
+
+        markets.accrueInterest(marketParams);
+
+        (
+            totalSupplyAssets,
+            totalSupplyShares,
+            totalBorrowAssets,
+            totalBorrowShares,
+            lastUpdate,
+            fee,
+            isPremiumFeeEnabled,
+            premiumFee
+        ) = markets.market(marketParams.id());
+
+        assertEq(sumOfInterests, totalBorrowAssets - totalBorrowAssetsBefore);
+
+        (uint128 feeRecipientSupplySharesAfter, , , , , ) = markets.position(
+            marketParams.id(),
+            newFeeRecipient
+        );
+
+        uint256 feeRecipientAssets = uint256(feeRecipientSupplySharesAfter)
+            .toAssetsDown(totalSupplyAssets, totalSupplyShares);
+        assertApproxEqAbs(totalFee, feeRecipientAssets, 1);
     }
 
     function test_createMarket_shouldDeployCorrectDebtToken() public {
@@ -953,7 +1327,9 @@ contract MoreMarketsTest is Test {
             uint128 totalBorrowAssets,
             uint128 totalBorrowShares,
             uint128 lastUpdate,
-            uint128 fee
+            uint128 fee,
+            bool isPremiumFeeEnabled,
+            uint128 premiumFee
         ) = markets.market(marketParams.id());
         uint256 borrowRate = irm.borrowRateView(
             marketParams,
@@ -963,7 +1339,9 @@ contract MoreMarketsTest is Test {
                 totalBorrowAssets,
                 totalBorrowShares,
                 lastUpdate,
-                fee
+                fee,
+                isPremiumFeeEnabled,
+                premiumFee
             )
         );
 
@@ -986,7 +1364,9 @@ contract MoreMarketsTest is Test {
             totalBorrowAssets,
             totalBorrowShares,
             lastUpdate,
-            fee
+            fee,
+            isPremiumFeeEnabled,
+            premiumFee
         ) = markets.market(marketParams.id());
 
         // total interest calculated correctly
@@ -1076,6 +1456,8 @@ contract MoreMarketsTest is Test {
             uint128 totalBorrowAssetsBefore,
             ,
             ,
+            ,
+            ,
 
         ) = markets.market(marketParams.id());
 
@@ -1100,6 +1482,8 @@ contract MoreMarketsTest is Test {
             uint128 totalSypplyAssetsAfter,
             ,
             uint128 totalBorrowAssetsAfter,
+            ,
+            ,
             ,
             ,
 
@@ -1230,7 +1614,7 @@ contract MoreMarketsTest is Test {
             marketParams.id(),
             newSupplier
         );
-        (, uint256 totalSupplyShares, , , , ) = markets.market(
+        (, uint256 totalSupplyShares, , , , , , ) = markets.market(
             marketParams.id()
         );
 
@@ -1444,8 +1828,16 @@ contract MoreMarketsTest is Test {
             marketParams.id(),
             user
         );
-        (uint128 totalSupplyAssets, uint128 totalSupplyShares, , , , ) = markets
-            .market(marketParams.id());
+        (
+            uint128 totalSupplyAssets,
+            uint128 totalSupplyShares,
+            ,
+            ,
+            ,
+            ,
+            ,
+
+        ) = markets.market(marketParams.id());
         (uint256 assetsWithdrawn, ) = markets.withdraw(
             marketParams,
             0,
@@ -1459,6 +1851,8 @@ contract MoreMarketsTest is Test {
         (
             uint128 newTotalSupplyAssets,
             uint128 newTotalSupplyShares,
+            ,
+            ,
             ,
             ,
             ,

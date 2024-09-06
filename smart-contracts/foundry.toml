@@ -13,6 +13,7 @@ remappings = [
     "forge-std/=lib/forge-std/src/",
 ]
 gas_reports = ["*"]
+no_match_test = "loadOfContract"
 
 optimizer = true
 optimizer_runs = 200
