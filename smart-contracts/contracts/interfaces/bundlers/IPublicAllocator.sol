@@ -2,7 +2,7 @@
 pragma solidity >=0.5.0;
 
 import {Id, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
-import {MarketParams, IMoreMarketsBase} from "../IMoreMarkets.sol";
+import {MarketParams} from "../IMoreMarkets.sol";
 
 struct FlowCaps {
     uint128 maxIn;
