@@ -170,7 +170,7 @@ contract MoreVaultsTest is Test {
         vault.setSupplyQueue(supplyQueue);
     }
 
-    function test_premiumFee_shouldReturnCorrectAmountOfPremiumFees(
+    function test_premiumFee_shouldReturnCorrectAmountOfPremiumFeesWhenDefaultFeeIsSet(
         uint96 premiumFeePercent,
         uint96 defaultFeePercent
     ) public {
@@ -216,5 +216,50 @@ contract MoreVaultsTest is Test {
 
         assertEq(premiumFee, totalFees.mulDiv(premiumFeePercent, 1e18));
         assertEq(defaultFee, totalFees.mulDiv(defaultFeePercent, 1e18));
+    }
+
+    function test_premiumFee_shouldNotMintAnyFeeSharesIfDefaultFeeIsZero(
+        uint96 premiumFeePercent
+    ) public {
+        vm.assume(premiumFeePercent <= 1e18);
+
+        vault.setFeeRecipient(feeRecipient);
+
+        PremiumFeeInfo memory feeInfo = PremiumFeeInfo(
+            premiumFeeRecipient,
+            premiumFeePercent
+        );
+
+        factory.setFeeInfo(address(vault), feeInfo);
+
+        loanToken.approve(address(vault), 1000000 ether);
+        vault.deposit(5000 ether, owner);
+
+        markets.supplyCollateral(marketParams, 1000 ether, owner, "");
+        markets.borrow(marketParams, 700 ether, 0, owner, owner);
+
+        uint256 timeToSkip = 1 days;
+
+        uint256 balanceOfOwner = vault.balanceOf(owner);
+        skip(timeToSkip);
+
+        balanceOfOwner = vault.balanceOf(owner);
+
+        uint256 premiumFeeRecipientBalanceBefore = loanToken.balanceOf(
+            premiumFeeRecipient
+        );
+        uint256 feeRecipientBalanceBefore = loanToken.balanceOf(feeRecipient);
+
+        markets.supply(marketParams, 10000 ether, 0, owner, "");
+        vault.redeem(balanceOfOwner, owner, owner);
+
+        uint256 premiumFee = loanToken.balanceOf(premiumFeeRecipient) -
+            premiumFeeRecipientBalanceBefore;
+        uint256 defaultFee = loanToken.balanceOf(feeRecipient) -
+            feeRecipientBalanceBefore;
+        uint256 totalFees = premiumFee + defaultFee;
+
+        assertEq(premiumFee, 0);
+        assertEq(defaultFee, 0);
     }
 }
