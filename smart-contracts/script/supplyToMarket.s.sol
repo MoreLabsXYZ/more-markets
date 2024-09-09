@@ -12,7 +12,7 @@ import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib,
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-// // forge script script/supplyToMarket.s.sol:supplyToMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
+// // forge script script/supplyToMarket.s.sol:supplyToMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
 contract supplyToMarket is Script {
     using MarketParamsLib for MarketParams;
     ICreditAttestationService public credora;
@@ -74,6 +74,7 @@ contract supplyToMarket is Script {
                 irxMaxLltv: irxMaxLltv,
                 categoryLltv: categoryLltv
             });
+            ERC20MintableMock(loanToken).mint(owner, 100000 ether);
             ERC20MintableMock(loanToken).approve(
                 address(markets),
                 100000 ether

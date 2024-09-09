@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.21;
 
-import {IMoreMarkets, Position, CategoryInfo, MarketParams, Market, Id, Authorization, Signature, IMoreMarketsBase} from "./interfaces/IMoreMarkets.sol";
+import {IMoreMarketsStaticTyping, Position, CategoryInfo, MarketParams, Market, Id, Authorization, Signature, IMoreMarketsBase} from "./interfaces/IMoreMarkets.sol";
 import {IIrm} from "./interfaces/IIrm.sol";
 import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, IERC20, IOracle, WAD} from "./fork/Morpho.sol";
 import {IMorphoLiquidateCallback, IMorphoRepayCallback, IMorphoSupplyCallback, IMorphoSupplyCollateralCallback, IMorphoFlashLoanCallback} from "@morpho-org/morpho-blue/src/interfaces/IMorphoCallbacks.sol";
@@ -20,7 +20,7 @@ import "hardhat/console.sol";
 /// @author MoreMarkets
 /// @notice The More Markets contract fork of Morpho-blue contract with additional feature to make premium users to borrow with a higher LLTV.
 /// It is possible to make undercollateralized borrows if contract is set to.
-contract MoreMarkets is IMoreMarkets {
+contract MoreMarkets is IMoreMarketsStaticTyping {
     using MathLib for uint128;
     using MathLib for uint256;
     using UtilsLib for uint256;
@@ -48,9 +48,9 @@ contract MoreMarkets is IMoreMarkets {
     address public owner;
     /// @inheritdoc IMoreMarketsBase
     address public feeRecipient;
-    /// @inheritdoc IMoreMarkets
+    /// @inheritdoc IMoreMarketsStaticTyping
     mapping(Id => mapping(address => Position)) public position;
-    /// @inheritdoc IMoreMarkets
+    /// @inheritdoc IMoreMarketsStaticTyping
     mapping(Id => Market) public market;
     /// @inheritdoc IMoreMarketsBase
     mapping(address => bool) public isIrmEnabled;
@@ -60,6 +60,9 @@ contract MoreMarkets is IMoreMarkets {
     mapping(address => mapping(address => bool)) public isAuthorized;
     /// @inheritdoc IMoreMarketsBase
     mapping(address => uint256) public nonce;
+    /// The market params corresponding to `id`.
+    mapping(Id => MarketParams) private _idToMarketParams;
+
     /// @inheritdoc IMoreMarketsBase
     mapping(Id => address) public idToDebtToken;
     /// @inheritdoc IMoreMarketsBase
@@ -81,8 +84,6 @@ contract MoreMarkets is IMoreMarkets {
     /// @inheritdoc IMoreMarketsBase
     address public debtTokenFactory;
 
-    /// The market params corresponding to `id`.
-    mapping(Id => MarketParams) private _idToMarketParams;
     /// Mapping that stores array of available interest rate multipliers for particular market.
     mapping(Id => EnumerableSet.UintSet) private _availableMultipliers;
     /// Array that stores ids of all created markets.
@@ -177,7 +178,7 @@ contract MoreMarkets is IMoreMarkets {
         emit EventsLib.SetFee(id, newFee);
     }
 
-    //  /// @inheritdoc IMoreMarketsBase
+    /// @inheritdoc IMoreMarketsBase
     function setPremiumFee(
         MarketParams memory marketParams,
         bool isEnabled,
@@ -1300,7 +1301,7 @@ contract MoreMarkets is IMoreMarkets {
         return memArray;
     }
 
-    /// @inheritdoc IMoreMarkets
+    /// @inheritdoc IMoreMarketsStaticTyping
     function idToMarketParams(
         Id id
     )

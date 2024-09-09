@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Id} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {PremiumFeeInfo} from "../../interfaces/IMetaMorphoFactory.sol";
 
 import {PendingAddress} from "./PendingLib.sol";
 
@@ -115,5 +116,11 @@ library EventsLib {
         string name,
         string symbol,
         bytes32 salt
+    );
+
+    /// @notice Emitted when the `premiumFeeInfo` is set to `vault`.
+    event SetPremiumFeeInfo(
+        address indexed vault,
+        PremiumFeeInfo indexed _premiumFeeInfo
     );
 }

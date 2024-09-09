@@ -11,7 +11,16 @@ import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
+// forge verify-contract \
+//   --rpc-url https://evm-testnet.flowscan.io/api/eth-rpc \
+//   --verifier blockscout \
+//   --verifier-url 'https://evm-testnet.flowscan.io/api' \
+//   --chain-id 545\
+//   --constructor-args $(cast abi-encode "constructor(address)" 0x665EB1F72f2c0771A9C7305b8d735d5410FF3246) \
+//   0x66832a1C487aBf864BeC15b0A636b739f41c05E5 \
+//   contracts/MoreVaultsFactory.sol:MoreVaultsFactory
+
+// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
 contract CreateNewMarket is Script {
     using MarketParamsLib for MarketParams;
     ICreditAttestationService public credora;
@@ -60,9 +69,14 @@ contract CreateNewMarket is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // minting mocks for testnet
-        loanToken = new ERC20MintableMock(owner, "doge", "DOGE");
-        collateralToken = new ERC20MintableMock(owner, "USDC Token", "USDC");
-        // minting mocks for testnet
+        loanToken = new ERC20MintableMock(owner, "ripple", "RPX");
+        collateralToken = new ERC20MintableMock(owner, "Tether USD", "USDT");
+        // loanToken = ERC20MintableMock(
+        //     0x58f3875DBeFcf784Ea40A886eC24e3C3FaB2dB19
+        // );
+        // collateralToken = ERC20MintableMock(
+        //     0xc4dD98f4ECEbFB0F86fF6f8a60668Cf60c45E830
+        // );
 
         // create a market
         marketParams = MarketParams(
@@ -73,9 +87,10 @@ contract CreateNewMarket is Script {
             address(irm),
             lltvs[0],
             address(credora),
-            categoryMultipliers,
+            2 ether,
             premiumLltvs
         );
+        // markets.setMaxLltvForCategory(premiumLltvs[4]);
         markets.createMarket(marketParams);
 
         loanToken.mint(address(owner), 1000000 ether);

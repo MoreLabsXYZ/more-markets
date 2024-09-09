@@ -2,7 +2,8 @@
 pragma solidity 0.8.21;
 
 import {MarketConfig, PendingUint192, PendingAddress, MarketAllocation, IMetaMorphoBase, IMetaMorphoStaticTyping} from "./interfaces/IMetaMorpho.sol";
-import {Id, MarketParams, Market, IMorpho} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {IMoreMarkets, MarketParams, Market, Id} from "./interfaces/IMoreMarkets.sol";
+import {IMetaMorphoFactory, PremiumFeeInfo} from "./interfaces/IMetaMorphoFactory.sol";
 
 import {PendingUint192, PendingAddress, PendingLib} from "./libraries/vaults/PendingLib.sol";
 import {ConstantsLib} from "./libraries/vaults/ConstantsLib.sol";
@@ -12,33 +13,35 @@ import {WAD} from "@morpho-org/morpho-blue/src/libraries/MathLib.sol";
 import {UtilsLib} from "@morpho-org/morpho-blue/src/libraries/UtilsLib.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {SharesMathLib} from "@morpho-org/morpho-blue/src/libraries/SharesMathLib.sol";
-import {MorphoLib} from "@morpho-org/morpho-blue/src/libraries/periphery/MorphoLib.sol";
-import {MarketParamsLib} from "@morpho-org/morpho-blue/src/libraries/MarketParamsLib.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {MorphoBalancesLib} from "@morpho-org/morpho-blue/src/libraries/periphery/MorphoBalancesLib.sol";
+import {MorphoLib} from "./libraries/vaults/MorphoLib.sol";
+import {MarketParamsLib} from "./libraries/MarketParamsLib.sol";
+import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
+import {MorphoBalancesLib} from "./libraries/vaults/MorphoBalancesLib.sol";
 
-import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
-import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {IERC20, IERC4626, ERC20, ERC4626, Math, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Ownable2StepUpgradeable, OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {ERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
+import {IERC4626Upgradeable, ERC4626Upgradeable, MathUpgradeable, SafeERC20Upgradeable, IERC20Upgradeable, ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 
 /// @title MoreVaults
 /// @author MoreMarkets
 /// @notice ERC4626 compliant vault allowing users to deposit assets to More Markets. Fork of Morpho's metamorpho.
 contract MoreVaults is
-    ERC4626,
-    ERC20Permit,
-    Ownable2Step,
-    Multicall,
+    Initializable,
+    ERC4626Upgradeable,
+    ERC20PermitUpgradeable,
+    Ownable2StepUpgradeable,
+    MulticallUpgradeable,
     IMetaMorphoStaticTyping
 {
-    using Math for uint256;
+    using MathUpgradeable for uint256;
     using UtilsLib for uint256;
     using SafeCast for uint256;
-    using SafeERC20 for IERC20;
-    using MorphoLib for IMorpho;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using MorphoLib for IMoreMarkets;
     using SharesMathLib for uint256;
-    using MorphoBalancesLib for IMorpho;
+    using MorphoBalancesLib for IMoreMarkets;
     using MarketParamsLib for MarketParams;
     using PendingLib for MarketConfig;
     using PendingLib for PendingUint192;
@@ -47,12 +50,14 @@ contract MoreVaults is
     /* IMMUTABLES */
 
     /// @inheritdoc IMetaMorphoBase
-    IMorpho public immutable MORPHO;
+    IMoreMarkets public MORE_MARKETS;
+    /// @inheritdoc IMetaMorphoBase
+    IMetaMorphoFactory public VAULTS_FACTORY;
 
     /// @notice OpenZeppelin decimals offset used by the ERC4626 implementation.
     /// @dev Calculated to be max(0, 18 - underlyingDecimals) at construction, so the initial conversion rate maximizes
     /// precision between shares and assets.
-    uint8 public immutable DECIMALS_OFFSET;
+    uint8 public DECIMALS_OFFSET;
 
     /* STORAGE */
 
@@ -98,39 +103,37 @@ contract MoreVaults is
     /// @inheritdoc IMetaMorphoBase
     uint256 public lastTotalAssets;
 
-    /* CONSTRUCTOR */
+    /* INITIALIZER */
 
-    /// @dev Initializes the contract.
-    /// @param owner The owner of the contract.
-    /// @param morpho The address of the Morpho contract.
-    /// @param initialTimelock The initial timelock.
-    /// @param _asset The address of the underlying asset.
-    /// @param _name The name of the vault.
-    /// @param _symbol The symbol of the vault.
-    constructor(
+    /// @inheritdoc IMetaMorphoBase
+    function initialize(
         address owner,
-        address morpho,
+        address moreMarkets,
+        address vaultsFactory,
         uint256 initialTimelock,
         address _asset,
         string memory _name,
         string memory _symbol
-    )
-        ERC4626(IERC20(_asset))
-        ERC20Permit(_name)
-        ERC20(_name, _symbol)
-        Ownable(owner)
-    {
-        if (morpho == address(0)) revert ErrorsLib.ZeroAddress();
+    ) external initializer {
+        __ERC4626_init(IERC20Upgradeable(_asset));
+        __ERC20Permit_init(_name);
+        __ERC20_init(_name, _symbol);
+        __Ownable_init();
+        _transferOwnership(owner);
+        if (moreMarkets == address(0)) revert ErrorsLib.ZeroAddress();
 
-        MORPHO = IMorpho(morpho);
+        MORE_MARKETS = IMoreMarkets(moreMarkets);
+        VAULTS_FACTORY = IMetaMorphoFactory(vaultsFactory);
         DECIMALS_OFFSET = uint8(
-            uint256(18).zeroFloorSub(IERC20Metadata(_asset).decimals())
+            uint256(18).zeroFloorSub(
+                IERC20MetadataUpgradeable(_asset).decimals()
+            )
         );
 
         // _checkTimelockBounds(initialTimelock);
         _setTimelock(initialTimelock);
 
-        IERC20(_asset).forceApprove(morpho, type(uint256).max);
+        IERC20Upgradeable(_asset).forceApprove(moreMarkets, type(uint256).max);
     }
 
     /* MODIFIERS */
@@ -289,7 +292,8 @@ contract MoreVaults is
         Id id = marketParams.id();
         if (marketParams.loanToken != asset())
             revert ErrorsLib.InconsistentAsset(id);
-        if (MORPHO.lastUpdate(id) == 0) revert ErrorsLib.MarketNotCreated();
+        if (MORE_MARKETS.lastUpdate(id) == 0)
+            revert ErrorsLib.MarketNotCreated();
         if (pendingCap[id].validAt != 0) revert ErrorsLib.AlreadyPending();
         if (config[id].removableAt != 0) revert ErrorsLib.PendingRemoval();
         uint256 supplyCap = config[id].cap;
@@ -371,7 +375,7 @@ contract MoreVaults is
                 if (pendingCap[id].validAt != 0)
                     revert ErrorsLib.PendingCap(id);
 
-                if (MORPHO.supplyShares(id, address(this)) != 0) {
+                if (MORE_MARKETS.supplyShares(id, address(this)) != 0) {
                     if (config[id].removableAt == 0)
                         revert ErrorsLib.InvalidMarketRemovalNonZeroSupply(id);
 
@@ -418,8 +422,10 @@ contract MoreVaults is
                     withdrawn = 0;
                 }
 
-                (uint256 withdrawnAssets, uint256 withdrawnShares) = MORPHO
-                    .withdraw(
+                (
+                    uint256 withdrawnAssets,
+                    uint256 withdrawnShares
+                ) = MORE_MARKETS.withdraw(
                         allocation.marketParams,
                         withdrawn,
                         shares,
@@ -449,7 +455,7 @@ contract MoreVaults is
                     revert ErrorsLib.SupplyCapExceeded(id);
 
                 // The market's loan asset is guaranteed to be the vault's asset because it has a non-zero supply cap.
-                (, uint256 suppliedShares) = MORPHO.supply(
+                (, uint256 suppliedShares) = MORE_MARKETS.supply(
                     allocation.marketParams,
                     suppliedAssets,
                     0,
@@ -540,35 +546,40 @@ contract MoreVaults is
     function skim(address token) external {
         if (skimRecipient == address(0)) revert ErrorsLib.ZeroAddress();
 
-        uint256 amount = IERC20(token).balanceOf(address(this));
+        uint256 amount = IERC20Upgradeable(token).balanceOf(address(this));
 
-        IERC20(token).safeTransfer(skimRecipient, amount);
+        IERC20Upgradeable(token).safeTransfer(skimRecipient, amount);
 
         emit EventsLib.Skim(_msgSender(), token, amount);
     }
 
     /* ERC4626 (PUBLIC) */
 
-    /// @inheritdoc IERC20Metadata
-    function decimals() public view override(ERC20, ERC4626) returns (uint8) {
-        return ERC4626.decimals();
+    /// @inheritdoc IERC20MetadataUpgradeable
+    function decimals()
+        public
+        view
+        override(ERC20Upgradeable, ERC4626Upgradeable)
+        returns (uint8)
+    {
+        return ERC4626Upgradeable.decimals();
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     /// @dev Warning: May be higher than the actual max deposit due to duplicate markets in the supplyQueue.
     function maxDeposit(address) public view override returns (uint256) {
         return _maxDeposit();
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     /// @dev Warning: May be higher than the actual max mint due to duplicate markets in the supplyQueue.
     function maxMint(address) public view override returns (uint256) {
         uint256 suppliable = _maxDeposit();
 
-        return _convertToShares(suppliable, Math.Rounding.Floor);
+        return _convertToShares(suppliable, MathUpgradeable.Rounding.Down);
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     /// @dev Warning: May be lower than the actual amount of assets that can be withdrawn by `owner` due to conversion
     /// roundings between shares and assets.
     function maxWithdraw(
@@ -577,7 +588,7 @@ contract MoreVaults is
         (assets, , ) = _maxWithdraw(owner);
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     /// @dev Warning: May be lower than the actual amount of shares that can be redeemed by `owner` due to conversion
     /// roundings between shares and assets.
     function maxRedeem(address owner) public view override returns (uint256) {
@@ -592,11 +603,11 @@ contract MoreVaults is
                 assets,
                 newTotalSupply,
                 newTotalAssets,
-                Math.Rounding.Floor
+                MathUpgradeable.Rounding.Down
             );
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function deposit(
         uint256 assets,
         address receiver
@@ -611,13 +622,13 @@ contract MoreVaults is
             assets,
             totalSupply(),
             newTotalAssets,
-            Math.Rounding.Floor
+            MathUpgradeable.Rounding.Down
         );
 
         _deposit(_msgSender(), receiver, assets, shares);
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function mint(
         uint256 shares,
         address receiver
@@ -632,13 +643,13 @@ contract MoreVaults is
             shares,
             totalSupply(),
             newTotalAssets,
-            Math.Rounding.Ceil
+            MathUpgradeable.Rounding.Up
         );
 
         _deposit(_msgSender(), receiver, assets, shares);
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function withdraw(
         uint256 assets,
         address receiver,
@@ -652,7 +663,7 @@ contract MoreVaults is
             assets,
             totalSupply(),
             newTotalAssets,
-            Math.Rounding.Ceil
+            MathUpgradeable.Rounding.Up
         );
 
         // `newTotalAssets - assets` may be a little off from `totalAssets()`.
@@ -661,7 +672,7 @@ contract MoreVaults is
         _withdraw(_msgSender(), receiver, owner, assets, shares);
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function redeem(
         uint256 shares,
         address receiver,
@@ -675,7 +686,7 @@ contract MoreVaults is
             shares,
             totalSupply(),
             newTotalAssets,
-            Math.Rounding.Floor
+            MathUpgradeable.Rounding.Down
         );
 
         // `newTotalAssets - assets` may be a little off from `totalAssets()`.
@@ -684,10 +695,10 @@ contract MoreVaults is
         _withdraw(_msgSender(), receiver, owner, assets, shares);
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function totalAssets() public view override returns (uint256 assets) {
         for (uint256 i; i < withdrawQueue.length; ++i) {
-            assets += MORPHO.expectedSupplyAssets(
+            assets += MORE_MARKETS.expectedSupplyAssets(
                 _marketParams(withdrawQueue[i]),
                 address(this)
             );
@@ -696,7 +707,7 @@ contract MoreVaults is
 
     /* ERC4626 (INTERNAL) */
 
-    /// @inheritdoc ERC4626
+    /// @inheritdoc ERC4626Upgradeable
     function _decimalsOffset() internal view override returns (uint8) {
         return DECIMALS_OFFSET;
     }
@@ -718,7 +729,7 @@ contract MoreVaults is
             balanceOf(owner),
             newTotalSupply,
             newTotalAssets,
-            Math.Rounding.Floor
+            MathUpgradeable.Rounding.Down
         );
         assets -= _simulateWithdrawMorpho(assets);
     }
@@ -731,9 +742,13 @@ contract MoreVaults is
             uint256 supplyCap = config[id].cap;
             if (supplyCap == 0) continue;
 
-            uint256 supplyShares = MORPHO.supplyShares(id, address(this));
-            (uint256 totalSupplyAssets, uint256 totalSupplyShares, , ) = MORPHO
-                .expectedMarketBalances(_marketParams(id));
+            uint256 supplyShares = MORE_MARKETS.supplyShares(id, address(this));
+            (
+                uint256 totalSupplyAssets,
+                uint256 totalSupplyShares,
+                ,
+
+            ) = MORE_MARKETS.expectedMarketBalances(_marketParams(id));
             // `supplyAssets` needs to be rounded up for `totalSuppliable` to be rounded down.
             uint256 supplyAssets = supplyShares.toAssetsUp(
                 totalSupplyAssets,
@@ -744,11 +759,11 @@ contract MoreVaults is
         }
     }
 
-    /// @inheritdoc ERC4626
+    /// @inheritdoc ERC4626Upgradeable
     /// @dev The accrual of performance fees is taken into account in the conversion.
     function _convertToShares(
         uint256 assets,
-        Math.Rounding rounding
+        MathUpgradeable.Rounding rounding
     ) internal view override returns (uint256) {
         (uint256 feeShares, uint256 newTotalAssets) = _accruedFeeShares();
 
@@ -761,11 +776,11 @@ contract MoreVaults is
             );
     }
 
-    /// @inheritdoc ERC4626
+    /// @inheritdoc ERC4626Upgradeable
     /// @dev The accrual of performance fees is taken into account in the conversion.
     function _convertToAssets(
         uint256 shares,
-        Math.Rounding rounding
+        MathUpgradeable.Rounding rounding
     ) internal view override returns (uint256) {
         (uint256 feeShares, uint256 newTotalAssets) = _accruedFeeShares();
 
@@ -784,7 +799,7 @@ contract MoreVaults is
         uint256 assets,
         uint256 newTotalSupply,
         uint256 newTotalAssets,
-        Math.Rounding rounding
+        MathUpgradeable.Rounding rounding
     ) internal view returns (uint256) {
         return
             assets.mulDiv(
@@ -800,7 +815,7 @@ contract MoreVaults is
         uint256 shares,
         uint256 newTotalSupply,
         uint256 newTotalAssets,
-        Math.Rounding rounding
+        MathUpgradeable.Rounding rounding
     ) internal view returns (uint256) {
         return
             shares.mulDiv(
@@ -810,7 +825,7 @@ contract MoreVaults is
             );
     }
 
-    /// @inheritdoc ERC4626
+    /// @inheritdoc ERC4626Upgradeable
     /// @dev Used in mint or deposit to deposit the underlying asset to Morpho markets.
     function _deposit(
         address caller,
@@ -826,7 +841,7 @@ contract MoreVaults is
         _updateLastTotalAssets(lastTotalAssets + assets);
     }
 
-    /// @inheritdoc ERC4626
+    /// @inheritdoc ERC4626Upgradeable
     /// @dev Used in redeem or withdraw to withdraw the underlying asset from Morpho markets.
     /// @dev Depending on 3 cases, reverts when withdrawing "too much" with:
     /// 1. NotEnoughLiquidity when withdrawing more than available liquidity.
@@ -848,7 +863,29 @@ contract MoreVaults is
 
     /// @dev Returns the market params of the market defined by `id`.
     function _marketParams(Id id) internal view returns (MarketParams memory) {
-        return MORPHO.idToMarketParams(id);
+        (
+            bool isPremiumMarket,
+            address loanToken,
+            address collateralToken,
+            address oracle,
+            address irm,
+            uint256 lltv,
+            address creditAttestationService,
+            uint96 irxMaxLltv,
+            uint256[] memory categoryLltvs
+        ) = MORE_MARKETS.idToMarketParams(id);
+        MarketParams memory marketParams = MarketParams(
+            isPremiumMarket,
+            loanToken,
+            collateralToken,
+            oracle,
+            irm,
+            lltv,
+            creditAttestationService,
+            irxMaxLltv,
+            categoryLltvs
+        );
+        return marketParams;
     }
 
     /// @dev Accrues interest on Morpho Blue and returns the vault's assets & corresponding shares supplied on the
@@ -858,10 +895,10 @@ contract MoreVaults is
         MarketParams memory marketParams,
         Id id
     ) internal returns (uint256 assets, uint256 shares, Market memory market) {
-        MORPHO.accrueInterest(marketParams);
+        MORE_MARKETS.accrueInterest(marketParams);
 
-        market = MORPHO.market(id);
-        shares = MORPHO.supplyShares(id, address(this));
+        market = MORE_MARKETS.market(id);
+        shares = MORE_MARKETS.supplyShares(id, address(this));
         assets = shares.toAssetsDown(
             market.totalSupplyAssets,
             market.totalSupplyShares
@@ -915,7 +952,10 @@ contract MoreVaults is
                 // Take into account assets of the new market without applying a fee.
                 _updateLastTotalAssets(
                     lastTotalAssets +
-                        MORPHO.expectedSupplyAssets(marketParams, address(this))
+                        MORE_MARKETS.expectedSupplyAssets(
+                            marketParams,
+                            address(this)
+                        )
                 );
 
                 emit EventsLib.SetWithdrawQueue(msg.sender, withdrawQueue);
@@ -943,10 +983,10 @@ contract MoreVaults is
 
             MarketParams memory marketParams = _marketParams(id);
 
-            MORPHO.accrueInterest(marketParams);
+            MORE_MARKETS.accrueInterest(marketParams);
 
-            Market memory market = MORPHO.market(id);
-            uint256 supplyShares = MORPHO.supplyShares(id, address(this));
+            Market memory market = MORE_MARKETS.market(id);
+            uint256 supplyShares = MORE_MARKETS.supplyShares(id, address(this));
             // `supplyAssets` needs to be rounded up for `toSupply` to be rounded down.
             uint256 supplyAssets = supplyShares.toAssetsUp(
                 market.totalSupplyAssets,
@@ -961,7 +1001,7 @@ contract MoreVaults is
             if (toSupply > 0) {
                 // Using try/catch to skip markets that revert.
                 try
-                    MORPHO.supply(
+                    MORE_MARKETS.supply(
                         marketParams,
                         toSupply,
                         0,
@@ -1003,7 +1043,7 @@ contract MoreVaults is
             if (toWithdraw > 0) {
                 // Using try/catch to skip markets that revert.
                 try
-                    MORPHO.withdraw(
+                    MORE_MARKETS.withdraw(
                         marketParams,
                         toWithdraw,
                         0,
@@ -1014,7 +1054,6 @@ contract MoreVaults is
                     assets -= toWithdraw;
                 } catch {}
             }
-
             if (assets == 0) return;
         }
 
@@ -1030,13 +1069,13 @@ contract MoreVaults is
             Id id = withdrawQueue[i];
             MarketParams memory marketParams = _marketParams(id);
 
-            uint256 supplyShares = MORPHO.supplyShares(id, address(this));
+            uint256 supplyShares = MORE_MARKETS.supplyShares(id, address(this));
             (
                 uint256 totalSupplyAssets,
                 uint256 totalSupplyShares,
                 uint256 totalBorrowAssets,
 
-            ) = MORPHO.expectedMarketBalances(marketParams);
+            ) = MORE_MARKETS.expectedMarketBalances(marketParams);
 
             // The vault withdrawing from Morpho cannot fail because:
             // 1. oracle.price() is never called (the vault doesn't borrow)
@@ -1071,7 +1110,9 @@ contract MoreVaults is
         // Inside a flashloan callback, liquidity on Morpho Blue may be limited to the singleton's balance.
         uint256 availableLiquidity = UtilsLib.min(
             totalSupplyAssets - totalBorrowAssets,
-            ERC20(marketParams.loanToken).balanceOf(address(MORPHO))
+            ERC20Upgradeable(marketParams.loanToken).balanceOf(
+                address(MORE_MARKETS)
+            )
         );
 
         return UtilsLib.min(supplyAssets, availableLiquidity);
@@ -1092,7 +1133,14 @@ contract MoreVaults is
         uint256 feeShares;
         (feeShares, newTotalAssets) = _accruedFeeShares();
 
-        if (feeShares != 0) _mint(feeRecipient, feeShares);
+        (address premiumFeeRecipient, uint96 premiumFee) = VAULTS_FACTORY
+            .premiumFeeInfo(address(this));
+        if (feeShares != 0) {
+            if (premiumFee != 0) {
+                _mint(premiumFeeRecipient, feeShares.mulDiv(premiumFee, WAD));
+                _mint(feeRecipient, feeShares.mulDiv(WAD - premiumFee, WAD));
+            } else _mint(feeRecipient, feeShares);
+        }
 
         emit EventsLib.AccrueInterest(newTotalAssets, feeShares);
     }
@@ -1116,7 +1164,7 @@ contract MoreVaults is
                 feeAssets,
                 totalSupply(),
                 newTotalAssets - feeAssets,
-                Math.Rounding.Floor
+                MathUpgradeable.Rounding.Down
             );
         }
     }

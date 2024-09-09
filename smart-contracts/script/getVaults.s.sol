@@ -15,7 +15,7 @@ contract CreateNewVaults is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        address[] memory morphoArray = vaultsFactory.arrayOfMorphos();
+        address[] memory morphoArray = vaultsFactory.arrayOfVaults();
 
         for (uint i = 0; i < morphoArray.length; i++) {
             console.log("there is a vault with address ", morphoArray[i]);

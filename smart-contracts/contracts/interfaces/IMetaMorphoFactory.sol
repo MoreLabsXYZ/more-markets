@@ -3,16 +3,24 @@ pragma solidity >=0.5.0;
 
 import {IMetaMorpho} from "./IMetaMorpho.sol";
 
+struct PremiumFeeInfo {
+    address feeRecipient;
+    uint96 fee;
+}
+
 /// @title IMetaMorphoFactory
 /// @author Morpho Labs
 /// @custom:contact security@morpho.org
 /// @notice Interface of MetaMorpho's factory.
 interface IMetaMorphoFactory {
     /// @notice The address of the Morpho contract.
-    function MORPHO() external view returns (address);
+    function MORE_MARKETS() external view returns (address);
 
     /// @notice Whether a MetaMorpho vault was created with the factory.
     function isMetaMorpho(address target) external view returns (bool);
+
+    /// @notice Returns implementation address of MoreVaults contract, to create minimal proxy of it.
+    function moreVaultsImpl() external view returns (address);
 
     /// @notice Creates a new MetaMorpho vault.
     /// @param initialOwner The owner of the vault.
@@ -29,4 +37,23 @@ interface IMetaMorphoFactory {
         string memory symbol,
         bytes32 salt
     ) external returns (IMetaMorpho metaMorpho);
+
+    /// @notice Returns array of all vaults created with the factory.
+    function arrayOfVaults() external view returns (address[] memory);
+
+    /// @notice Returns the fee info of the vault includes feeRecipient and premium fee percentage.
+    /// Premium fee percentage is applied to preformance fee of particular vault.
+    /// @param vault The address of the vault.
+    function premiumFeeInfo(
+        address vault
+    ) external view returns (address feeRecipient, uint96 premiumFee);
+
+    /// @notice Sets the premium fee info for the particular vault.
+    /// Premium fee percentage is applied to preformance fee of particular vault.
+    /// @param vault The address of the vault.
+    /// @param _premiumFeeInfo The premium fee info.
+    function setFeeInfo(
+        address vault,
+        PremiumFeeInfo memory _premiumFeeInfo
+    ) external;
 }

@@ -96,6 +96,9 @@ library ErrorsLib {
     /// @notice Thrown when all caps have been reached.
     error AllCapsReached();
 
+    /// @notice Thrown when provided address not the vault created by this factory.
+    error NotTheVault();
+
     /// @dev Thrown when passing the zero address.
     string internal constant ZERO_ADDRESS = "zero address";
 

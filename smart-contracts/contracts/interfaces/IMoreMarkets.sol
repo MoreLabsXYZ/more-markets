@@ -144,6 +144,17 @@ interface IMoreMarketsBase {
     /// @dev Warning: The recipient can be the zero address.
     function setFee(MarketParams memory marketParams, uint256 newFee) external;
 
+    /// @notice Sets the `newPremiumFee` and enables/disables itfor the given market `marketParams`.
+    /// @param marketParams Parameters of the market.
+    /// @param isEnabled Flag that enables/disables premium fee.
+    /// @param newPremiumFee The new fee, scaled by WAD.
+    /// @dev Warning: The recipient can be the zero address.
+    function setPremiumFee(
+        MarketParams memory marketParams,
+        bool isEnabled,
+        uint256 newPremiumFee
+    ) external;
+
     /// @notice Sets `newFeeRecipient` as `feeRecipient` of the fee.
     /// @dev Warning: If the fee recipient is set to the zero address, fees will accrue there and will be lost.
     /// @dev Modifying the fee recipient will allow the new recipient to claim any pending fees not yet accrued. To
@@ -388,7 +399,9 @@ interface IMoreMarketsBase {
     ) external view returns (bytes32[] memory);
 }
 
-interface IMoreMarkets is IMoreMarketsBase {
+/// @dev This interface is inherited by Morpho so that function signatures are checked by the compiler.
+/// @dev Consider using the IMorpho interface instead of this one.
+interface IMoreMarketsStaticTyping is IMoreMarketsBase {
     function position(
         Id id,
         address user
@@ -424,6 +437,40 @@ interface IMoreMarkets is IMoreMarketsBase {
             bool isPremiumFeeEnabled,
             uint128 premiumFee
         );
+
+    /// @notice The market params corresponding to `id`.
+    /// @dev This mapping is not used in Morpho. It is there to enable reducing the cost associated to calldata on layer
+    /// 2s by creating a wrapper contract with functions that take `id` as input instead of `marketParams`.
+    function idToMarketParams(
+        Id id
+    )
+        external
+        view
+        returns (
+            bool isPremiumMarket,
+            address loanToken,
+            address collateralToken,
+            address oracle,
+            address irm,
+            uint256 lltv,
+            address creditAttestationService,
+            uint96 irxMaxLltv,
+            uint256[] memory categoryLltv
+        );
+}
+
+interface IMoreMarkets is IMoreMarketsBase {
+    function position(
+        Id id,
+        address user
+    ) external view returns (Position memory);
+
+    /// @notice The state of the market corresponding to `id`.
+    /// @dev Warning: `totalSupplyAssets` does not contain the accrued interest since the last interest accrual.
+    /// @dev Warning: `totalBorrowAssets` does not contain the accrued interest since the last interest accrual.
+    /// @dev Warning: `totalSupplyShares` does not contain the accrued shares by `feeRecipient` since the last interest
+    /// accrual.
+    function market(Id id) external view returns (Market memory);
 
     /// @notice The market params corresponding to `id`.
     /// @dev This mapping is not used in Morpho. It is there to enable reducing the cost associated to calldata on layer

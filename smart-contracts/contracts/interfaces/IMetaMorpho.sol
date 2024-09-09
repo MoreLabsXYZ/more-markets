@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-import {IMorpho, Id, MarketParams} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import {IMoreMarkets, MarketParams, Id} from "./IMoreMarkets.sol";
+import {IMetaMorphoFactory} from "./IMetaMorphoFactory.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
@@ -29,8 +30,28 @@ interface IOwnable {
 /// @dev This interface is used for factorizing IMetaMorphoStaticTyping and IMetaMorpho.
 /// @dev Consider using the IMetaMorpho interface instead of this one.
 interface IMetaMorphoBase {
-    /// @notice The address of the Morpho contract.
-    function MORPHO() external view returns (IMorpho);
+    /// @notice Initializes the contract.
+    /// @param owner The owner of the contract.
+    /// @param moreMarkets The address of the Morpho contract.
+    /// @param vaultsFactory address of the factory, that deployed this contract.
+    /// @param initialTimelock The initial timelock.
+    /// @param _asset The address of the underlying asset.
+    /// @param _name The name of the vault.
+    /// @param _symbol The symbol of the vault.
+    function initialize(
+        address owner,
+        address moreMarkets,
+        address vaultsFactory,
+        uint256 initialTimelock,
+        address _asset,
+        string memory _name,
+        string memory _symbol
+    ) external;
+
+    /// @notice The address of the MoreMarkets contract.
+    function MORE_MARKETS() external view returns (IMoreMarkets);
+    /// @notice The address of the More vaults factory contract.
+    function VAULTS_FACTORY() external view returns (IMetaMorphoFactory);
     function DECIMALS_OFFSET() external view returns (uint8);
 
     /// @notice The address of the curator.
