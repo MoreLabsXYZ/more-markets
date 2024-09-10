@@ -54,8 +54,7 @@ contract getMarketsData is Script {
                     uint128 totalBorrowShares,
                     uint128 lastUpdate,
                     uint128 fee,
-                    bool isPremiumFeeEnabled,
-                    uint128 premiumFee
+                    uint256 premiumFee
                 ) = markets.market(memAr[i]);
                 market.totalSupplyAssets = totalSupplyAssets;
                 market.totalSupplyShares = totalSupplyShares;
@@ -63,7 +62,6 @@ contract getMarketsData is Script {
                 market.totalBorrowShares = totalBorrowShares;
                 market.lastUpdate = lastUpdate;
                 market.fee = fee;
-                market.isPremiumFeeEnabled = isPremiumFeeEnabled;
                 market.premiumFee = premiumFee;
                 (
                     bool isPremium,
@@ -105,10 +103,6 @@ contract getMarketsData is Script {
             );
             console.log("last update for market is ", market.lastUpdate);
             console.log("fee for market is ", market.fee);
-            console.log(
-                "is premium fee enabled for market is ",
-                market.isPremiumFeeEnabled
-            );
             console.log("premium fee for market is ", market.premiumFee);
 
             console.log("is market premium ", marketParams.isPremiumMarket);

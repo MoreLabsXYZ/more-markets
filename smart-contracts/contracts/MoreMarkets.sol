@@ -181,16 +181,11 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
     /// @inheritdoc IMoreMarketsBase
     function setPremiumFee(
         MarketParams memory marketParams,
-        bool isEnabled,
         uint256 newPremiumFee
     ) external onlyOwner {
         Id id = marketParams.id();
         require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
-        require(
-            newPremiumFee != market[id].premiumFee ||
-                isEnabled != market[id].isPremiumFeeEnabled,
-            ErrorsLib.ALREADY_SET
-        );
+        require(newPremiumFee != market[id].premiumFee, ErrorsLib.ALREADY_SET);
         require(newPremiumFee <= MAX_FEE, ErrorsLib.MAX_FEE_EXCEEDED);
 
         // Accrue interest using the previous fee set before changing it.
@@ -198,9 +193,8 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
 
         // Safe "unchecked" cast.
         market[id].premiumFee = uint128(newPremiumFee);
-        market[id].isPremiumFeeEnabled = isEnabled;
 
-        emit EventsLib.SetPremiumFee(id, isEnabled, newPremiumFee);
+        emit EventsLib.SetPremiumFee(id, newPremiumFee);
     }
 
     /// @inheritdoc IMoreMarketsBase
@@ -721,7 +715,7 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
                 .toUint128();
             totalBorrowSharesForMultiplier[id][lastMultiplier] -= badDebtShares
                 .toUint128();
-            // market[id].totalBorrowShares -= badDebtShares.toUint128();
+
             position[id][borrower].borrowShares = 0;
 
             // if user is prem, then issue debt tokens
@@ -903,9 +897,7 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
 
                 uint256 interestForMultiplier;
                 uint256 premiumFeeMulAddition;
-                if (
-                    currentMultiplier != 1e18 && market[id].isPremiumFeeEnabled
-                ) {
+                if (currentMultiplier != 1e18 && premiumFee != 0) {
                     premiumFeeMulAddition = uint256(
                         uint256(premiumFee).wMulDown(currentMultiplier)
                     );
@@ -922,9 +914,7 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
                     .wTaylorCompounded(elapsed);
 
                 totalInterest += interestForMultiplier;
-                if (
-                    currentMultiplier != 1e18 && market[id].isPremiumFeeEnabled
-                ) {
+                if (currentMultiplier != 1e18 && premiumFee != 0) {
                     premiumInterest += interestForMultiplier;
                 }
 
@@ -941,10 +931,7 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
             market[id].totalSupplyAssets += totalInterest.toUint128();
 
             uint256 feeShares;
-            if (
-                market[id].fee != 0 ||
-                (market[id].isPremiumFeeEnabled && premiumFee != 0)
-            ) {
+            if (market[id].fee != 0 || premiumFee != 0) {
                 uint256 feeAmount = totalInterest.wMulDown(market[id].fee) +
                     premiumInterest.wMulDown(premiumFee);
                 // The fee amount is subtracted from the total supply in this calculation to compensate for the fact
@@ -1308,15 +1295,15 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
         external
         view
         returns (
-            bool isPremiumMarket,
-            address loanToken,
-            address collateralToken,
-            address oracle,
-            address irm,
-            uint256 lltv,
-            address _creditAttestationService,
-            uint96 irxMaxLltv,
-            uint256[] memory categoryLltv
+            bool,
+            address,
+            address,
+            address,
+            address,
+            uint256,
+            address,
+            uint96,
+            uint256[] memory
         )
     {
         uint256[] memory categoryLltvs = _idToMarketParams[id].categoryLltv;

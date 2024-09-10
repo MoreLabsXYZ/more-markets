@@ -257,7 +257,6 @@ contract MoreVaultsTest is Test {
             premiumFeeRecipientBalanceBefore;
         uint256 defaultFee = loanToken.balanceOf(feeRecipient) -
             feeRecipientBalanceBefore;
-        uint256 totalFees = premiumFee + defaultFee;
 
         assertEq(premiumFee, 0);
         assertEq(defaultFee, 0);

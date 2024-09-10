@@ -178,66 +178,38 @@ contract MoreMarketsTest is Test {
         markets.setMaxLltvForCategory(2 ether);
     }
 
-    function test_setPremiumFee_shouldSetPremiumFeeAndFlag() public {
-        (, , , , , , bool isPremiumFeeEnabled, uint128 premiumFee) = markets
-            .market(marketParams.id());
-        assertEq(isPremiumFeeEnabled, false);
+    function test_setPremiumFee_shouldSetPremiumFee() public {
+        (, , , , , , uint256 premiumFee) = markets.market(marketParams.id());
         assertEq(premiumFee, 0);
 
-        markets.setPremiumFee(marketParams, true, 0.10e18);
+        markets.setPremiumFee(marketParams, 0.10e18);
 
-        (, , , , , , isPremiumFeeEnabled, premiumFee) = markets.market(
-            marketParams.id()
-        );
-        assertEq(isPremiumFeeEnabled, true);
+        (, , , , , , premiumFee) = markets.market(marketParams.id());
         assertEq(premiumFee, 0.10e18);
     }
 
-    function test_setPremiumFee_shouldSetIfOnlyOneParamDiffer() public {
-        (, , , , , , bool isPremiumFeeEnabled, uint128 premiumFee) = markets
-            .market(marketParams.id());
-        assertEq(isPremiumFeeEnabled, false);
-        assertEq(premiumFee, 0);
-
-        markets.setPremiumFee(marketParams, false, 0.10e18);
-
-        (, , , , , , isPremiumFeeEnabled, premiumFee) = markets.market(
-            marketParams.id()
-        );
-        assertEq(isPremiumFeeEnabled, false);
-        assertEq(premiumFee, 0.10e18);
-
-        markets.setPremiumFee(marketParams, true, 0.10e18);
-
-        (, , , , , , isPremiumFeeEnabled, premiumFee) = markets.market(
-            marketParams.id()
-        );
-        assertEq(isPremiumFeeEnabled, true);
-        assertEq(premiumFee, 0.10e18);
-    }
-
-    function test_setPremiumFee_shouldRevertIfBothParamsTheSame() public {
+    function test_setPremiumFee_shouldRevertIfParamTheSame() public {
         vm.expectRevert("already set");
-        markets.setPremiumFee(marketParams, false, 0);
+        markets.setPremiumFee(marketParams, 0);
     }
 
     function test_setPremiumFee_shouldRevertIfMarketDoesNotExist() public {
         marketParams.loanToken = address(0x000011111);
 
         vm.expectRevert("market not created");
-        markets.setPremiumFee(marketParams, true, 0.10e18);
+        markets.setPremiumFee(marketParams, 0.10e18);
     }
 
     function test_setPremiumFee_shouldRevertIfCalledNotByAnOwner() public {
         address someUser = address(0x000011111);
         startHoax(someUser);
         vm.expectRevert("not owner");
-        markets.setPremiumFee(marketParams, true, 0.10e18);
+        markets.setPremiumFee(marketParams, 0.10e18);
     }
 
     function test_setPremiumFee_shouldRevertIfProvidedFeeExccedsMax() public {
         vm.expectRevert("max fee exceeded");
-        markets.setPremiumFee(marketParams, false, 0.251e18);
+        markets.setPremiumFee(marketParams, 0.251e18);
     }
 
     function test_setPremiumFee_shouldAccrueInterest() public {
@@ -251,16 +223,14 @@ contract MoreMarketsTest is Test {
             ,
             ,
             ,
-            ,
 
         ) = markets.market(marketParams.id());
-        markets.setPremiumFee(marketParams, true, 0.10e18);
+        markets.setPremiumFee(marketParams, 0.10e18);
 
         (
             uint256 totalSupplyAssets,
             ,
             uint256 totalBorrowAssets,
-            ,
             ,
             ,
             ,
@@ -303,7 +273,7 @@ contract MoreMarketsTest is Test {
         );
 
         skip(1 days);
-        markets.setPremiumFee(marketParams, true, 0.10e18);
+        markets.setPremiumFee(marketParams, 0.10e18);
 
         (uint128 supplySharesAfter, , , , , ) = markets.position(
             marketParams.id(),
@@ -343,7 +313,7 @@ contract MoreMarketsTest is Test {
         markets.borrow(marketParams, ownerAmountToBorrow, 0, owner, owner);
 
         uint256 premFee = 0.10e18;
-        markets.setPremiumFee(marketParams, true, premFee);
+        markets.setPremiumFee(marketParams, premFee);
 
         uint256 timeToSkip = 1 days;
         skip(timeToSkip);
@@ -354,8 +324,7 @@ contract MoreMarketsTest is Test {
             uint128 totalBorrowShares,
             uint128 lastUpdate,
             uint128 fee,
-            bool isPremiumFeeEnabled,
-            uint128 premiumFee
+            uint256 premiumFee
         ) = markets.market(marketParams.id());
         uint256 borrowRate = irm.borrowRateView(
             marketParams,
@@ -366,7 +335,6 @@ contract MoreMarketsTest is Test {
                 totalBorrowShares,
                 lastUpdate,
                 fee,
-                isPremiumFeeEnabled,
                 premiumFee
             )
         );
@@ -398,7 +366,6 @@ contract MoreMarketsTest is Test {
             totalBorrowShares,
             lastUpdate,
             fee,
-            isPremiumFeeEnabled,
             premiumFee
         ) = markets.market(marketParams.id());
 
@@ -474,7 +441,7 @@ contract MoreMarketsTest is Test {
 
         uint256 premFee = 0.10e18;
         uint256 defaultFee = 0.05e18;
-        markets.setPremiumFee(marketParams, true, premFee);
+        markets.setPremiumFee(marketParams, premFee);
         markets.setFee(marketParams, defaultFee);
 
         uint256 timeToSkip = 1 days;
@@ -486,8 +453,7 @@ contract MoreMarketsTest is Test {
             uint128 totalBorrowShares,
             uint128 lastUpdate,
             uint128 fee,
-            bool isPremiumFeeEnabled,
-            uint128 premiumFee
+            uint256 premiumFee
         ) = markets.market(marketParams.id());
         uint256 borrowRate = irm.borrowRateView(
             marketParams,
@@ -498,7 +464,6 @@ contract MoreMarketsTest is Test {
                 totalBorrowShares,
                 lastUpdate,
                 fee,
-                isPremiumFeeEnabled,
                 premiumFee
             )
         );
@@ -535,7 +500,6 @@ contract MoreMarketsTest is Test {
             totalBorrowShares,
             lastUpdate,
             fee,
-            isPremiumFeeEnabled,
             premiumFee
         ) = markets.market(marketParams.id());
 
@@ -1328,8 +1292,7 @@ contract MoreMarketsTest is Test {
             uint128 totalBorrowShares,
             uint128 lastUpdate,
             uint128 fee,
-            bool isPremiumFeeEnabled,
-            uint128 premiumFee
+            uint256 premiumFee
         ) = markets.market(marketParams.id());
         uint256 borrowRate = irm.borrowRateView(
             marketParams,
@@ -1340,7 +1303,6 @@ contract MoreMarketsTest is Test {
                 totalBorrowShares,
                 lastUpdate,
                 fee,
-                isPremiumFeeEnabled,
                 premiumFee
             )
         );
@@ -1365,7 +1327,6 @@ contract MoreMarketsTest is Test {
             totalBorrowShares,
             lastUpdate,
             fee,
-            isPremiumFeeEnabled,
             premiumFee
         ) = markets.market(marketParams.id());
 
@@ -1457,7 +1418,6 @@ contract MoreMarketsTest is Test {
             ,
             ,
             ,
-            ,
 
         ) = markets.market(marketParams.id());
 
@@ -1482,7 +1442,6 @@ contract MoreMarketsTest is Test {
             uint128 totalSypplyAssetsAfter,
             ,
             uint128 totalBorrowAssetsAfter,
-            ,
             ,
             ,
             ,
@@ -1614,7 +1573,7 @@ contract MoreMarketsTest is Test {
             marketParams.id(),
             newSupplier
         );
-        (, uint256 totalSupplyShares, , , , , , ) = markets.market(
+        (, uint256 totalSupplyShares, , , , , ) = markets.market(
             marketParams.id()
         );
 
@@ -1835,7 +1794,6 @@ contract MoreMarketsTest is Test {
             ,
             ,
             ,
-            ,
 
         ) = markets.market(marketParams.id());
         (uint256 assetsWithdrawn, ) = markets.withdraw(
@@ -1851,7 +1809,6 @@ contract MoreMarketsTest is Test {
         (
             uint128 newTotalSupplyAssets,
             uint128 newTotalSupplyShares,
-            ,
             ,
             ,
             ,

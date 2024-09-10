@@ -42,8 +42,7 @@ struct Market {
     uint128 totalBorrowShares;
     uint128 lastUpdate;
     uint128 fee;
-    bool isPremiumFeeEnabled;
-    uint128 premiumFee;
+    uint256 premiumFee;
 }
 
 /// @dev This interface is used for factorizing IMorphoStaticTyping and IMorpho.
@@ -144,14 +143,12 @@ interface IMoreMarketsBase {
     /// @dev Warning: The recipient can be the zero address.
     function setFee(MarketParams memory marketParams, uint256 newFee) external;
 
-    /// @notice Sets the `newPremiumFee` and enables/disables itfor the given market `marketParams`.
+    /// @notice Sets the `newPremiumFee` for the given market `marketParams`.
     /// @param marketParams Parameters of the market.
-    /// @param isEnabled Flag that enables/disables premium fee.
     /// @param newPremiumFee The new fee, scaled by WAD.
     /// @dev Warning: The recipient can be the zero address.
     function setPremiumFee(
         MarketParams memory marketParams,
-        bool isEnabled,
         uint256 newPremiumFee
     ) external;
 
@@ -434,8 +431,7 @@ interface IMoreMarketsStaticTyping is IMoreMarketsBase {
             uint128 totalBorrowShares,
             uint128 lastUpdate,
             uint128 fee,
-            bool isPremiumFeeEnabled,
-            uint128 premiumFee
+            uint256 premiumFee
         );
 
     /// @notice The market params corresponding to `id`.

@@ -19,9 +19,8 @@ library EventsLib {
 
     /// @notice Emitted when setting a new premium fee and disable/enable it.
     /// @param id The market id.
-    /// @param isEnabled The new status.
     /// @param newPremiumFee The new fee.
-    event SetPremiumFee(Id indexed id, bool isEnabled, uint256 newPremiumFee);
+    event SetPremiumFee(Id indexed id, uint256 newPremiumFee);
 
     /// @notice Emitted when setting a new irx maximum multiplier which is upper limit for any market.
     /// @param newIrxMaxAvailable The new irx maximum limit.

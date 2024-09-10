@@ -40,20 +40,6 @@ contract SetSupplyQueue is Script {
         moreVault = MoreVaults(vm.envAddress("MORE_VAULT"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
 
-        // TODO script can be improved by reading these values from the environment or JSON CONFIG
-        // address initialOwner = 0x2690eEF879dF58B97ec7CF830F7627Fb1B51f826;
-        // uint256 initialTimelock = 100;
-        // address asset1 = 0xdC9C26ECbB6Af88ac6E44e9e0cc85743B4701291;
-        // address asset2 = 0xbe36C502663c3F08c7080f632031C370F745C3aC;
-        // address asset3 = 0xC4F1dFC005Cb2285b8A9Ede7c525b0eEdF24F5db;
-        address initialOwner = address(uint160(vm.envUint("OWNER")));
-        uint256 initialTimelock = 0;
-        address asset1 = address(0xBbd2cff02c8b908Dcb4B2C0aBf59622129BB32C0);
-        string memory name1 = "MOCK VAULT 1";
-        string memory symbol1 = "MCKVLT1";
-
-        bytes32 salt = "1";
-
         Id[] memory memAr = markets.arrayOfMarkets();
         vm.startBroadcast(deployerPrivateKey);
         uint256 length = memAr.length;
