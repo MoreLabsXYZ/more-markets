@@ -119,6 +119,11 @@ interface IMoreMarketsBase {
     /// @notice Array of ids of created markets.
     function arrayOfMarkets() external view returns (Id[] memory);
 
+    /// @notice Initializes the contract.
+    /// @param newOwner The new owner of the contract.
+    /// @param _debtTokenFactory The debt token factory.
+    function initialize(address newOwner, address _debtTokenFactory) external;
+
     /// @notice Sets `newOwner` as `owner` of the contract.
     /// @dev Warning: No two-step transfer ownership.
     /// @dev Warning: The owner can be set to the zero address.

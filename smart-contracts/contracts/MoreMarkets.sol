@@ -14,13 +14,14 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IDebtTokenFactory} from "./interfaces/factories/IDebtTokenFactory.sol";
 import {IDebtToken} from "./interfaces/tokens/IDebtToken.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "hardhat/console.sol";
 
 /// @title MoreMarkets
 /// @author MoreMarkets
 /// @notice The More Markets contract fork of Morpho-blue contract with additional feature to make premium users to borrow with a higher LLTV.
 /// It is possible to make undercollateralized borrows if contract is set to.
-contract MoreMarkets is IMoreMarketsStaticTyping {
+contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     using MathLib for uint128;
     using MathLib for uint256;
     using UtilsLib for uint256;
@@ -36,11 +37,6 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
         REPAY,
         IDLE
     }
-
-    /// @inheritdoc IMoreMarketsBase
-    bytes32 public immutable DOMAIN_SEPARATOR;
-    /// Number of categories for attestation service score. 0-199 score is 1st category, 200-399 score is 2nd category, etc
-    uint256 constant LENGTH_OF_CATEGORY_LLTVS_ARRAY = 5;
 
     /* STORAGE */
 
@@ -89,12 +85,21 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
     /// Array that stores ids of all created markets.
     Id[] private _arrayOfMarkets;
 
-    /* CONSTRUCTOR */
+    /// Number of categories for attestation service score. 0-199 score is 1st category, 200-399 score is 2nd category, etc
+    uint256 constant LENGTH_OF_CATEGORY_LLTVS_ARRAY = 5;
+    /// @inheritdoc IMoreMarketsBase
+    bytes32 public DOMAIN_SEPARATOR;
 
-    /// @param newOwner The new owner of the contract.
-    /// @param _debtTokenFactory The debt token factory.
-    constructor(address newOwner, address _debtTokenFactory) {
+    /* INITIALIZER */
+
+    /// @inheritdoc IMoreMarketsBase
+    function initialize(
+        address newOwner,
+        address _debtTokenFactory
+    ) external initializer {
         require(newOwner != address(0), ErrorsLib.ZERO_ADDRESS);
+        require(_debtTokenFactory != address(0), ErrorsLib.ZERO_ADDRESS);
+        __UUPSUpgradeable_init();
 
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(DOMAIN_TYPEHASH, block.chainid, address(this))
@@ -108,6 +113,10 @@ contract MoreMarkets is IMoreMarketsStaticTyping {
 
         emit EventsLib.SetOwner(newOwner);
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     /* MODIFIERS */
 

@@ -28,7 +28,6 @@ import {IERC4626Upgradeable, ERC4626Upgradeable, MathUpgradeable, SafeERC20Upgra
 /// @author MoreMarkets
 /// @notice ERC4626 compliant vault allowing users to deposit assets to More Markets. Fork of Morpho's metamorpho.
 contract MoreVaults is
-    Initializable,
     ERC4626Upgradeable,
     ERC20PermitUpgradeable,
     Ownable2StepUpgradeable,
@@ -115,12 +114,13 @@ contract MoreVaults is
         string memory _name,
         string memory _symbol
     ) external initializer {
+        if (moreMarkets == address(0)) revert ErrorsLib.ZeroAddress();
+        if (vaultsFactory == address(0)) revert ErrorsLib.ZeroAddress();
         __ERC4626_init(IERC20Upgradeable(_asset));
         __ERC20Permit_init(_name);
         __ERC20_init(_name, _symbol);
         __Ownable_init();
         _transferOwnership(owner);
-        if (moreMarkets == address(0)) revert ErrorsLib.ZeroAddress();
 
         MORE_MARKETS = IMoreMarkets(moreMarkets);
         VAULTS_FACTORY = IMetaMorphoFactory(vaultsFactory);

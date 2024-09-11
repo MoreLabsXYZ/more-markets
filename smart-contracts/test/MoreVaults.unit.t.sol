@@ -6,7 +6,7 @@ import {IMoreMarkets} from "../contracts/interfaces/IMoreMarkets.sol";
 import {IMetaMorpho} from "../contracts/interfaces/IMetaMorpho.sol";
 import {IMetaMorphoFactory} from "../contracts/interfaces/IMetaMorphoFactory.sol";
 import {Id, MoreMarkets, MarketParams, MarketParamsLib} from "../contracts/MoreMarkets.sol";
-import {MoreVaultsFactory, PremiumFeeInfo, ErrorsLib, Ownable} from "../contracts/MoreVaultsFactory.sol";
+import {MoreVaultsFactory, PremiumFeeInfo, ErrorsLib, OwnableUpgradeable} from "../contracts/MoreVaultsFactory.sol";
 import {MoreVaults, IERC20Upgradeable, MathUpgradeable} from "../contracts/MoreVaults.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
@@ -87,7 +87,9 @@ contract MoreVaultsTest is Test {
 
         debtToken = new DebtToken();
         debtTokenFactory = new DebtTokenFactory(address(debtToken));
-        markets = new MoreMarkets(owner, address(debtTokenFactory));
+        // markets = new MoreMarkets(owner, address(debtTokenFactory));
+        markets = new MoreMarkets();
+        markets.initialize(owner, address(debtTokenFactory));
         irm = new AdaptiveCurveIrm(address(markets));
         oracle = new OracleMock();
         // set price as 1 : 1
@@ -148,10 +150,12 @@ contract MoreVaultsTest is Test {
 
         implementation = new MoreVaults();
 
-        factory = new MoreVaultsFactory(
-            address(markets),
-            address(implementation)
-        );
+        // factory = new MoreVaultsFactory(
+        //     address(markets),
+        //     address(implementation)
+        // );
+        factory = new MoreVaultsFactory();
+        factory.initialize(address(markets), address(implementation));
 
         vault = factory.createMetaMorpho(
             initialOwner,

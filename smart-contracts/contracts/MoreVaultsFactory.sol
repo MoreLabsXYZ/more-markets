@@ -8,19 +8,26 @@ import {EventsLib} from "./libraries/vaults/EventsLib.sol";
 import {ErrorsLib} from "./libraries/vaults/ErrorsLib.sol";
 
 // import {MoreVaults} from "./MoreVaults.sol";
-import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import {IBeacon} from "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
+import {Ownable2StepUpgradeable, OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title MoreVaultsFactory
 /// @author MoreMarkets
 /// @notice This contract allows to create More vaults, and to index them easily. Fork of Morpho's MetaMorphoFactory.
-contract MoreVaultsFactory is IMetaMorphoFactory, Ownable2Step {
-    using ClonesUpgradeable for address;
+contract MoreVaultsFactory is
+    UUPSUpgradeable,
+    IMetaMorphoFactory,
+    Ownable2StepUpgradeable,
+    IBeacon
+{
+    // using ClonesUpgradeable for address;
 
     /* IMMUTABLES */
 
     /// @inheritdoc IMetaMorphoFactory
-    address public immutable MORE_MARKETS;
+    address public MORE_MARKETS;
 
     /// @inheritdoc IMetaMorphoFactory
     address public moreVaultsImpl;
@@ -38,19 +45,25 @@ contract MoreVaultsFactory is IMetaMorphoFactory, Ownable2Step {
     /// @notice Maximum fee percent that can be set for the particular vault.
     uint96 private _maxFee = 1e18;
 
-    /* CONSTRUCTOR */
+    /* INITIALIZER */
 
-    /// @dev Initializes the contract.
-    /// @param moreMarkets The address of the More Markets contract.
-    constructor(
+    /// @inheritdoc IMetaMorphoFactory
+    function initialize(
         address moreMarkets,
         address _moreVaultsImpl
-    ) Ownable(msg.sender) {
+    ) external initializer {
         if (moreMarkets == address(0)) revert ErrorsLib.ZeroAddress();
         if (_moreVaultsImpl == address(0)) revert ErrorsLib.ZeroAddress();
+        __Ownable_init();
+        __UUPSUpgradeable_init();
+
         moreVaultsImpl = _moreVaultsImpl;
         MORE_MARKETS = moreMarkets;
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     /* EXTERNAL */
 
@@ -63,7 +76,10 @@ contract MoreVaultsFactory is IMetaMorphoFactory, Ownable2Step {
         string memory symbol,
         bytes32 salt
     ) external returns (IMetaMorpho metaMorpho) {
-        metaMorpho = IMetaMorpho(moreVaultsImpl.cloneDeterministic(salt));
+        metaMorpho = IMetaMorpho(
+            address(new BeaconProxy{salt: salt}(address(this), ""))
+        );
+        // metaMorpho = IMetaMorpho(moreVaultsImpl.cloneDeterministic(salt));
         metaMorpho.initialize(
             initialOwner,
             MORE_MARKETS,
@@ -87,6 +103,11 @@ contract MoreVaultsFactory is IMetaMorphoFactory, Ownable2Step {
             symbol,
             salt
         );
+    }
+
+    /// @inheritdoc IBeacon
+    function implementation() external view returns (address) {
+        return moreVaultsImpl;
     }
 
     /// @inheritdoc IMetaMorphoFactory

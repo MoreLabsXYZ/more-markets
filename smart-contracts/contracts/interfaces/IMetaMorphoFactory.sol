@@ -22,6 +22,11 @@ interface IMetaMorphoFactory {
     /// @notice Returns implementation address of MoreVaults contract, to create minimal proxy of it.
     function moreVaultsImpl() external view returns (address);
 
+    /// @dev Initializes the contract.
+    /// @param moreMarkets The address of the More Markets contract.
+    /// @param _moreVaultsImpl The address of the MoreVaults implementation contract.
+    function initialize(address moreMarkets, address _moreVaultsImpl) external;
+
     /// @notice Creates a new MetaMorpho vault.
     /// @param initialOwner The owner of the vault.
     /// @param initialTimelock The initial timelock of the vault.

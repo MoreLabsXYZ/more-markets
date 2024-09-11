@@ -71,7 +71,9 @@ contract MoreMarketsTest is Test {
 
         debtToken = new DebtToken();
         debtTokenFactory = new DebtTokenFactory(address(debtToken));
-        markets = new MoreMarkets(owner, address(debtTokenFactory));
+        // markets = new MoreMarkets(owner, address(debtTokenFactory));
+        markets = new MoreMarkets();
+        markets.initialize(owner, address(debtTokenFactory));
         irm = new AdaptiveCurveIrm(address(markets));
         oracle = new OracleMock();
         // set price as 1 : 1

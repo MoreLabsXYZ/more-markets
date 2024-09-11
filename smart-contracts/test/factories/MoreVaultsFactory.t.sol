@@ -6,15 +6,19 @@ import {IMoreMarkets} from "../../contracts/interfaces/IMoreMarkets.sol";
 import {IMetaMorpho} from "../../contracts/interfaces/IMetaMorpho.sol";
 import {IMetaMorphoFactory} from "../../contracts/interfaces/IMetaMorphoFactory.sol";
 import {MoreMarkets} from "../../contracts/MoreMarkets.sol";
-import {MoreVaultsFactory, PremiumFeeInfo, ErrorsLib, Ownable} from "../../contracts/MoreVaultsFactory.sol";
+import {MoreVaultsFactory, PremiumFeeInfo, ErrorsLib, OwnableUpgradeable} from "../../contracts/MoreVaultsFactory.sol";
 import {MoreVaults} from "../../contracts/MoreVaults.sol";
 import {ERC20MintableMock} from "../../contracts/mocks/ERC20MintableMock.sol";
+import {DebtTokenFactory} from "../../contracts/factories/DebtTokenFactory.sol";
+import {DebtToken} from "../../contracts/tokens/DebtToken.sol";
 
 contract MoreVaultsFactoryTest is Test {
     MoreVaultsFactory factory;
     MoreVaults implementation;
     MoreMarkets markets;
     ERC20MintableMock asset;
+    DebtTokenFactory public debtTokenFactory;
+    DebtToken public debtToken;
 
     uint256 sepoliaFork;
     uint256 flowTestnetFork;
@@ -32,13 +36,20 @@ contract MoreVaultsFactoryTest is Test {
         vm.selectFork(flowTestnetFork);
 
         startHoax(deployer);
-        implementation = new MoreVaults();
-        markets = new MoreMarkets(deployer, address(0));
+        debtToken = new DebtToken();
+        debtTokenFactory = new DebtTokenFactory(address(debtToken));
 
-        factory = new MoreVaultsFactory(
-            address(markets),
-            address(implementation)
-        );
+        implementation = new MoreVaults();
+        // markets = new MoreMarkets(deployer, address(debtTokenFactory));
+        markets = new MoreMarkets();
+        markets.initialize(deployer, address(debtTokenFactory));
+
+        // factory = new MoreVaultsFactory(
+        //     address(markets),
+        //     address(implementation)
+        // );
+        factory = new MoreVaultsFactory();
+        factory.initialize(address(markets), address(implementation));
 
         asset = new ERC20MintableMock(deployer, "Asset", "ASSET");
     }
@@ -128,12 +139,7 @@ contract MoreVaultsFactoryTest is Test {
 
         startHoax(alice);
         PremiumFeeInfo memory feeInfo = PremiumFeeInfo(address(0), maxFee);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                alice
-            )
-        );
+        vm.expectRevert("Ownable: caller is not the owner");
         factory.setFeeInfo(address(vault), feeInfo);
     }
 

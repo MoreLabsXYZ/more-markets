@@ -11,19 +11,22 @@ import {Id} from "../../interfaces/IMoreMarkets.sol";
 library MorphoStorageLib {
     /* SLOTS */
 
-    uint256 internal constant OWNER_SLOT = 0;
-    uint256 internal constant FEE_RECIPIENT_SLOT = 1;
-    uint256 internal constant POSITION_SLOT = 2;
-    uint256 internal constant MARKET_SLOT = 3;
-    uint256 internal constant IS_IRM_ENABLED_SLOT = 4;
-    uint256 internal constant IS_LLTV_ENABLED_SLOT = 5;
-    uint256 internal constant IS_AUTHORIZED_SLOT = 6;
-    uint256 internal constant NONCE_SLOT = 7;
-    uint256 internal constant ID_TO_MARKET_PARAMS_SLOT = 8;
+    /// inheritance to make contract upgradeable was implemented and storage shifted
+    uint256 internal constant INHERITANCE_OFFSET = 101;
+
+    uint256 internal constant OWNER_SLOT = 0 + INHERITANCE_OFFSET;
+    uint256 internal constant FEE_RECIPIENT_SLOT = 1 + INHERITANCE_OFFSET;
+    uint256 internal constant POSITION_SLOT = 2 + INHERITANCE_OFFSET;
+    uint256 internal constant MARKET_SLOT = 3 + INHERITANCE_OFFSET;
+    uint256 internal constant IS_IRM_ENABLED_SLOT = 4 + INHERITANCE_OFFSET;
+    uint256 internal constant IS_LLTV_ENABLED_SLOT = 5 + INHERITANCE_OFFSET;
+    uint256 internal constant IS_AUTHORIZED_SLOT = 6 + INHERITANCE_OFFSET;
+    uint256 internal constant NONCE_SLOT = 7 + INHERITANCE_OFFSET;
+    uint256 internal constant ID_TO_MARKET_PARAMS_SLOT = 8 + INHERITANCE_OFFSET;
 
     /* SLOT OFFSETS */
 
-    uint256 internal constant IS_PREMIUM_MARKET = 0;
+    uint256 internal constant IS_PREMIUM_MARKET_OFFSET = 0;
     uint256 internal constant LOAN_TOKEN_OFFSET = 0;
     uint256 internal constant COLLATERAL_TOKEN_OFFSET = 1;
     uint256 internal constant ORACLE_OFFSET = 2;
