@@ -104,11 +104,12 @@ contract MoreVaultsTest is Test {
             }
         }
 
-        loanToken = new ERC20MintableMock(owner, "Loan Mock Token", "LMT");
+        loanToken = new ERC20MintableMock(owner, "Loan Mock Token", "LMT", 18);
         collateralToken = new ERC20MintableMock(
             owner,
             "Collateral Mock Token",
-            "CMT"
+            "CMT",
+            18
         );
 
         marketParams = MarketParams(

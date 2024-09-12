@@ -69,8 +69,13 @@ contract CreateNewMarket is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // minting mocks for testnet
-        loanToken = new ERC20MintableMock(owner, "ripple", "RPX");
-        collateralToken = new ERC20MintableMock(owner, "Tether USD", "USDT");
+        loanToken = new ERC20MintableMock(owner, "ripple", "RPX", 18);
+        collateralToken = new ERC20MintableMock(
+            owner,
+            "Tether USD",
+            "USDT",
+            18
+        );
         // loanToken = ERC20MintableMock(
         //     0x58f3875DBeFcf784Ea40A886eC24e3C3FaB2dB19
         // );

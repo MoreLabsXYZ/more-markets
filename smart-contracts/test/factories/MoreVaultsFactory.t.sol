@@ -40,7 +40,7 @@ contract MoreVaultsFactoryTest is Test {
             address(implementation)
         );
 
-        asset = new ERC20MintableMock(deployer, "Asset", "ASSET");
+        asset = new ERC20MintableMock(deployer, "Asset", "ASSET", 18);
     }
 
     function test_moreVaultsImpl_shouldReturnCorrectAddress() public view {
