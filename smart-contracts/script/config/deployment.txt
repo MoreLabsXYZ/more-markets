@@ -1,0 +1,67 @@
+  ---------------------------------TOKENS--------------------------------
+
+  Token  USDCf  deployed at  0xaCA1aB5EB856F7645Cd6b9694bA840f3C18BC83e
+  Token  USDf  deployed at  0x4D40CDcE3864CA8FCBA1B7De4C0a66f37b28092c
+  Token  BTCf  deployed at  0x866E7292A4b9813146591Cb6211AAc33432cF07f
+  Token  ETHf  deployed at  0x50bE444228F6f27899E52E56718C0ae67F962185
+  Token  ankr.FLOW  deployed at  0x3D08ce8bA948ddd6ab0745670134A55e8e35aA8C
+  Token  wFLOW  deployed at  0xe6De44AC50C1D1C83f67695f6B4820a317285FC6
+
+
+  ------------------------------PRICE FEEDS------------------------------
+
+  USDC / USD
+  0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a
+  Price feed deployed at  0xEf6c4E2AD21917337C84089400B6d1f191764D31
+  
+  PAYPAL USD / USD
+  0xc1da1b73d7f01e7ddd54b3766cf7fcd644395ad14f70aa706ec5384c59e76692
+  Price feed deployed at  0x116930C32f2D8a52062FD37C2814fd4eB00E101C
+  
+  WBTC / USD
+  0xc9d8b075a5c69303365ae23633d4e085199bf5c520a3b90fed1322a0342ffc33
+  Price feed deployed at  0x4639CAeb838946b8fbc53684cD2aEc90CB8b5C84
+  
+  WETH / USD
+  0x9d4294bbcd1174d6f2003ec365831e64cc31d9f6f15a2b85399db8d5000960f6
+  Price feed deployed at  0x253E4f5040a3B1ADCc20D034b7D52650AA90D272
+  
+  FLOW / USD
+  0x2fb245b9a84554a0f15aa123cbb5f64cd263b59e9a87d80148cbffab50c69f30
+  Price feed deployed at  0x78B348c0559F7e2f9BB70612a7766De200ec8bcc
+  
+  ANKR / USD
+  0x89a58e1cab821118133d6831f5018fba5b354afb78b2d18f575b3cbf69a4f652
+  Price feed deployed at  0xb243C23EF13000e7107b021760a217434B513d50
+
+
+  ------------------------------ORACLE FACTORY------------------------------
+  
+  testnet deployment 0xF1DbF054B0d37EcF16F7676EB476509ce6EE0C7C
+
+  ------------------------------MORPHO ORACLES------------------------------
+
+   Morpho oracle for USDC/USD and WBTC/USD deployed at  0x3793d612cf2BCe408B361379d69E10516Fceb3e7
+   Morpho oracle for WBTC/USD and USDC/USD deployed at  0xe2bA4ddF1031c93b31Ea348D020B277812447936
+   Morpho oracle for USDC/USD and WETH/USD deployed at  0xdeCbe2260EB3A63DC19f818eCcCc8E74eCe04987
+   Morpho oracle for WETH/USD and USDC/USD deployed at  0x58a03e26Ee5a286ac35a98c07798140260Ca5AD6
+   Morpho oracle for USDC/USD and WFLOW/USD deployed at  0xdF507A8662c8f309c7085dAE5B605cc2821f4ae6
+   Morpho oracle for WFLOW/USD and USDC/USD deployed at  0xb7B656441fE69Ae755E61ea296CA8706C6dADB30
+   Morpho oracle for USDC/USD and ANKR/USD deployed at  0x54533D32EEe58772B72aE1F5af52f83DCaFcBB6D
+   Morpho oracle for ANKR/USD and USDC/USD deployed at  0x3e65485A823321e20B5ac6800Dc40a18E82FAB05
+   Morpho oracle for USDf/USD and WBTC/USD deployed at  0x302024D8CA6Fe5B0f217767eB112c752461E8dbF
+   Morpho oracle for WBTC/USD and USDf/USD deployed at  0x765E72875a78215Fa127D87bbF113Ae39D4C5e8A
+   Morpho oracle for USDf/USD and WETH/USD deployed at  0xc5a19C1DFFb285202B122C6b8D166C7b525cBB98
+   Morpho oracle for WETH/USD and USDf/USD deployed at  0x22c8203afafa4614FCF04EFB5C7Ec05c55B1b97a
+   Morpho oracle for USDf/USD and WFLOW/USD deployed at  0x3954e987278a6a9d3Fa891282Cc18E66393D3236
+   Morpho oracle for WFLOW/USD and USDf/USD deployed at  0x438085beec56255478E534e81399c513cC9031c9
+   Morpho oracle for USDf/USD and ANKR/USD deployed at  0xFA63102390C63A0CcE67102E434bc466b656A57a
+   Morpho oracle for ANKR/USD and USDf/USD deployed at  0x55146B2DB99D1A6912a47590c9Ce8aB66EfA784f
+   Morpho oracle for USDC/USD and pyUsd/USD deployed at  0xe0B35890C829767DF0C3968238d263a7d640bA46
+   Morpho oracle for WBTC/USD and WETH/USD deployed at  0x94509717fecF2D13ae62b7CaFD6A55FE54c963f7
+   Morpho oracle for WETH/USD and WBTC/USD deployed at  0x3EE658322060FD5120f5f33AB52377619847865c
+   Morpho oracle for WFLOW/USD and WBTC/USD deployed at  0x9aB242f91128B5b2ed1A063E61aaeC7876299388
+  
+
+
+

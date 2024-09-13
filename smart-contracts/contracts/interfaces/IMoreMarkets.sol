@@ -79,21 +79,21 @@ interface IMoreMarketsBase {
     /// @notice The `authorizer`'s current nonce. Used to prevent replay attacks with EIP-712 signatures.
     function nonce(address authorizer) external view returns (uint256);
 
-    /// @notice The address of "debtToken" for a given market.
-    function idToDebtToken(Id marketId) external view returns (address);
+    // /// @notice The address of "debtToken" for a given market.
+    // function idToDebtToken(Id marketId) external view returns (address);
 
-    /// @notice Total amount of debt assets generated to a given market.
-    function totalDebtAssetsGenerated(
-        Id marketId
-    ) external view returns (uint256);
+    // /// @notice Total amount of debt assets generated to a given market.
+    // function totalDebtAssetsGenerated(
+    //     Id marketId
+    // ) external view returns (uint256);
 
-    /// @notice Last total debt assets generated to a given market that used for further calculation.
-    function lastTotalDebtAssetsGenerated(
-        Id marketId
-    ) external view returns (uint256);
+    // /// @notice Last total debt assets generated to a given market that used for further calculation.
+    // function lastTotalDebtAssetsGenerated(
+    //     Id marketId
+    // ) external view returns (uint256);
 
-    /// @notice Value of token per share in a given market.
-    function tps(Id marketId) external view returns (uint256);
+    // /// @notice Value of token per share in a given market.
+    // function tps(Id marketId) external view returns (uint256);
 
     /// @notice Total amount of assets borrowed on a given market for particular multiplier.
     function totalBorrowAssetsForMultiplier(
@@ -113,8 +113,8 @@ interface IMoreMarketsBase {
     /// @notice Upper limit for categoryLltv to set.
     function maxLltvForCategory() external view returns (uint256);
 
-    /// @notice Address of the debt token factory.
-    function debtTokenFactory() external view returns (address);
+    // /// @notice Address of the debt token factory.
+    // function debtTokenFactory() external view returns (address);
 
     /// @notice Array of ids of created markets.
     function arrayOfMarkets() external view returns (Id[] memory);
@@ -313,17 +313,17 @@ interface IMoreMarketsBase {
         address receiver
     ) external;
 
-    /// @notice Claims `assets` of debtToken on behalf of `onBehalf` and sends the assets to `receiver`.
-    /// @dev `msg.sender` must be authorized to manage `onBehalf`'s positions.
-    /// @dev If there are no `assets` to claim than will revert.
-    /// @param marketParams The market to claim debt tokens from.
-    /// @param onBehalf The address of the owner of the debt tokens position.
-    /// @param receiver The address that will receive the debt tokens.
-    function claimDebtTokens(
-        MarketParams memory marketParams,
-        address onBehalf,
-        address receiver
-    ) external;
+    // /// @notice Claims `assets` of debtToken on behalf of `onBehalf` and sends the assets to `receiver`.
+    // /// @dev `msg.sender` must be authorized to manage `onBehalf`'s positions.
+    // /// @dev If there are no `assets` to claim than will revert.
+    // /// @param marketParams The market to claim debt tokens from.
+    // /// @param onBehalf The address of the owner of the debt tokens position.
+    // /// @param receiver The address that will receive the debt tokens.
+    // function claimDebtTokens(
+    //     MarketParams memory marketParams,
+    //     address onBehalf,
+    //     address receiver
+    // ) external;
 
     /// @notice Function that updates the premium borrower's current interest rate multiplier if conditions are met.
     /// Since because of fluctuating of the market LTV of the users can change, it has to be checked if the conditions are met

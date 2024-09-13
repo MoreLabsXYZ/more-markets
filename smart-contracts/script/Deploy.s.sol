@@ -27,9 +27,11 @@ contract DeployMarketContracts is Script {
     AdaptiveCurveIrm public irm;
 
     uint256[] public lltvs = [
+        720000000000000000,
+        770000000000000000,
         800000000000000000,
-        945000000000000000,
-        965000000000000000
+        850000000000000000,
+        900000000000000000
     ];
 
     uint8 numberOfPremiumBuckets = 5;

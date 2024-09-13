@@ -531,18 +531,18 @@ contract MoreMarketsTest is Test {
         );
         markets.createMarket(marketParams);
 
-        assertEq(
-            DebtToken(markets.idToDebtToken(marketParams.id())).owner(),
-            address(markets)
-        );
-        assertEq(
-            DebtToken(markets.idToDebtToken(marketParams.id())).name(),
-            "Loan Mock Token debt token"
-        );
-        assertEq(
-            DebtToken(markets.idToDebtToken(marketParams.id())).symbol(),
-            "dtLMT"
-        );
+        // assertEq(
+        //     DebtToken(markets.idToDebtToken(marketParams.id())).owner(),
+        //     address(markets)
+        // );
+        // assertEq(
+        //     DebtToken(markets.idToDebtToken(marketParams.id())).name(),
+        //     "Loan Mock Token debt token"
+        // );
+        // assertEq(
+        //     DebtToken(markets.idToDebtToken(marketParams.id())).symbol(),
+        //     "dtLMT"
+        // );
     }
 
     function test_createMarket_shouldAbleToDeployMarketWithDifferentCategoriesLltv()
@@ -561,10 +561,10 @@ contract MoreMarketsTest is Test {
         );
         markets.createMarket(marketParams);
 
-        assertEq(
-            DebtToken(markets.idToDebtToken(marketParams.id())).owner(),
-            address(markets)
-        );
+        // assertEq(
+        //     DebtToken(markets.idToDebtToken(marketParams.id())).owner(),
+        //     address(markets)
+        // );
 
         uint256[] memory newPremiumLltvs = premiumLltvs;
         markets.setMaxLltvForCategory(3000000000000000000);
@@ -1406,207 +1406,207 @@ contract MoreMarketsTest is Test {
         markets.liquidate(marketParams, owner, 1 ether, 0, "");
     }
 
-    function test_liquidate_undercollateralizedPositionShouldGenerateDebtTokens()
-        public
-    {
-        address borrowerB = address(0xbbbb);
+    // function test_liquidate_undercollateralizedPositionShouldGenerateDebtTokens()
+    //     public
+    // {
+    //     address borrowerB = address(0xbbbb);
 
-        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
 
-        (
-            uint256 totalSupplySharesBefore,
-            ,
-            uint128 totalBorrowAssetsBefore,
-            ,
-            ,
-            ,
+    //     (
+    //         uint256 totalSupplySharesBefore,
+    //         ,
+    //         uint128 totalBorrowAssetsBefore,
+    //         ,
+    //         ,
+    //         ,
 
-        ) = markets.market(marketParams.id());
+    //     ) = markets.market(marketParams.id());
 
-        startHoax(owner);
+    //     startHoax(owner);
 
-        uint256 liquidatorBalanceBefore = loanToken.balanceOf(owner);
-        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+    //     uint256 liquidatorBalanceBefore = loanToken.balanceOf(owner);
+    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
 
-        uint256 liquidatorBalanceAfter = loanToken.balanceOf(owner);
-        uint256 generatedDebtTokens = markets.totalDebtAssetsGenerated(
-            marketParams.id()
-        );
+    //     uint256 liquidatorBalanceAfter = loanToken.balanceOf(owner);
+    //     uint256 generatedDebtTokens = markets.totalDebtAssetsGenerated(
+    //         marketParams.id()
+    //     );
 
-        assertEq(
-            liquidatorBalanceBefore -
-                liquidatorBalanceAfter +
-                generatedDebtTokens,
-            totalBorrowAssetsBefore
-        );
+    //     assertEq(
+    //         liquidatorBalanceBefore -
+    //             liquidatorBalanceAfter +
+    //             generatedDebtTokens,
+    //         totalBorrowAssetsBefore
+    //     );
 
-        (
-            uint128 totalSypplyAssetsAfter,
-            ,
-            uint128 totalBorrowAssetsAfter,
-            ,
-            ,
-            ,
+    //     (
+    //         uint128 totalSypplyAssetsAfter,
+    //         ,
+    //         uint128 totalBorrowAssetsAfter,
+    //         ,
+    //         ,
+    //         ,
 
-        ) = markets.market(marketParams.id());
+    //     ) = markets.market(marketParams.id());
 
-        assertEq(
-            totalSupplySharesBefore - generatedDebtTokens,
-            totalSypplyAssetsAfter
-        );
+    //     assertEq(
+    //         totalSupplySharesBefore - generatedDebtTokens,
+    //         totalSypplyAssetsAfter
+    //     );
 
-        assertEq(totalBorrowAssetsAfter, 0);
-    }
+    //     assertEq(totalBorrowAssetsAfter, 0);
+    // }
 
-    function test_claimDebtTokens_lenderShouldBeAbleToClaim() public {
-        address borrowerB = address(0xbbbb);
-        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+    // function test_claimDebtTokens_lenderShouldBeAbleToClaim() public {
+    //     address borrowerB = address(0xbbbb);
+    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
 
-        startHoax(owner);
-        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
-        uint256 debtTokens = markets.totalDebtAssetsGenerated(
-            marketParams.id()
-        );
+    //     startHoax(owner);
+    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+    //     uint256 debtTokens = markets.totalDebtAssetsGenerated(
+    //         marketParams.id()
+    //     );
 
-        markets.claimDebtTokens(marketParams, owner, owner);
+    //     markets.claimDebtTokens(marketParams, owner, owner);
 
-        DebtToken marketsDebtToken = DebtToken(
-            markets.idToDebtToken(marketParams.id())
-        );
+    //     DebtToken marketsDebtToken = DebtToken(
+    //         markets.idToDebtToken(marketParams.id())
+    //     );
 
-        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
-    }
+    //     assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
+    // }
 
-    function test_claimDebtTokens_newLenderUnableToClaimPreviouslyGeneratedDebt()
-        public
-    {
-        address borrowerB = address(0xbbbb);
-        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+    // function test_claimDebtTokens_newLenderUnableToClaimPreviouslyGeneratedDebt()
+    //     public
+    // {
+    //     address borrowerB = address(0xbbbb);
+    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
 
-        startHoax(owner);
-        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+    //     startHoax(owner);
+    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
 
-        // new supplier enters the market and should be unable to claim debt tokens
-        address newSupplier = address(0xaaaa);
-        startHoax(owner);
-        collateralToken.mint(address(newSupplier), 1000000 ether);
-        loanToken.mint(address(newSupplier), 1000000 ether);
-        startHoax(newSupplier);
-        loanToken.approve(address(markets), 1000000 ether);
-        markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
+    //     // new supplier enters the market and should be unable to claim debt tokens
+    //     address newSupplier = address(0xaaaa);
+    //     startHoax(owner);
+    //     collateralToken.mint(address(newSupplier), 1000000 ether);
+    //     loanToken.mint(address(newSupplier), 1000000 ether);
+    //     startHoax(newSupplier);
+    //     loanToken.approve(address(markets), 1000000 ether);
+    //     markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
 
-        vm.expectRevert(ErrorsLib.NothingToClaim.selector);
-        markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
-    }
+    //     vm.expectRevert(ErrorsLib.NothingToClaim.selector);
+    //     markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
+    // }
 
-    function test_claimDebtTokens_LenderShouldBeAbleToClaimAfterWithdraw()
-        public
-    {
-        address borrowerB = address(0xbbbb);
-        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+    // function test_claimDebtTokens_LenderShouldBeAbleToClaimAfterWithdraw()
+    //     public
+    // {
+    //     address borrowerB = address(0xbbbb);
+    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
 
-        startHoax(owner);
-        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
-        uint256 debtTokens = markets.totalDebtAssetsGenerated(
-            marketParams.id()
-        );
+    //     startHoax(owner);
+    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+    //     uint256 debtTokens = markets.totalDebtAssetsGenerated(
+    //         marketParams.id()
+    //     );
 
-        (uint256 supplyShares, , , , , ) = markets.position(
-            marketParams.id(),
-            owner
-        );
-        (uint256 assetsWithdrawn, ) = markets.withdraw(
-            marketParams,
-            0,
-            supplyShares,
-            owner,
-            owner
-        );
+    //     (uint256 supplyShares, , , , , ) = markets.position(
+    //         marketParams.id(),
+    //         owner
+    //     );
+    //     (uint256 assetsWithdrawn, ) = markets.withdraw(
+    //         marketParams,
+    //         0,
+    //         supplyShares,
+    //         owner,
+    //         owner
+    //     );
 
-        markets.claimDebtTokens(marketParams, owner, owner);
-        (supplyShares, , , , , ) = markets.position(marketParams.id(), owner);
+    //     markets.claimDebtTokens(marketParams, owner, owner);
+    //     (supplyShares, , , , , ) = markets.position(marketParams.id(), owner);
 
-        DebtToken marketsDebtToken = DebtToken(
-            markets.idToDebtToken(marketParams.id())
-        );
+    //     DebtToken marketsDebtToken = DebtToken(
+    //         markets.idToDebtToken(marketParams.id())
+    //     );
 
-        assertEq(supplyShares, 0);
-        assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
-        assertTrue(
-            marketsDebtToken.balanceOf(owner) + assetsWithdrawn > 10000 ether
-        );
-    }
+    //     assertEq(supplyShares, 0);
+    //     assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
+    //     assertTrue(
+    //         marketsDebtToken.balanceOf(owner) + assetsWithdrawn > 10000 ether
+    //     );
+    // }
 
-    function test_claimDebtTokens_NewLenderShouldBeAbleToClaimAfterNewLiquidation()
-        public
-    {
-        address borrowerB = address(0xbbbb);
-        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+    // function test_claimDebtTokens_NewLenderShouldBeAbleToClaimAfterNewLiquidation()
+    //     public
+    // {
+    //     address borrowerB = address(0xbbbb);
+    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
 
-        startHoax(owner);
-        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+    //     startHoax(owner);
+    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
 
-        // new supplier enters the market and should be unable to claim debt tokens
-        address newSupplier = address(0xaaaa);
-        startHoax(owner);
-        collateralToken.mint(address(newSupplier), 1000000 ether);
-        loanToken.mint(address(newSupplier), 1000000 ether);
-        startHoax(newSupplier);
-        loanToken.approve(address(markets), 1000000 ether);
-        uint256 debtTokens = markets.totalDebtAssetsGenerated(
-            marketParams.id()
-        );
-        markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
+    //     // new supplier enters the market and should be unable to claim debt tokens
+    //     address newSupplier = address(0xaaaa);
+    //     startHoax(owner);
+    //     collateralToken.mint(address(newSupplier), 1000000 ether);
+    //     loanToken.mint(address(newSupplier), 1000000 ether);
+    //     startHoax(newSupplier);
+    //     loanToken.approve(address(markets), 1000000 ether);
+    //     uint256 debtTokens = markets.totalDebtAssetsGenerated(
+    //         marketParams.id()
+    //     );
+    //     markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
 
-        _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
+    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
 
-        startHoax(owner);
-        markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
+    //     startHoax(owner);
+    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
 
-        uint256 newGeneratedDebtTokens = markets.totalDebtAssetsGenerated(
-            marketParams.id()
-        ) - debtTokens;
+    //     uint256 newGeneratedDebtTokens = markets.totalDebtAssetsGenerated(
+    //         marketParams.id()
+    //     ) - debtTokens;
 
-        (uint256 ownerSupplyShares, , , , , ) = markets.position(
-            marketParams.id(),
-            owner
-        );
-        (uint256 newSupplierSupplyShares, , , , , ) = markets.position(
-            marketParams.id(),
-            newSupplier
-        );
-        (, uint256 totalSupplyShares, , , , , ) = markets.market(
-            marketParams.id()
-        );
+    //     (uint256 ownerSupplyShares, , , , , ) = markets.position(
+    //         marketParams.id(),
+    //         owner
+    //     );
+    //     (uint256 newSupplierSupplyShares, , , , , ) = markets.position(
+    //         marketParams.id(),
+    //         newSupplier
+    //     );
+    //     (, uint256 totalSupplyShares, , , , , ) = markets.market(
+    //         marketParams.id()
+    //     );
 
-        uint256 ownerDebtTokens = newGeneratedDebtTokens.mulDivDown(
-            ownerSupplyShares,
-            totalSupplyShares
-        );
-        uint256 newSupplierDebtTokens = newGeneratedDebtTokens.mulDivDown(
-            newSupplierSupplyShares,
-            totalSupplyShares
-        );
+    //     uint256 ownerDebtTokens = newGeneratedDebtTokens.mulDivDown(
+    //         ownerSupplyShares,
+    //         totalSupplyShares
+    //     );
+    //     uint256 newSupplierDebtTokens = newGeneratedDebtTokens.mulDivDown(
+    //         newSupplierSupplyShares,
+    //         totalSupplyShares
+    //     );
 
-        DebtToken marketsDebtToken = DebtToken(
-            markets.idToDebtToken(marketParams.id())
-        );
+    //     DebtToken marketsDebtToken = DebtToken(
+    //         markets.idToDebtToken(marketParams.id())
+    //     );
 
-        markets.claimDebtTokens(marketParams, owner, owner);
-        assertApproxEqAbs(
-            marketsDebtToken.balanceOf(owner),
-            debtTokens + ownerDebtTokens,
-            1e5
-        );
+    //     markets.claimDebtTokens(marketParams, owner, owner);
+    //     assertApproxEqAbs(
+    //         marketsDebtToken.balanceOf(owner),
+    //         debtTokens + ownerDebtTokens,
+    //         1e5
+    //     );
 
-        startHoax(newSupplier);
-        markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
-        assertApproxEqAbs(
-            marketsDebtToken.balanceOf(newSupplier),
-            newSupplierDebtTokens,
-            1e5
-        );
-    }
+    //     startHoax(newSupplier);
+    //     markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
+    //     assertApproxEqAbs(
+    //         marketsDebtToken.balanceOf(newSupplier),
+    //         newSupplierDebtTokens,
+    //         1e5
+    //     );
+    // }
 
     function _checkCorrectMultipliersOnBorrow(
         uint256 defaultBorrow,
