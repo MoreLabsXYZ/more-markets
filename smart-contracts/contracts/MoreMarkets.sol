@@ -59,14 +59,14 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     /// The market params corresponding to `id`.
     mapping(Id => MarketParams) private _idToMarketParams;
 
-    /// @inheritdoc IMoreMarketsBase
-    mapping(Id => address) public idToDebtToken;
-    /// @inheritdoc IMoreMarketsBase
-    mapping(Id => uint256) public totalDebtAssetsGenerated;
-    /// @inheritdoc IMoreMarketsBase
-    mapping(Id => uint256) public lastTotalDebtAssetsGenerated;
-    /// @inheritdoc IMoreMarketsBase
-    mapping(Id => uint256) public tps;
+    // /// @inheritdoc IMoreMarketsBase
+    // mapping(Id => address) public idToDebtToken;
+    // /// @inheritdoc IMoreMarketsBase
+    // mapping(Id => uint256) public totalDebtAssetsGenerated;
+    // /// @inheritdoc IMoreMarketsBase
+    // mapping(Id => uint256) public lastTotalDebtAssetsGenerated;
+    // /// @inheritdoc IMoreMarketsBase
+    // mapping(Id => uint256) public tps;
     /// @inheritdoc IMoreMarketsBase
     mapping(Id => mapping(uint64 => uint256))
         public totalBorrowAssetsForMultiplier;
@@ -78,7 +78,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     /// @inheritdoc IMoreMarketsBase
     uint256 public maxLltvForCategory;
     /// @inheritdoc IMoreMarketsBase
-    address public debtTokenFactory;
+    // address public debtTokenFactory;
 
     /// Mapping that stores array of available interest rate multipliers for particular market.
     mapping(Id => EnumerableSet.UintSet) private _availableMultipliers;
@@ -106,7 +106,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         );
         owner = newOwner;
 
-        debtTokenFactory = _debtTokenFactory;
+        // debtTokenFactory = _debtTokenFactory;
 
         _setIrxMax(2 * 1e18); // x2
         _setMaxLltvForCategory(1000000000000000000); // 100%
@@ -279,19 +279,19 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         _idToMarketParams[id] = marketParams;
 
         // debt token creation
-        {
-            string memory name = IERC20Metadata(marketParams.loanToken).name();
-            string memory symbol = IERC20Metadata(marketParams.loanToken)
-                .symbol();
-            uint8 decimals = IERC20Metadata(marketParams.loanToken).decimals();
+        // {
+        //     string memory name = IERC20Metadata(marketParams.loanToken).name();
+        //     string memory symbol = IERC20Metadata(marketParams.loanToken)
+        //         .symbol();
+        //     uint8 decimals = IERC20Metadata(marketParams.loanToken).decimals();
 
-            idToDebtToken[id] = IDebtTokenFactory(debtTokenFactory).create(
-                string(abi.encodePacked(name, " debt token")),
-                string(abi.encodePacked("dt", symbol)),
-                decimals,
-                address(this)
-            );
-        }
+        //     idToDebtToken[id] = IDebtTokenFactory(debtTokenFactory).create(
+        //         string(abi.encodePacked(name, " debt token")),
+        //         string(abi.encodePacked("dt", symbol)),
+        //         decimals,
+        //         address(this)
+        //     );
+        // }
 
         _availableMultipliers[id].add(1e18);
 
@@ -321,7 +321,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         require(onBehalf != address(0), ErrorsLib.ZERO_ADDRESS);
 
         _accrueInterest(marketParams, id);
-        _updateTps(id);
+        // _updateTps(id);
 
         if (assets > 0)
             shares = assets.toSharesDown(
@@ -339,9 +339,9 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         market[id].totalSupplyAssets += assets.toUint128();
 
         //debt token distribution managment
-        position[id][onBehalf].debtTokenMissed += (
-            shares.mulDivDown(tps[id], 1e24)
-        ).toUint128();
+        // position[id][onBehalf].debtTokenMissed += (
+        //     shares.mulDivDown(tps[id], 1e24)
+        // ).toUint128();
 
         emit EventsLib.Supply(id, msg.sender, onBehalf, assets, shares);
 
@@ -376,7 +376,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         require(_isSenderAuthorized(onBehalf), ErrorsLib.UNAUTHORIZED);
 
         _accrueInterest(marketParams, id);
-        _updateTps(id);
+        // _updateTps(id);
 
         if (assets > 0)
             shares = assets.toSharesUp(
@@ -393,10 +393,10 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         market[id].totalSupplyShares -= shares.toUint128();
         market[id].totalSupplyAssets -= assets.toUint128();
 
-        //debt token distribution managment
-        position[id][onBehalf].debtTokenGained += (
-            shares.mulDivDown(tps[id], 1e24)
-        ).toUint128();
+        // //debt token distribution managment
+        // position[id][onBehalf].debtTokenGained += (
+        //     shares.mulDivDown(tps[id], 1e24)
+        // ).toUint128();
 
         require(
             market[id].totalBorrowAssets <= market[id].totalSupplyAssets,
@@ -417,36 +417,36 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         return (assets, shares);
     }
 
-    /// @inheritdoc IMoreMarketsBase
-    function claimDebtTokens(
-        MarketParams memory marketParams,
-        address onBehalf,
-        address receiver
-    ) external {
-        Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
-        require(receiver != address(0), ErrorsLib.ZERO_ADDRESS);
-        // No need to verify that onBehalf != address(0) thanks to the following authorization check.
-        require(_isSenderAuthorized(onBehalf), ErrorsLib.UNAUTHORIZED);
+    // /// @inheritdoc IMoreMarketsBase
+    // function claimDebtTokens(
+    //     MarketParams memory marketParams,
+    //     address onBehalf,
+    //     address receiver
+    // ) external {
+    //     Id id = marketParams.id();
+    //     require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+    //     require(receiver != address(0), ErrorsLib.ZERO_ADDRESS);
+    //     // No need to verify that onBehalf != address(0) thanks to the following authorization check.
+    //     require(_isSenderAuthorized(onBehalf), ErrorsLib.UNAUTHORIZED);
 
-        _updateTps(id);
+    //     // _updateTps(id);
 
-        // div by 1e6, since shares have 24 decimal and debt tokens are 18
-        uint256 claimAmount = position[id][onBehalf].supplyShares.mulDivDown(
-            tps[id],
-            1e24
-        ) -
-            position[id][onBehalf].debtTokenMissed +
-            position[id][onBehalf].debtTokenGained;
+    //     // div by 1e6, since shares have 24 decimal and debt tokens are 18
+    //     uint256 claimAmount = position[id][onBehalf].supplyShares.mulDivDown(
+    //         tps[id],
+    //         1e24
+    //     ) -
+    //         position[id][onBehalf].debtTokenMissed +
+    //         position[id][onBehalf].debtTokenGained;
 
-        if (claimAmount == 0) revert ErrorsLib.NothingToClaim();
+    //     if (claimAmount == 0) revert ErrorsLib.NothingToClaim();
 
-        position[id][onBehalf].debtTokenMissed += uint128(claimAmount);
+    //     position[id][onBehalf].debtTokenMissed += uint128(claimAmount);
 
-        IDebtToken(idToDebtToken[id]).mint(receiver, claimAmount);
+    //     // IDebtToken(idToDebtToken[id]).mint(receiver, claimAmount);
 
-        // emit Claimed(to, claimAmount);
-    }
+    //     // emit Claimed(to, claimAmount);
+    // }
 
     /* BORROW MANAGEMENT */
 
@@ -727,10 +727,10 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
 
             position[id][borrower].borrowShares = 0;
 
-            // if user is prem, then issue debt tokens
-            if (lastMultiplier != 1e18) {
-                totalDebtAssetsGenerated[id] += badDebtAssets;
-            }
+            // // if user is prem, then issue debt tokens
+            // if (lastMultiplier != 1e18) {
+            //     totalDebtAssetsGenerated[id] += badDebtAssets;
+            // }
         }
 
         // `repaidAssets` may be greater than `totalBorrowAssets` by 1.
@@ -877,8 +877,8 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     /// @dev Accrues interest for the given market `marketParams`.
     /// @dev Assumes that the inputs `marketParams` and `id` match.
     function _accrueInterest(MarketParams memory marketParams, Id id) internal {
-        uint256 elapsed = block.timestamp - market[id].lastUpdate;
-        if (elapsed == 0) return;
+        // uint256 elapsed = block.timestamp - market[id].lastUpdate;
+        if (block.timestamp - market[id].lastUpdate == 0) return;
 
         if (marketParams.irm != address(0)) {
             uint256 borrowRate = IIrm(marketParams.irm).borrowRate(
@@ -920,7 +920,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
                             currentMultiplier + premiumFeeMulAddition
                         )
                     )
-                    .wTaylorCompounded(elapsed);
+                    .wTaylorCompounded(block.timestamp - market[id].lastUpdate);
 
                 totalInterest += interestForMultiplier;
                 if (currentMultiplier != 1e18 && premiumFee != 0) {
@@ -1038,25 +1038,24 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
 
     /* DEBT TOKENS MANAGMENT */
 
-    /// @notice Updates the TPS of the market `id`.
-    /// @param id The market id.
-    function _updateTps(Id id) internal {
-        uint256 _totalDebtAssetsGenerated = totalDebtAssetsGenerated[id];
-        uint256 _totalSupplyShares = market[id].totalSupplyShares;
+    // /// @notice Updates the TPS of the market `id`.
+    // /// @param id The market id.
+    // function _updateTps(Id id) internal {
+    //     // uint256 _totalDebtAssetsGenerated = totalDebtAssetsGenerated[id];
+    //     // uint256 _totalSupplyShares = market[id].totalSupplyShares;
 
-        uint256 amountForLastPeriod = _totalDebtAssetsGenerated -
-            lastTotalDebtAssetsGenerated[id];
+    //     uint256 amountForLastPeriod = totalDebtAssetsGenerated[id] -
+    //         lastTotalDebtAssetsGenerated[id];
 
-        if (_totalSupplyShares > 0) {
-            // TODO: need to think: for more accurate tps we can multiply by bigger number and then divide in claimDebtTokens, supply and withdraw functions
-            // shares' decimal is 24
-            tps[id] += (amountForLastPeriod).mulDivDown(
-                1e24,
-                _totalSupplyShares
-            );
-        }
-        lastTotalDebtAssetsGenerated[id] = _totalDebtAssetsGenerated;
-    }
+    //     if (market[id].totalSupplyShares > 0) {
+    //         // shares' decimal is 24
+    //         tps[id] += (amountForLastPeriod).mulDivDown(
+    //             1e24,
+    //             market[id].totalSupplyShares
+    //         );
+    //     }
+    //     lastTotalDebtAssetsGenerated[id] = totalDebtAssetsGenerated[id];
+    // }
 
     /* USERS' POSITIONS MANAGMENT */
 

@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@chainlink/contracts": "^1.1.1",
+    "@credora/on-chain-metrics-test": "^0.0.22",
     "@morpho-org/morpho-blue": "^1.0.0",
     "@openzeppelin/contracts": "^5.0.2",
     "hardhat": "^2.22.6",

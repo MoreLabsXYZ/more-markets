@@ -63,5 +63,37 @@
    Morpho oracle for WFLOW/USD and WBTC/USD deployed at  0x9aB242f91128B5b2ed1A063E61aaeC7876299388
   
 
+  ------------------------------MORE MARKET------------------------------
 
+  Debt token was deployed at 0x980261a525C956b2bfbe5Ed1822afC73B2B1d9eC
+  Debt token factory was deployed at 0xe1EfD505eD1Ab2ccD0d6aFB7dB83DB30524DC5e0
+  More markets was deplyed at 0xA41AE3080d733aD3a7C86B9d70DAf3074c72e859
+  More markets proxy was deplyed at 0x7EBf3217f8A54De432ACFe6E803576CB859E22a3
+  AdaptiveCurveIrm was deplyed at 0x9C1f2140AAbe64ABCfbBeCf1Bdb90022bC7c9052
+  VaultFactory was deployed at 0xa738ff722cb86970eddca22e4f06eca62c1c581a
 
+  -----------------------------MORE VAULTS--------------------------------
+  
+  Sentinel USDf Reserve deployed at 0xa7ba8cfb9189051c40c0098cc31206c8521c3c94
+  Prime FLOW Shield deployed at 0x8223e5469291841521899576a1218b838a1f7098
+  Horizon USDC Treasury deployed at 0xf8282a4d5d0f5bc3200e88b9942e0302c4c9ddd6
+  Apex FLOW Yield deployed at 0x53c6823d4fc0fe34e2e492ce4f10452945c53205
+  Nimbus BTC Core deployed at 0x6c095f9C1D52fB806d4ae9c192963148407b57d6
+
+  -----------------------------MORE MARKETS IDS--------------------------------
+  USDCf	BTCf 0x768bb35d4960f49298d3f3222c43a808c98c23366b9e8f4637063bf142aea245
+  BTCf	USDCf 0x234dd8f59c552f9d3e7dc7ae4bb27da08a2184e567fd265ad024a0d0bf9bab73
+  USDCf	ETHf 0x64bc2e22799fd7c2eb29aa0a2a9feca73786de3b7c5bb77529cdca7179d50e34
+  ETHf	USDCf 0x9f6c0f770bc5df9c68fbcf1a3a16919d4289c385cf6f899a2e2bfaf610dbe839
+  USDf	FLOW 0x769217350736fc9c8a2b7814717e497e0fe4e78e5c52c90c1e6ffae68e7160fb
+  FLOW USDf 0x88a1d6d0295e9416d5cd017e0c3a83dacca5a35f4768e9d69ea532816ff8d221
+  USDf	ankr.FLOW 0x512297e2ec6b1e2d1b4c7f2d70bec4bb454536048426251fb12464d371a48d61
+  ankr.FLOW	USDf 0x0d715bcf1e5907b45fe8caa031e6aaca54c470ca73e98557114e6358b36b975b
+  USDCf	USDf 0xa6d374693ad40a81d35f62a5eae559ee498bba536788eabdf886a8a80dd07987
+  BTCf	ETHf 0xa874df4e48a38dcfe7c355f2664196ef7f981bd0bc7abf3734bf5cd176259161
+  ETHf	BTCf 0x36d159fdecadb3b59f1a2078d763a6130ba545d79f9230a8f1b02481ef708297
+  FLOW	BTCf 0x5c3f0292d070a566c7ec11372b1c5402979251a270d3c58f08cbe8cd1d031790
+
+  remove ids:
+  0xda0b28e38ebbbc852b4b6844acdb160798a149962e03845f95110229e32e32e9
+  0x084a6e8cb874faef229d97b05f7a90f3f1f2c056f356daa69932dae3776004ff

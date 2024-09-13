@@ -12,7 +12,15 @@ import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {MoreProxy} from "../contracts/proxy/MoreProxy.sol";
 
-// // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
+// forge verify-contract \
+//   --rpc-url https://evm-testnet.flowscan.io/api/eth-rpc \
+//   --verifier blockscout \
+//   --verifier-url 'https://evm-testnet.flowscan.io/api' \
+//   --chain-id 545\
+//   0xA41AE3080d733aD3a7C86B9d70DAf3074c72e859 \
+//   contracts/MoreMarkets.sol:MoreMarkets
+
+// // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
 contract DeployMarketContracts is Script {
     ICreditAttestationService public credora;
     address public credoraAdmin;
