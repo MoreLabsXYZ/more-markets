@@ -3,6 +3,7 @@
     "@chainlink/contracts": "^1.1.1",
     "@morpho-org/morpho-blue": "^1.0.0",
     "@openzeppelin/contracts": "^5.0.2",
+    "@pythnetwork/pyth-sdk-solidity": "^4.0.0",
     "hardhat": "^2.22.6",
     "solmate": "^6.2.0"
   },

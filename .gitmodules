@@ -7,3 +7,6 @@
 [submodule "smart-contracts/lib/permit2"]
 	path = smart-contracts/lib/permit2
 	url = https://github.com/Uniswap/permit2
+[submodule "smart-contracts/lib/morpho-blue-oracles"]
+	path = smart-contracts/lib/morpho-blue-oracles
+	url = https://github.com/morpho-org/morpho-blue-oracles
