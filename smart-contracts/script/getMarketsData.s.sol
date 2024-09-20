@@ -2,7 +2,7 @@
 pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id} from "../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
@@ -12,9 +12,10 @@ import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib,
 
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-// forge script script/getMarketsData.s.sol:getMarketsData --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv
-contract getMarketsData is Script {
+// forge script script/GetMarketsData.s.sol:GetMarketsData --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv
+contract GetMarketsData is Script {
     using MarketParamsLib for MarketParams;
+    using MathLib for uint256;
     ICreditAttestationService public credora;
     address public credoraAdmin;
     OracleMock public oracle;
@@ -85,6 +86,8 @@ contract getMarketsData is Script {
                 marketParams.irxMaxLltv = irxMaxLltv;
                 marketParams.categoryLltv = categoryLltv;
             }
+            console.log("market id is ");
+            console.logBytes32(Id.unwrap(memAr[i]));
             console.log(
                 "total supply asset for market is ",
                 market.totalSupplyAssets

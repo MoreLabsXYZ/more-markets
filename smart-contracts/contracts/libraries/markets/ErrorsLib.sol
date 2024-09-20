@@ -113,4 +113,12 @@ library ErrorsLib {
 
     /// @notice Thrown when nothing debt tokens to claim by the caller.
     error NothingToClaim();
+
+    error InsufficientCollateral();
+
+    error NotOwner();
+
+    error AlreadySet();
+
+    error MarketNotCreated();
 }

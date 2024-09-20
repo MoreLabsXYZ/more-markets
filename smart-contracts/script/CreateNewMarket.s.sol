@@ -20,7 +20,7 @@ import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 //   0x66832a1C487aBf864BeC15b0A636b739f41c05E5 \
 //   contracts/MoreVaultsFactory.sol:MoreVaultsFactory
 
-// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --slow
+// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --slow
 contract CreateNewMarket is Script {
     using MarketParamsLib for MarketParams;
     ICreditAttestationService public credora;
@@ -54,64 +54,71 @@ contract CreateNewMarket is Script {
         940000000000000000,
         940000000000000000
     ];
+
+    uint256[] public premiumLltvsZero = [0, 0, 0, 0, 0];
     uint96 public categoryMultipliers = 2 ether;
     uint16[] public categorySteps = [4, 8, 12, 16, 24];
 
     ERC20MintableMock public USDCf =
-        ERC20MintableMock(0xaCA1aB5EB856F7645Cd6b9694bA840f3C18BC83e);
+        ERC20MintableMock(0x5e65b6B04fbA51D95409712978Cb91E99d93aE73);
     ERC20MintableMock public USDf =
-        ERC20MintableMock(0x4D40CDcE3864CA8FCBA1B7De4C0a66f37b28092c);
+        ERC20MintableMock(0xd7d43ab7b365f0d0789aE83F4385fA710FfdC98F);
     ERC20MintableMock public BTCf =
-        ERC20MintableMock(0x866E7292A4b9813146591Cb6211AAc33432cF07f);
+        ERC20MintableMock(0x208d09d2a6Dd176e3e95b3F0DE172A7471C5B2d6);
     ERC20MintableMock public ETHf =
-        ERC20MintableMock(0x50bE444228F6f27899E52E56718C0ae67F962185);
-    ERC20MintableMock public wFLOW =
-        ERC20MintableMock(0xe6De44AC50C1D1C83f67695f6B4820a317285FC6);
+        ERC20MintableMock(0x059A77239daFa770977DD9f1E98632C3E4559848);
     ERC20MintableMock public ANKR =
-        ERC20MintableMock(0x3D08ce8bA948ddd6ab0745670134A55e8e35aA8C);
+        ERC20MintableMock(0xe132751AB5A14ac0bD3Cb40571a9248Ee7a2a9EA);
+    ERC20MintableMock public wFLOW =
+        ERC20MintableMock(0xe0fd0a2A4C2E59a479AaB0cF44244E355C508766);
 
     address oracleUSDCfBTCf =
-        address(0x3793d612cf2BCe408B361379d69E10516Fceb3e7);
+        address(0xC47106bb8103477225813b360200d9c889609653);
     address oracleBTCfUSDCf =
-        address(0xe2bA4ddF1031c93b31Ea348D020B277812447936);
+        address(0x273b835185bfC78551Bd4CB6230182908eaAF360);
     address oracleUSDCfETHf =
-        address(0xdeCbe2260EB3A63DC19f818eCcCc8E74eCe04987);
+        address(0x5a15A5292ECbEd7De93A4147B448A34CDb9d9e72);
     address oracleETHfUSDCf =
-        address(0x58a03e26Ee5a286ac35a98c07798140260Ca5AD6);
+        address(0x6580a3c3f663282C4A4C3987D66413686e23d3d0);
     address oracleUSDCfwFLOW =
-        address(0xdF507A8662c8f309c7085dAE5B605cc2821f4ae6);
+        address(0x6DE0ec05e2de70d3C45c99497069bb2624847BA4);
     address oraclewFLOWUSDCf =
-        address(0xb7B656441fE69Ae755E61ea296CA8706C6dADB30);
+        address(0xE94F4ddf199006F32D83A3FB5738D2efeA4C8894);
     address oracleUSDCfANKR =
-        address(0x54533D32EEe58772B72aE1F5af52f83DCaFcBB6D);
+        address(0xbB82B26fFD3d198337727cD522918BeFA3B3A874);
     address oracleANKRUSDCf =
-        address(0x3e65485A823321e20B5ac6800Dc40a18E82FAB05);
+        address(0xd823916DCB2f709c592Fd33F02f8dc89384e835f);
 
     address oracleUSDfBTCf =
-        address(0x302024D8CA6Fe5B0f217767eB112c752461E8dbF);
+        address(0x31e69DB5205c7aeA466FBf7a13F263f982eB40EE);
     address oracleBTCfUSDf =
-        address(0x765E72875a78215Fa127D87bbF113Ae39D4C5e8A);
+        address(0x7cbAE42e20C3d23b6E8c892a6A72DCEA297CadD2);
     address oracleUSDfETHf =
-        address(0xc5a19C1DFFb285202B122C6b8D166C7b525cBB98);
+        address(0xE0d10202853798CCB3419108Dec13201a159485a);
     address oracleETHfUSDf =
-        address(0x22c8203afafa4614FCF04EFB5C7Ec05c55B1b97a);
+        address(0xDDE1ddC9F16c77046F184Ef1184dD3F69e6a00cB);
     address oracleUSDfwFLOW =
-        address(0x3954e987278a6a9d3Fa891282Cc18E66393D3236);
+        address(0x447E8e3596450efBdEf6d16d9F4A1D7a06Bbd034);
     address oraclewFLOWUSDf =
-        address(0x438085beec56255478E534e81399c513cC9031c9);
+        address(0x8ac6e74EBac32F5787Ba00cD4548Bc6B9B9ddEA3);
     address oracleUSDfANKR =
-        address(0xFA63102390C63A0CcE67102E434bc466b656A57a);
+        address(0x3aB80BaB63b4593169f3b0D7c9098F091Ac1dA29);
     address oracleANKRUSDf =
-        address(0x55146B2DB99D1A6912a47590c9Ce8aB66EfA784f);
+        address(0xbB3851F8F3d0A876096Bdc25Dc9022c6B2a8a78A);
 
     address oracleUSDCfUSDf =
-        address(0xe0B35890C829767DF0C3968238d263a7d640bA46);
+        address(0x641a72aF874E2CAb030B767AA54Cac931a5459cd);
     address oracleBTCfETHf =
-        address(0x94509717fecF2D13ae62b7CaFD6A55FE54c963f7);
+        address(0x36fd5D9cf6c3A18b65477eB56e497D75f68139E2);
     address oracleETHfBTCf =
-        address(0x3EE658322060FD5120f5f33AB52377619847865c);
+        address(0x6EdED44649fB1188042cDDDD4097B9998B15999f);
     address oraclewFLOWBTCf =
-        address(0x9aB242f91128B5b2ed1A063E61aaeC7876299388);
+        address(0xCE47CF8737dC882dcF21F0a79F2627415c5FD401);
+
+    address oracleUSDfUSDCf =
+        address(0x968EE176e2A8e1c9Ec3C06Ce0D911c886Dd20424);
+    address oracleBTCfwFLOW =
+        address(0x8857C969d0E40413AB9C8e972ACE186A39bE4071);
 
     MarketParams public marketParams;
 
@@ -141,17 +148,19 @@ contract CreateNewMarket is Script {
 
         // create a market
         marketParams = MarketParams(
-            true,
-            address(wFLOW),
+            false,
             address(BTCf),
+            address(wFLOW),
             address(oraclewFLOWBTCf),
             address(irm),
-            lltv72,
-            address(credora),
-            2 ether,
-            premiumLltvs
+            lltv80,
+            address(0),
+            1 ether,
+            premiumLltvsZero
         );
         markets.createMarket(marketParams);
+
+        console.logBytes32(Id.unwrap(marketParams.id()));
 
         // loanToken.mint(address(owner), 1000000 ether);
         // loanToken.approve(address(markets), 1000000 ether);
@@ -160,7 +169,6 @@ contract CreateNewMarket is Script {
 
         // markets.supply(marketParams, 10000 ether, 0, owner, "");
 
-        // Start broadcasting for deployment
         vm.stopBroadcast();
     }
 }

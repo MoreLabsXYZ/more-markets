@@ -36,35 +36,35 @@ contract SetSupplyQueue is Script {
     // sentinel
     bytes32 MarketIdUSDfxFLOW =
         bytes32(
-            0x769217350736fc9c8a2b7814717e497e0fe4e78e5c52c90c1e6ffae68e7160fb
+            0x0f510c5cca1c8b24bbbccb04833d1243dcb4e6ae07e4f39397dbd9fa6534dece
         );
     bytes32 MarketIdUSDfxANKR =
         bytes32(
-            0x512297e2ec6b1e2d1b4c7f2d70bec4bb454536048426251fb12464d371a48d61
+            0x19993995e633d686a7a7a4db10d363c2f6dddc744f3ec31e6f8f12d6344bc25d
         );
 
     // prime
     bytes32 MarketIdwFLOWxBTCf =
         bytes32(
-            0x5c3f0292d070a566c7ec11372b1c5402979251a270d3c58f08cbe8cd1d031790
+            0xaccc9ce078cc2228bc0a0328b0f207311a9dcdfd96d7e34ac829a38e8af953d1
         );
     bytes32 MarketIdwFLOWxUSDf =
         bytes32(
-            0x88a1d6d0295e9416d5cd017e0c3a83dacca5a35f4768e9d69ea532816ff8d221
+            0x16893ff750ddec34e292a65a8cb6a014627b3f4ad0b2b82c6da4cc28d1e0576d
         );
 
     // horizon
     bytes32 MarketIdwUSDCfxBTCf =
         bytes32(
-            0x768bb35d4960f49298d3f3222c43a808c98c23366b9e8f4637063bf142aea245
+            0x6bed9b33d3ee7142f53ba4cf930d61e4aff25a4677150cfe354e9b75a2ee2547
         );
     bytes32 MarketIdwUSDCfxETHf =
         bytes32(
-            0x64bc2e22799fd7c2eb29aa0a2a9feca73786de3b7c5bb77529cdca7179d50e34
+            0x0f0de7ddadc86a7be1a3d3e1a9d2e8090a791299bcf0985626ae4ebd65add87e
         );
     bytes32 MarketIdwUSDCfxUSDf =
         bytes32(
-            0xa6d374693ad40a81d35f62a5eae559ee498bba536788eabdf886a8a80dd07987
+            0xbb1c25a3dd81910d745b07e0926dc1cc7be6f09c2c5cc025c0d581e44c21c67f
         );
 
     // apex
@@ -72,38 +72,43 @@ contract SetSupplyQueue is Script {
     // nimbus
     bytes32 MarketIdBTCfxUSDCf =
         bytes32(
-            0x234dd8f59c552f9d3e7dc7ae4bb27da08a2184e567fd265ad024a0d0bf9bab73
+            0x75a964099ef99a0c7dc893c659a4dec8f6beeb3d7c9705e28df7d793694b6164
         );
 
     function setUp() public {}
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        moreVault = MoreVaults(vm.envAddress("NIMBUS_VAULT"));
+        moreVault = MoreVaults(vm.envAddress("PRIME_VAULT"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
         address owner = vm.envAddress("OWNER");
 
         vm.startBroadcast(deployerPrivateKey);
-        marketsArray.push(Id.wrap(MarketIdBTCfxUSDCf));
-        // marketsArray.push(Id.wrap(MarketIdwFLOWxBTCf));
+        marketsArray.push(Id.wrap(MarketIdwFLOWxBTCf));
+        marketsArray.push(Id.wrap(MarketIdwFLOWxUSDf));
         // marketsArray.push(Id.wrap(MarketIdwUSDCfxUSDf));
 
-        marketParams = getMarketParams(Id.wrap(MarketIdBTCfxUSDCf));
+        marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxBTCf));
 
-        moreVault.submitCap(marketParams, 10000 * 1e8);
+        moreVault.submitCap(marketParams, 4500 * 1e18);
+        moreVault.acceptCap(marketParams);
+
+        marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxUSDf));
+
+        moreVault.submitCap(marketParams, 5500 * 1e18);
+        moreVault.acceptCap(marketParams);
+
+        // marketParams = getMarketParams(Id.wrap(MarketIdwUSDCfxUSDf));
+
+        // moreVault.submitCap(marketParams, 6000 * 1e6);
         // moreVault.acceptCap(marketParams);
 
-        // marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxBTCf));
-
-        // moreVault.submitCap(marketParams, 9000 * 1e18);
-        // moreVault.acceptCap(marketParams);
-
-        // moreVault.setSupplyQueue(marketsArray);
-        // moreVault.setFeeRecipient(owner);
-        // moreVault.setFee(0.15e18);
-        // moreVault.setCurator(
-        //     address(0xA1947019F5989c5C417cc6EEcE404d684b855bB2)
-        // );
+        moreVault.setSupplyQueue(marketsArray);
+        moreVault.setFeeRecipient(owner);
+        moreVault.setFee(0.1e18);
+        moreVault.setCurator(
+            address(0xB37a5BA4060D6bFD00a3bFCb235Bb596F13932Bd)
+        );
 
         vm.stopBroadcast();
     }

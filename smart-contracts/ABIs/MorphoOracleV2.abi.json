@@ -1,0 +1,159 @@
+{
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "baseVault",
+          "type": "address",
+          "internalType": "contract IERC4626"
+        },
+        {
+          "name": "baseVaultConversionSample",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "baseFeed1",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        },
+        {
+          "name": "baseFeed2",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        },
+        {
+          "name": "baseTokenDecimals",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "quoteVault",
+          "type": "address",
+          "internalType": "contract IERC4626"
+        },
+        {
+          "name": "quoteVaultConversionSample",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "quoteFeed1",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        },
+        {
+          "name": "quoteFeed2",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        },
+        {
+          "name": "quoteTokenDecimals",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "BASE_FEED_1",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "BASE_FEED_2",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "BASE_VAULT",
+      "inputs": [],
+      "outputs": [
+        { "name": "", "type": "address", "internalType": "contract IERC4626" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "BASE_VAULT_CONVERSION_SAMPLE",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "QUOTE_FEED_1",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "QUOTE_FEED_2",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "QUOTE_VAULT",
+      "inputs": [],
+      "outputs": [
+        { "name": "", "type": "address", "internalType": "contract IERC4626" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "QUOTE_VAULT_CONVERSION_SAMPLE",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "SCALE_FACTOR",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "price",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    { "type": "error", "name": "MathOverflowedMulDiv", "inputs": [] }
+  ]
+}

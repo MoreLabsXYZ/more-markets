@@ -59,14 +59,6 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     /// The market params corresponding to `id`.
     mapping(Id => MarketParams) private _idToMarketParams;
 
-    // /// @inheritdoc IMoreMarketsBase
-    // mapping(Id => address) public idToDebtToken;
-    // /// @inheritdoc IMoreMarketsBase
-    // mapping(Id => uint256) public totalDebtAssetsGenerated;
-    // /// @inheritdoc IMoreMarketsBase
-    // mapping(Id => uint256) public lastTotalDebtAssetsGenerated;
-    // /// @inheritdoc IMoreMarketsBase
-    // mapping(Id => uint256) public tps;
     /// @inheritdoc IMoreMarketsBase
     mapping(Id => mapping(uint64 => uint256))
         public totalBorrowAssetsForMultiplier;
@@ -78,7 +70,6 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     /// @inheritdoc IMoreMarketsBase
     uint256 public maxLltvForCategory;
     /// @inheritdoc IMoreMarketsBase
-    // address public debtTokenFactory;
 
     /// Mapping that stores array of available interest rate multipliers for particular market.
     mapping(Id => EnumerableSet.UintSet) private _availableMultipliers;
@@ -106,8 +97,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         );
         owner = newOwner;
 
-        // debtTokenFactory = _debtTokenFactory;
-
+        // TODO: add check if prem market and in createMarket
         _setIrxMax(2 * 1e18); // x2
         _setMaxLltvForCategory(1000000000000000000); // 100%
 
@@ -122,7 +112,8 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
 
     /// @dev Reverts if the caller is not the owner.
     modifier onlyOwner() {
-        require(msg.sender == owner, ErrorsLib.NOT_OWNER);
+        // require(msg.sender == owner, ErrorsLib.NOT_OWNER);
+        if (msg.sender != owner) revert ErrorsLib.NotOwner();
         _;
     }
 
@@ -130,7 +121,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
 
     /// @inheritdoc IMoreMarketsBase
     function setOwner(address newOwner) external onlyOwner {
-        require(newOwner != owner, ErrorsLib.ALREADY_SET);
+        if (newOwner == owner) revert ErrorsLib.AlreadySet();
 
         owner = newOwner;
 
@@ -151,7 +142,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
 
     /// @inheritdoc IMoreMarketsBase
     function enableIrm(address irm) external onlyOwner {
-        require(!isIrmEnabled[irm], ErrorsLib.ALREADY_SET);
+        if (isIrmEnabled[irm]) revert ErrorsLib.AlreadySet();
 
         isIrmEnabled[irm] = true;
 
@@ -160,7 +151,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
 
     /// @inheritdoc IMoreMarketsBase
     function enableLltv(uint256 lltv) external onlyOwner {
-        require(!isLltvEnabled[lltv], ErrorsLib.ALREADY_SET);
+        if (isLltvEnabled[lltv]) revert ErrorsLib.AlreadySet();
         require(lltv < WAD, ErrorsLib.MAX_LLTV_EXCEEDED);
 
         isLltvEnabled[lltv] = true;
@@ -174,8 +165,9 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         uint256 newFee
     ) external onlyOwner {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
-        require(newFee != market[id].fee, ErrorsLib.ALREADY_SET);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
+        if (newFee == market[id].fee) revert ErrorsLib.AlreadySet();
+
         require(newFee <= MAX_FEE, ErrorsLib.MAX_FEE_EXCEEDED);
 
         // Accrue interest using the previous fee set before changing it.
@@ -193,8 +185,9 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         uint256 newPremiumFee
     ) external onlyOwner {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
-        require(newPremiumFee != market[id].premiumFee, ErrorsLib.ALREADY_SET);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
+        if (newPremiumFee == market[id].premiumFee)
+            revert ErrorsLib.AlreadySet();
         require(newPremiumFee <= MAX_FEE, ErrorsLib.MAX_FEE_EXCEEDED);
 
         // Accrue interest using the previous fee set before changing it.
@@ -208,7 +201,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
 
     /// @inheritdoc IMoreMarketsBase
     function setFeeRecipient(address newFeeRecipient) external onlyOwner {
-        require(newFeeRecipient != feeRecipient, ErrorsLib.ALREADY_SET);
+        if (newFeeRecipient == feeRecipient) revert ErrorsLib.AlreadySet();
 
         feeRecipient = newFeeRecipient;
 
@@ -278,21 +271,6 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         market[id].lastUpdate = uint128(block.timestamp);
         _idToMarketParams[id] = marketParams;
 
-        // debt token creation
-        // {
-        //     string memory name = IERC20Metadata(marketParams.loanToken).name();
-        //     string memory symbol = IERC20Metadata(marketParams.loanToken)
-        //         .symbol();
-        //     uint8 decimals = IERC20Metadata(marketParams.loanToken).decimals();
-
-        //     idToDebtToken[id] = IDebtTokenFactory(debtTokenFactory).create(
-        //         string(abi.encodePacked(name, " debt token")),
-        //         string(abi.encodePacked("dt", symbol)),
-        //         decimals,
-        //         address(this)
-        //     );
-        // }
-
         _availableMultipliers[id].add(1e18);
 
         emit EventsLib.CreateMarket(id, marketParams);
@@ -313,7 +291,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         bytes calldata data
     ) external returns (uint256, uint256) {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
         require(
             UtilsLib.exactlyOneZero(assets, shares),
             ErrorsLib.INCONSISTENT_INPUT
@@ -338,11 +316,6 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         market[id].totalSupplyShares += shares.toUint128();
         market[id].totalSupplyAssets += assets.toUint128();
 
-        //debt token distribution managment
-        // position[id][onBehalf].debtTokenMissed += (
-        //     shares.mulDivDown(tps[id], 1e24)
-        // ).toUint128();
-
         emit EventsLib.Supply(id, msg.sender, onBehalf, assets, shares);
 
         if (data.length > 0)
@@ -366,7 +339,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         address receiver
     ) external returns (uint256, uint256) {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
         require(
             UtilsLib.exactlyOneZero(assets, shares),
             ErrorsLib.INCONSISTENT_INPUT
@@ -393,11 +366,6 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         market[id].totalSupplyShares -= shares.toUint128();
         market[id].totalSupplyAssets -= assets.toUint128();
 
-        // //debt token distribution managment
-        // position[id][onBehalf].debtTokenGained += (
-        //     shares.mulDivDown(tps[id], 1e24)
-        // ).toUint128();
-
         require(
             market[id].totalBorrowAssets <= market[id].totalSupplyAssets,
             ErrorsLib.INSUFFICIENT_LIQUIDITY
@@ -417,37 +385,6 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         return (assets, shares);
     }
 
-    // /// @inheritdoc IMoreMarketsBase
-    // function claimDebtTokens(
-    //     MarketParams memory marketParams,
-    //     address onBehalf,
-    //     address receiver
-    // ) external {
-    //     Id id = marketParams.id();
-    //     require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
-    //     require(receiver != address(0), ErrorsLib.ZERO_ADDRESS);
-    //     // No need to verify that onBehalf != address(0) thanks to the following authorization check.
-    //     require(_isSenderAuthorized(onBehalf), ErrorsLib.UNAUTHORIZED);
-
-    //     // _updateTps(id);
-
-    //     // div by 1e6, since shares have 24 decimal and debt tokens are 18
-    //     uint256 claimAmount = position[id][onBehalf].supplyShares.mulDivDown(
-    //         tps[id],
-    //         1e24
-    //     ) -
-    //         position[id][onBehalf].debtTokenMissed +
-    //         position[id][onBehalf].debtTokenGained;
-
-    //     if (claimAmount == 0) revert ErrorsLib.NothingToClaim();
-
-    //     position[id][onBehalf].debtTokenMissed += uint128(claimAmount);
-
-    //     // IDebtToken(idToDebtToken[id]).mint(receiver, claimAmount);
-
-    //     // emit Claimed(to, claimAmount);
-    // }
-
     /* BORROW MANAGEMENT */
 
     /// @inheritdoc IMoreMarketsBase
@@ -459,7 +396,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         address receiver
     ) external returns (uint256, uint256) {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
         require(
             UtilsLib.exactlyOneZero(assets, shares),
             ErrorsLib.INCONSISTENT_INPUT
@@ -479,10 +416,12 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
             UPDATE_TYPE.BORROW
         );
 
-        require(
-            _isHealthy(marketParams, id, onBehalf),
-            ErrorsLib.INSUFFICIENT_COLLATERAL
-        );
+        // require(
+        //     _isHealthy(marketParams, id, onBehalf),
+        //     ErrorsLib.INSUFFICIENT_COLLATERAL
+        // );
+        if (!_isHealthy(marketParams, id, onBehalf))
+            revert ErrorsLib.InsufficientCollateral();
 
         require(
             market[id].totalBorrowAssets <= market[id].totalSupplyAssets,
@@ -512,7 +451,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         bytes calldata data
     ) external returns (uint256, uint256) {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
         require(
             UtilsLib.exactlyOneZero(assets, shares),
             ErrorsLib.INCONSISTENT_INPUT
@@ -555,13 +494,15 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         bytes calldata data
     ) external {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
         require(assets != 0, ErrorsLib.ZERO_ASSETS);
         require(onBehalf != address(0), ErrorsLib.ZERO_ADDRESS);
 
-        // Don't accrue interest because it's not required and it saves gas.
+        _accrueInterest(marketParams, id);
 
         position[id][onBehalf].collateral += assets.toUint128();
+
+        _updatePosition(marketParams, id, onBehalf, 0, 0, UPDATE_TYPE.IDLE);
 
         emit EventsLib.SupplyCollateral(id, msg.sender, onBehalf, assets);
 
@@ -584,7 +525,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         address receiver
     ) external {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
         require(assets != 0, ErrorsLib.ZERO_ASSETS);
         require(receiver != address(0), ErrorsLib.ZERO_ADDRESS);
         // No need to verify that onBehalf != address(0) thanks to the following authorization check.
@@ -594,10 +535,13 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
 
         position[id][onBehalf].collateral -= assets.toUint128();
 
-        require(
-            _isHealthy(marketParams, id, onBehalf),
-            ErrorsLib.INSUFFICIENT_COLLATERAL
-        );
+        _updatePosition(marketParams, id, onBehalf, 0, 0, UPDATE_TYPE.IDLE);
+        // require(
+        //     _isHealthy(marketParams, id, onBehalf),
+        //     ErrorsLib.INSUFFICIENT_COLLATERAL
+        // );
+        if (!_isHealthy(marketParams, id, onBehalf))
+            revert ErrorsLib.InsufficientCollateral();
 
         emit EventsLib.WithdrawCollateral(
             id,
@@ -616,7 +560,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         address borrower
     ) public {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
         _accrueInterest(marketParams, id);
 
         _updatePosition(marketParams, id, borrower, 0, 0, UPDATE_TYPE.IDLE);
@@ -633,13 +577,15 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         bytes calldata data
     ) external returns (uint256, uint256) {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
         require(
             UtilsLib.exactlyOneZero(seizedAssets, repaidShares),
             ErrorsLib.INCONSISTENT_INPUT
         );
 
         _accrueInterest(marketParams, id);
+
+        _updatePosition(marketParams, id, borrower, 0, 0, UPDATE_TYPE.IDLE);
 
         uint64 lastMultiplier = position[id][borrower].lastMultiplier;
         {
@@ -726,11 +672,6 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
                 .toUint128();
 
             position[id][borrower].borrowShares = 0;
-
-            // // if user is prem, then issue debt tokens
-            // if (lastMultiplier != 1e18) {
-            //     totalDebtAssetsGenerated[id] += badDebtAssets;
-            // }
         }
 
         // `repaidAssets` may be greater than `totalBorrowAssets` by 1.
@@ -791,10 +732,8 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         address authorized,
         bool newIsAuthorized
     ) external {
-        require(
-            newIsAuthorized != isAuthorized[msg.sender][authorized],
-            ErrorsLib.ALREADY_SET
-        );
+        if (newIsAuthorized == isAuthorized[msg.sender][authorized])
+            revert ErrorsLib.AlreadySet();
 
         isAuthorized[msg.sender][authorized] = newIsAuthorized;
 
@@ -869,7 +808,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     /// @inheritdoc IMoreMarketsBase
     function accrueInterest(MarketParams memory marketParams) external {
         Id id = marketParams.id();
-        require(market[id].lastUpdate != 0, ErrorsLib.MARKET_NOT_CREATED);
+        if (market[id].lastUpdate == 0) revert ErrorsLib.MarketNotCreated();
 
         _accrueInterest(marketParams, id);
     }
@@ -911,16 +850,17 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
                         uint256(premiumFee).wMulDown(currentMultiplier)
                     );
                 }
-
                 interestForMultiplier = totalBorrowAssetsForMultiplier[id][
                     currentMultiplier
-                ]
-                    .wMulDown(
-                        borrowRate.wMulDown(
-                            currentMultiplier + premiumFeeMulAddition
-                        )
-                    )
-                    .wTaylorCompounded(block.timestamp - market[id].lastUpdate);
+                ].wMulDown(
+                        (
+                            borrowRate.wMulDown(
+                                currentMultiplier + premiumFeeMulAddition
+                            )
+                        ).wTaylorCompounded(
+                                block.timestamp - market[id].lastUpdate
+                            )
+                    );
 
                 totalInterest += interestForMultiplier;
                 if (currentMultiplier != 1e18 && premiumFee != 0) {
@@ -1023,39 +963,23 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
             lastMultiplier = 1e18;
         }
 
-        uint256 borrowed = uint256(position[id][borrower].borrowShares)
-            .toAssetsUp(
-                totalBorrowAssetsForMultiplier[id][lastMultiplier],
-                totalBorrowSharesForMultiplier[id][lastMultiplier]
-            );
+        // uint256 borrowed = uint256(position[id][borrower].borrowShares)
+        //     .toAssetsUp(
+        //         totalBorrowAssetsForMultiplier[id][lastMultiplier],
+        //         totalBorrowSharesForMultiplier[id][lastMultiplier]
+        //     );
 
         uint256 maxBorrow = uint256(position[id][borrower].collateral)
             .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
             .wMulDown(lltvToUse);
 
-        return maxBorrow >= borrowed;
+        return
+            maxBorrow >=
+            uint256(position[id][borrower].borrowShares).toAssetsUp(
+                totalBorrowAssetsForMultiplier[id][lastMultiplier],
+                totalBorrowSharesForMultiplier[id][lastMultiplier]
+            );
     }
-
-    /* DEBT TOKENS MANAGMENT */
-
-    // /// @notice Updates the TPS of the market `id`.
-    // /// @param id The market id.
-    // function _updateTps(Id id) internal {
-    //     // uint256 _totalDebtAssetsGenerated = totalDebtAssetsGenerated[id];
-    //     // uint256 _totalSupplyShares = market[id].totalSupplyShares;
-
-    //     uint256 amountForLastPeriod = totalDebtAssetsGenerated[id] -
-    //         lastTotalDebtAssetsGenerated[id];
-
-    //     if (market[id].totalSupplyShares > 0) {
-    //         // shares' decimal is 24
-    //         tps[id] += (amountForLastPeriod).mulDivDown(
-    //             1e24,
-    //             market[id].totalSupplyShares
-    //         );
-    //     }
-    //     lastTotalDebtAssetsGenerated[id] = totalDebtAssetsGenerated[id];
-    // }
 
     /* USERS' POSITIONS MANAGMENT */
 
@@ -1074,6 +998,8 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         uint256 shares,
         UPDATE_TYPE updateType
     ) internal returns (uint256) {
+        if (position[id][borrower].lastMultiplier == 0)
+            position[id][borrower].lastMultiplier = 1e18;
         uint64 lastMultiplier = position[id][borrower].lastMultiplier;
         if (shares > 0)
             if (updateType == UPDATE_TYPE.BORROW) {
@@ -1202,7 +1128,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
                     categoryNum = 4;
                 }
             }
-        } else revert(ErrorsLib.INSUFFICIENT_COLLATERAL);
+        } else revert ErrorsLib.InsufficientCollateral();
 
         uint256 maxBorrowByScore = uint256(position[id][borrower].collateral)
             .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
@@ -1234,6 +1160,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
                 ++i;
             }
         }
+        if (multiplier == 0) multiplier = lastMultiplier;
     }
 
     /// @notice Move borrowed assets from one category of multipliers to another.
@@ -1283,7 +1210,6 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
         // add to new category
         totalBorrowAssetsForMultiplier[id][newMultiplier] += newAssets;
         totalBorrowSharesForMultiplier[id][newMultiplier] += newShares;
-
         // update last category
         position[id][borrower].lastMultiplier = newMultiplier;
     }
@@ -1333,7 +1259,7 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     /// @notice Internal function that sets the `irxMaxAvailable` value.
     /// @param _irxMaxAvailable The new `irxMaxAvailable` value.
     function _setIrxMax(uint256 _irxMaxAvailable) internal {
-        require(irxMaxAvailable != _irxMaxAvailable, ErrorsLib.ALREADY_SET);
+        if (irxMaxAvailable == _irxMaxAvailable) revert ErrorsLib.AlreadySet();
 
         irxMaxAvailable = _irxMaxAvailable;
 
@@ -1343,10 +1269,8 @@ contract MoreMarkets is UUPSUpgradeable, IMoreMarketsStaticTyping {
     /// @notice Internal function that sets the `maxLltvForCategory` value.
     /// @param _maxLltvForCategory The new `maxLltvForCategory` value.
     function _setMaxLltvForCategory(uint256 _maxLltvForCategory) internal {
-        require(
-            maxLltvForCategory != _maxLltvForCategory,
-            ErrorsLib.ALREADY_SET
-        );
+        if (maxLltvForCategory == _maxLltvForCategory)
+            revert ErrorsLib.AlreadySet();
 
         maxLltvForCategory = _maxLltvForCategory;
 

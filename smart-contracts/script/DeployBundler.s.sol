@@ -15,7 +15,10 @@ contract DeployBundler is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         vm.startBroadcast(deployerPrivateKey);
-        moreBundler = new MoreBundler(vm.envAddress("MARKETS"));
+        moreBundler = new MoreBundler(
+            vm.envAddress("MARKETS"),
+            vm.envAddress("WRAPPED_NATIVE")
+        );
 
         vm.stopBroadcast();
     }

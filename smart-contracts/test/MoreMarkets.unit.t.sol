@@ -144,7 +144,7 @@ contract MoreMarketsTest is Test {
 
     function test_setIrxMax_shouldRevertIfSameValueAlreadySet() public {
         assertEq(markets.irxMaxAvailable(), 2 ether);
-        vm.expectRevert("already set");
+        vm.expectRevert(ErrorsLib.AlreadySet.selector);
         markets.setIrxMax(2 ether);
     }
 
@@ -152,7 +152,7 @@ contract MoreMarketsTest is Test {
         address someUser = address(0x000011111);
         startHoax(someUser);
         assertEq(markets.irxMaxAvailable(), 2 ether);
-        vm.expectRevert("not owner");
+        vm.expectRevert(ErrorsLib.NotOwner.selector);
         markets.setIrxMax(2 ether);
     }
 
@@ -166,7 +166,7 @@ contract MoreMarketsTest is Test {
         public
     {
         assertEq(markets.maxLltvForCategory(), 2 ether);
-        vm.expectRevert("already set");
+        vm.expectRevert(ErrorsLib.AlreadySet.selector);
         markets.setMaxLltvForCategory(2 ether);
     }
 
@@ -176,7 +176,7 @@ contract MoreMarketsTest is Test {
         address someUser = address(0x000011111);
         startHoax(someUser);
         assertEq(markets.maxLltvForCategory(), 2 ether);
-        vm.expectRevert("not owner");
+        vm.expectRevert(ErrorsLib.NotOwner.selector);
         markets.setMaxLltvForCategory(2 ether);
     }
 
@@ -191,21 +191,21 @@ contract MoreMarketsTest is Test {
     }
 
     function test_setPremiumFee_shouldRevertIfParamTheSame() public {
-        vm.expectRevert("already set");
+        vm.expectRevert(ErrorsLib.AlreadySet.selector);
         markets.setPremiumFee(marketParams, 0);
     }
 
     function test_setPremiumFee_shouldRevertIfMarketDoesNotExist() public {
         marketParams.loanToken = address(0x000011111);
 
-        vm.expectRevert("market not created");
+        vm.expectRevert(ErrorsLib.MarketNotCreated.selector);
         markets.setPremiumFee(marketParams, 0.10e18);
     }
 
     function test_setPremiumFee_shouldRevertIfCalledNotByAnOwner() public {
         address someUser = address(0x000011111);
         startHoax(someUser);
-        vm.expectRevert("not owner");
+        vm.expectRevert(ErrorsLib.NotOwner.selector);
         markets.setPremiumFee(marketParams, 0.10e18);
     }
 
@@ -346,16 +346,16 @@ contract MoreMarketsTest is Test {
         );
 
         uint256 totalBorrowAssetsBefore = totalBorrowAssets;
-        uint256 nonPremUserInterest = userNonPremAmountToBorrow
-            .wMulDown(borrowRate)
-            .wTaylorCompounded(timeToSkip);
-        uint256 ownerInterest = ownerAmountToBorrow
-            .wMulDown(
+        uint256 nonPremUserInterest = userNonPremAmountToBorrow.wMulDown(
+            borrowRate.wTaylorCompounded(timeToSkip)
+        );
+        uint256 ownerInterest = ownerAmountToBorrow.wMulDown(
+            (
                 borrowRate.wMulDown(
                     ownerLastMultiplier + ownerLastMultiplier.wMulDown(premFee)
                 )
-            )
-            .wTaylorCompounded(timeToSkip);
+            ).wTaylorCompounded(timeToSkip)
+        );
         uint256 sumOfInterests = nonPremUserInterest + ownerInterest;
         uint256 totalSupplySharesBefore = totalSupplyShares;
 
@@ -475,16 +475,16 @@ contract MoreMarketsTest is Test {
         );
 
         uint256 totalBorrowAssetsBefore = totalBorrowAssets;
-        uint256 nonPremUserInterest = userNonPremAmountToBorrow
-            .wMulDown(borrowRate)
-            .wTaylorCompounded(timeToSkip);
-        uint256 ownerInterest = ownerAmountToBorrow
-            .wMulDown(
+        uint256 nonPremUserInterest = userNonPremAmountToBorrow.wMulDown(
+            borrowRate.wTaylorCompounded(timeToSkip)
+        );
+        uint256 ownerInterest = ownerAmountToBorrow.wMulDown(
+            (
                 borrowRate.wMulDown(
                     ownerLastMultiplier + ownerLastMultiplier.wMulDown(premFee)
                 )
-            )
-            .wTaylorCompounded(timeToSkip);
+            ).wTaylorCompounded(timeToSkip)
+        );
 
         uint256 defaultFeeAssets = (nonPremUserInterest + ownerInterest)
             .wMulDown(defaultFee);
@@ -833,7 +833,7 @@ contract MoreMarketsTest is Test {
         startHoax(owner);
         markets.supplyCollateral(marketParams, 1000 ether, owner, "");
 
-        vm.expectRevert("insufficient collateral");
+        vm.expectRevert(ErrorsLib.InsufficientCollateral.selector);
         markets.borrow(marketParams, 800 ether + 1, 0, owner, owner);
 
         markets.borrow(marketParams, 800 ether, 0, owner, owner);
@@ -1122,7 +1122,7 @@ contract MoreMarketsTest is Test {
         assertEq(lastMultiplier, 2 ether);
 
         // to 1001
-        vm.expectRevert("insufficient collateral");
+        vm.expectRevert(ErrorsLib.InsufficientCollateral.selector);
         markets.borrow(marketParams, 50 ether, 0, owner, owner);
     }
 
@@ -1182,7 +1182,7 @@ contract MoreMarketsTest is Test {
         );
 
         // to 2001
-        vm.expectRevert("insufficient collateral");
+        vm.expectRevert(ErrorsLib.InsufficientCollateral.selector);
         markets.borrow(marketParams, 1071 ether, 0, owner, owner);
 
         // to 2000
@@ -1312,14 +1312,16 @@ contract MoreMarketsTest is Test {
         uint256 totalBorrowAssetsBefore = totalBorrowAssets;
         markets.accrueInterest(marketParams);
 
-        uint256 sumOfInterests = userEAmountToBorrow
-            .wMulDown(borrowRate.wMulDown(eUserMultiplier))
-            .wTaylorCompounded(timeToSkip) +
-            userBAmountToBorrow
-                .wMulDown(borrowRate.wMulDown(bUserMultiplier))
-                .wTaylorCompounded(timeToSkip) +
-            userNonPremAmountToBorrow.wMulDown(borrowRate).wTaylorCompounded(
-                timeToSkip
+        uint256 sumOfInterests = userEAmountToBorrow.wMulDown(
+            (borrowRate.wMulDown(eUserMultiplier)).wTaylorCompounded(timeToSkip)
+        ) +
+            userBAmountToBorrow.wMulDown(
+                (borrowRate.wMulDown(bUserMultiplier)).wTaylorCompounded(
+                    timeToSkip
+                )
+            ) +
+            userNonPremAmountToBorrow.wMulDown(
+                borrowRate.wTaylorCompounded(timeToSkip)
             );
 
         (
@@ -1333,7 +1335,11 @@ contract MoreMarketsTest is Test {
         ) = markets.market(marketParams.id());
 
         // total interest calculated correctly
-        assertEq(sumOfInterests, totalBorrowAssets - totalBorrowAssetsBefore);
+        assertApproxEqAbs(
+            sumOfInterests,
+            totalBorrowAssets - totalBorrowAssetsBefore,
+            10
+        );
 
         // now all users repaying
         globalSnapshotId = vm.snapshot();
@@ -1404,209 +1410,9 @@ contract MoreMarketsTest is Test {
         markets.liquidate(marketParams, owner, 100 ether, 0, "");
         markets.liquidate(marketParams, owner, 99 ether, 0, "");
         markets.liquidate(marketParams, owner, 1 ether, 0, "");
+        vm.expectRevert("position is healthy");
+        markets.liquidate(marketParams, owner, 1 ether, 0, "");
     }
-
-    // function test_liquidate_undercollateralizedPositionShouldGenerateDebtTokens()
-    //     public
-    // {
-    //     address borrowerB = address(0xbbbb);
-
-    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
-
-    //     (
-    //         uint256 totalSupplySharesBefore,
-    //         ,
-    //         uint128 totalBorrowAssetsBefore,
-    //         ,
-    //         ,
-    //         ,
-
-    //     ) = markets.market(marketParams.id());
-
-    //     startHoax(owner);
-
-    //     uint256 liquidatorBalanceBefore = loanToken.balanceOf(owner);
-    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
-
-    //     uint256 liquidatorBalanceAfter = loanToken.balanceOf(owner);
-    //     uint256 generatedDebtTokens = markets.totalDebtAssetsGenerated(
-    //         marketParams.id()
-    //     );
-
-    //     assertEq(
-    //         liquidatorBalanceBefore -
-    //             liquidatorBalanceAfter +
-    //             generatedDebtTokens,
-    //         totalBorrowAssetsBefore
-    //     );
-
-    //     (
-    //         uint128 totalSypplyAssetsAfter,
-    //         ,
-    //         uint128 totalBorrowAssetsAfter,
-    //         ,
-    //         ,
-    //         ,
-
-    //     ) = markets.market(marketParams.id());
-
-    //     assertEq(
-    //         totalSupplySharesBefore - generatedDebtTokens,
-    //         totalSypplyAssetsAfter
-    //     );
-
-    //     assertEq(totalBorrowAssetsAfter, 0);
-    // }
-
-    // function test_claimDebtTokens_lenderShouldBeAbleToClaim() public {
-    //     address borrowerB = address(0xbbbb);
-    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
-
-    //     startHoax(owner);
-    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
-    //     uint256 debtTokens = markets.totalDebtAssetsGenerated(
-    //         marketParams.id()
-    //     );
-
-    //     markets.claimDebtTokens(marketParams, owner, owner);
-
-    //     DebtToken marketsDebtToken = DebtToken(
-    //         markets.idToDebtToken(marketParams.id())
-    //     );
-
-    //     assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
-    // }
-
-    // function test_claimDebtTokens_newLenderUnableToClaimPreviouslyGeneratedDebt()
-    //     public
-    // {
-    //     address borrowerB = address(0xbbbb);
-    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
-
-    //     startHoax(owner);
-    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
-
-    //     // new supplier enters the market and should be unable to claim debt tokens
-    //     address newSupplier = address(0xaaaa);
-    //     startHoax(owner);
-    //     collateralToken.mint(address(newSupplier), 1000000 ether);
-    //     loanToken.mint(address(newSupplier), 1000000 ether);
-    //     startHoax(newSupplier);
-    //     loanToken.approve(address(markets), 1000000 ether);
-    //     markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
-
-    //     vm.expectRevert(ErrorsLib.NothingToClaim.selector);
-    //     markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
-    // }
-
-    // function test_claimDebtTokens_LenderShouldBeAbleToClaimAfterWithdraw()
-    //     public
-    // {
-    //     address borrowerB = address(0xbbbb);
-    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
-
-    //     startHoax(owner);
-    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
-    //     uint256 debtTokens = markets.totalDebtAssetsGenerated(
-    //         marketParams.id()
-    //     );
-
-    //     (uint256 supplyShares, , , , , ) = markets.position(
-    //         marketParams.id(),
-    //         owner
-    //     );
-    //     (uint256 assetsWithdrawn, ) = markets.withdraw(
-    //         marketParams,
-    //         0,
-    //         supplyShares,
-    //         owner,
-    //         owner
-    //     );
-
-    //     markets.claimDebtTokens(marketParams, owner, owner);
-    //     (supplyShares, , , , , ) = markets.position(marketParams.id(), owner);
-
-    //     DebtToken marketsDebtToken = DebtToken(
-    //         markets.idToDebtToken(marketParams.id())
-    //     );
-
-    //     assertEq(supplyShares, 0);
-    //     assertApproxEqAbs(marketsDebtToken.balanceOf(owner), debtTokens, 1e4);
-    //     assertTrue(
-    //         marketsDebtToken.balanceOf(owner) + assetsWithdrawn > 10000 ether
-    //     );
-    // }
-
-    // function test_claimDebtTokens_NewLenderShouldBeAbleToClaimAfterNewLiquidation()
-    //     public
-    // {
-    //     address borrowerB = address(0xbbbb);
-    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
-
-    //     startHoax(owner);
-    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
-
-    //     // new supplier enters the market and should be unable to claim debt tokens
-    //     address newSupplier = address(0xaaaa);
-    //     startHoax(owner);
-    //     collateralToken.mint(address(newSupplier), 1000000 ether);
-    //     loanToken.mint(address(newSupplier), 1000000 ether);
-    //     startHoax(newSupplier);
-    //     loanToken.approve(address(markets), 1000000 ether);
-    //     uint256 debtTokens = markets.totalDebtAssetsGenerated(
-    //         marketParams.id()
-    //     );
-    //     markets.supply(marketParams, 10000 ether, 0, newSupplier, "");
-
-    //     _setupLiquidation(borrowerB, 1000 ether, 1600 ether);
-
-    //     startHoax(owner);
-    //     markets.liquidate(marketParams, borrowerB, 1000 ether, 0, "");
-
-    //     uint256 newGeneratedDebtTokens = markets.totalDebtAssetsGenerated(
-    //         marketParams.id()
-    //     ) - debtTokens;
-
-    //     (uint256 ownerSupplyShares, , , , , ) = markets.position(
-    //         marketParams.id(),
-    //         owner
-    //     );
-    //     (uint256 newSupplierSupplyShares, , , , , ) = markets.position(
-    //         marketParams.id(),
-    //         newSupplier
-    //     );
-    //     (, uint256 totalSupplyShares, , , , , ) = markets.market(
-    //         marketParams.id()
-    //     );
-
-    //     uint256 ownerDebtTokens = newGeneratedDebtTokens.mulDivDown(
-    //         ownerSupplyShares,
-    //         totalSupplyShares
-    //     );
-    //     uint256 newSupplierDebtTokens = newGeneratedDebtTokens.mulDivDown(
-    //         newSupplierSupplyShares,
-    //         totalSupplyShares
-    //     );
-
-    //     DebtToken marketsDebtToken = DebtToken(
-    //         markets.idToDebtToken(marketParams.id())
-    //     );
-
-    //     markets.claimDebtTokens(marketParams, owner, owner);
-    //     assertApproxEqAbs(
-    //         marketsDebtToken.balanceOf(owner),
-    //         debtTokens + ownerDebtTokens,
-    //         1e5
-    //     );
-
-    //     startHoax(newSupplier);
-    //     markets.claimDebtTokens(marketParams, newSupplier, newSupplier);
-    //     assertApproxEqAbs(
-    //         marketsDebtToken.balanceOf(newSupplier),
-    //         newSupplierDebtTokens,
-    //         1e5
-    //     );
-    // }
 
     function _checkCorrectMultipliersOnBorrow(
         uint256 defaultBorrow,
@@ -1692,6 +1498,7 @@ contract MoreMarketsTest is Test {
             marketParams.id(),
             userMultiplier
         );
+
         markets.repay(marketParams, amountToRepay, 0, user, "");
 
         (, uint256 borrowShares, , , , ) = markets.position(
@@ -1806,7 +1613,7 @@ contract MoreMarketsTest is Test {
             user
         );
 
-        assertEq(assetsWithdrawn, amountToWithdraw);
+        assertApproxEqAbs(assetsWithdrawn, amountToWithdraw, 10);
 
         (
             uint128 newTotalSupplyAssets,

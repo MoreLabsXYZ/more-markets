@@ -2,7 +2,7 @@
 pragma solidity ^0.8.21;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
-import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, SharesMathLib} from "../../contracts/MoreMarkets.sol";
+import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib, SharesMathLib, ErrorsLib} from "../../contracts/MoreMarkets.sol";
 import {DebtTokenFactory} from "../../contracts/factories/DebtTokenFactory.sol";
 import {DebtToken} from "../../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../../contracts/interfaces/ICreditAttestationService.sol";
@@ -133,7 +133,7 @@ contract MoreProxyTest is Test {
         _setUpMoreMarketsProxy();
 
         startHoax(credoraAdmin);
-        vm.expectRevert("not owner");
+        vm.expectRevert(ErrorsLib.NotOwner.selector);
         MoreMarkets(address(proxy)).upgradeTo(address(debtToken));
     }
 

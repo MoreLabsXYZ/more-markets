@@ -6,7 +6,7 @@ import {Math} from "../libraries/bundlers/Math.sol";
 import {SafeTransferLib, ERC20} from "solmate/src/utils/SafeTransferLib.sol";
 
 import {BaseBundler} from "./BaseBundler.sol";
-import {ERC20Wrapper} from "openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
+import {ERC20Wrapper} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
 
 /// @title ERC20WrapperBundler
 /// @author Morpho Labs

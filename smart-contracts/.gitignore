@@ -6,6 +6,7 @@ node_modules
 /cache
 /artifacts
 /broadcast
+/cache_hardhat
 
 # TypeChain files
 /typechain

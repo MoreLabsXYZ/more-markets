@@ -40,47 +40,113 @@ contract borrowFromMarket is Script {
         Id[] memory memAr = markets.arrayOfMarkets();
         uint256 length = memAr.length;
         console.log("lenght of memAr is %d", length);
-        for (uint i = 0; i < length; i++) {
-            console.log("- - - - - - - - - - - - - - - - - - - - - - - - - -");
-            // console.log("market id is ", memAr[i]);
-            // (
-            //     uint128 totalSupplyAssets,
-            //     uint128 totalSupplyShares,
-            //     uint128 totalBorrowAssets,
-            //     uint128 totalBorrowShares,
-            //     uint128 lastUpdate,
-            //     uint128 fee
-            // ) = markets.market(memAr[i]);
-            (
-                bool isPremium,
-                address loanToken,
-                address collateralToken,
-                address marketOracle,
-                address marketIrm,
-                uint256 lltv,
-                address creditAttestationService,
-                uint96 irxMaxLltv,
-                uint256[] memory categoryLltv
-            ) = markets.idToMarketParams(memAr[i]);
-            MarketParams memory marketParams = MarketParams({
-                isPremiumMarket: isPremium,
-                loanToken: loanToken,
-                collateralToken: collateralToken,
-                oracle: marketOracle,
-                irm: marketIrm,
-                lltv: lltv,
-                creditAttestationService: creditAttestationService,
-                irxMaxLltv: irxMaxLltv,
-                categoryLltv: categoryLltv
-            });
-            ERC20MintableMock(collateralToken).approve(
-                address(markets),
-                100000 ether
-            );
-            // markets.supplyCollateral(marketParams, 10 ether, owner, "");
-            markets.borrow(marketParams, 7 ether, 0, owner, owner);
-        }
 
+        console.log("- - - - - - - - - - - - - - - - - - - - - - - - - -");
+        // console.log("market id is ", memAr[i]);
+        // (
+        //     uint128 totalSupplyAssets,
+        //     uint128 totalSupplyShares,
+        //     uint128 totalBorrowAssets,
+        //     uint128 totalBorrowShares,
+        //     uint128 lastUpdate,
+        //     uint128 fee
+        // ) = markets.market(memAr[i]);
+        (
+            bool isPremium,
+            address loanToken,
+            address collateralToken,
+            address marketOracle,
+            address marketIrm,
+            uint256 lltv,
+            address creditAttestationService,
+            uint96 irxMaxLltv,
+            uint256[] memory categoryLltv
+        ) = markets.idToMarketParams(
+                Id.wrap(
+                    bytes32(
+                        0x75a964099ef99a0c7dc893c659a4dec8f6beeb3d7c9705e28df7d793694b6164
+                    )
+                )
+            );
+        MarketParams memory marketParams = MarketParams({
+            isPremiumMarket: isPremium,
+            loanToken: loanToken,
+            collateralToken: collateralToken,
+            oracle: marketOracle,
+            irm: marketIrm,
+            lltv: lltv,
+            creditAttestationService: creditAttestationService,
+            irxMaxLltv: irxMaxLltv,
+            categoryLltv: categoryLltv
+        });
+        ERC20MintableMock(collateralToken).mint(
+            address(owner),
+            60000 * 10 ** ERC20MintableMock(collateralToken).decimals()
+        );
+        ERC20MintableMock(collateralToken).approve(
+            address(markets),
+            100000 ether
+        );
+        markets.supplyCollateral(
+            marketParams,
+            30000 * 10 ** ERC20MintableMock(collateralToken).decimals(),
+            owner,
+            ""
+        );
+        markets.borrow(marketParams, 0.1e8, 0, owner, owner);
+
+        // ERC20MintableMock(loanToken).mint(
+        //     address(owner),
+        //     10000 * 10 ** ERC20MintableMock(loanToken).decimals()
+        // );
+        // ERC20MintableMock(loanToken).approve(address(markets), 100000 ether);
+        // (
+        //     uint128 supplyShares,
+        //     uint128 borrowShares,
+        //     uint128 collateral,
+        //     ,
+        //     ,
+
+        // ) = markets.position(
+        //         Id.wrap(
+        //             bytes32(
+        //                 0x16893ff750ddec34e292a65a8cb6a014627b3f4ad0b2b82c6da4cc28d1e0576d
+        //             )
+        //         ),
+        //         address(0x83fbd218bD0CAB5dC90D3b55E14eADaEB1e72b9D)
+        //     );
+        // console.log(borrowShares);
+        // // markets.totalBorrowAssetsForMultiplier(
+        // //     Id.wrap(
+        // //         bytes32(
+        // //             0x6bed9b33d3ee7142f53ba4cf930d61e4aff25a4677150cfe354e9b75a2ee2547
+        // //         )
+        // //     ),
+        // //     0
+        // // );
+        // markets.repay(
+        //     marketParams,
+        //     0,
+        //     borrowShares,
+        //     address(0x83fbd218bD0CAB5dC90D3b55E14eADaEB1e72b9D),
+        //     ""
+        // );
+        // markets.withdraw(marketParams, 0, supplyShares, owner, owner);
+        // markets.withdrawCollateral(marketParams, collateral, owner, owner);
+        // }
+
+        // (
+        //     uint128 supplyShares,
+        //     uint128 borrowShares,
+        //     uint128 collateral,
+        //     ,
+        //     ,
+
+        // ) = markets.position(memAr[length - 2], owner);
+
+        // console.log("supply shares: ", supplyShares);
+        // console.log("borrow shares: ", borrowShares);
+        // console.log("collateral: ", collateral);
         // Start broadcasting for deployment
         vm.stopBroadcast();
     }

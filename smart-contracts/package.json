@@ -8,7 +8,9 @@
     "solmate": "^6.2.0"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-foundry": "^1.1.2",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.10",
     "hardhat-contract-sizer": "^2.10.0"
   }
 }

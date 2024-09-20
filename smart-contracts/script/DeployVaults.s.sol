@@ -7,7 +7,7 @@ import {MoreVaultsFactory, IMetaMorphoFactory} from "../contracts/MoreVaultsFact
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {MoreProxy} from "../contracts/proxy/MoreProxy.sol";
 
-// forge script script/DeployVaults.s.sol:DeployVaults --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
+// forge script script/DeployVaults.s.sol:DeployVaults --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
 contract DeployVaults is Script {
     MoreVaultsFactory vaultsFactory;
     MoreVaults moreVaultsImpl;
@@ -29,6 +29,13 @@ contract DeployVaults is Script {
             morpho,
             address(moreVaultsImpl)
         );
+
+        console.log("more vaults implementation: ", address(moreVaultsImpl));
+        console.log(
+            "more vaults factory implementation: ",
+            address(vaultsFactory)
+        );
+        console.log("more vaults factory proxy: ", address(proxy));
 
         string memory jsonObj = string(
             abi.encodePacked(

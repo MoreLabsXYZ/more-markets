@@ -18,11 +18,15 @@ contract MoreBundler is
     Permit2Bundler,
     ERC4626Bundler,
     MorphoBundler,
-    ERC20WrapperBundler
+    ERC20WrapperBundler,
+    WNativeBundler
 {
     /* CONSTRUCTOR */
 
-    constructor(address morpho) MorphoBundler(morpho) {}
+    constructor(
+        address morpho,
+        address wNative
+    ) MorphoBundler(morpho) WNativeBundler(wNative) {}
 
     /* INTERNAL */
 

@@ -17,8 +17,8 @@ import {MoreProxy} from "../contracts/proxy/MoreProxy.sol";
 //   --verifier blockscout \
 //   --verifier-url 'https://evm-testnet.flowscan.io/api' \
 //   --chain-id 545\
-//   0xA41AE3080d733aD3a7C86B9d70DAf3074c72e859 \
-//   contracts/MoreMarkets.sol:MoreMarkets
+//   0x7EBf3217f8A54De432ACFe6E803576CB859E22a3 \
+//   contracts/proxy/MoreProxy.sol:MoreProxy
 
 // // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
 contract DeployMarketContracts is Script {
@@ -66,7 +66,6 @@ contract DeployMarketContracts is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         owner = address(uint160(vm.envUint("OWNER")));
-        credora = ICreditAttestationService(vm.envAddress("CREDORA_METRICS"));
 
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);

@@ -1,7 +1,9 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-foundry";
 import "hardhat-gas-reporter";
 import "hardhat-contract-sizer";
+import "@nomicfoundation/hardhat-verify";
 require("dotenv").config();
 
 if (!process.env.MNEMONIC)
@@ -36,7 +38,7 @@ const config: HardhatUserConfig = {
       gasPrice: 1 * 10 ** 9,
     },
     flow: {
-      url: 'https://testnet.evm.nodes.onflow.org',
+      url: "https://testnet.evm.nodes.onflow.org",
       accounts: [privateKey], // In practice, this should come from an environment variable and not be commited
       gas: 500000, // Example gas limit
     },
@@ -95,7 +97,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       // Is not required by blockscout. Can be any non-empty string
-      'flow': "abc"
+      flow: "abc",
     },
     customChains: [
       {
@@ -104,9 +106,12 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://evm-testnet.flowscan.io/api",
           browserURL: "https://evm-testnet.flowscan.io/",
-        }
-      }
-    ]
+        },
+      },
+    ],
+  },
+  sourcify: {
+    enabled: false,
   },
 };
 

@@ -1,0 +1,95 @@
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "createMorphoChainlinkOracleV2",
+      "inputs": [
+        {
+          "name": "baseVault",
+          "type": "address",
+          "internalType": "contract IERC4626"
+        },
+        {
+          "name": "baseVaultConversionSample",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "baseFeed1",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        },
+        {
+          "name": "baseFeed2",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        },
+        {
+          "name": "baseTokenDecimals",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "quoteVault",
+          "type": "address",
+          "internalType": "contract IERC4626"
+        },
+        {
+          "name": "quoteVaultConversionSample",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "quoteFeed1",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        },
+        {
+          "name": "quoteFeed2",
+          "type": "address",
+          "internalType": "contract AggregatorV3Interface"
+        },
+        {
+          "name": "quoteTokenDecimals",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "salt", "type": "bytes32", "internalType": "bytes32" }
+      ],
+      "outputs": [
+        {
+          "name": "oracle",
+          "type": "address",
+          "internalType": "contract MorphoChainlinkOracleV2"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "isMorphoChainlinkOracleV2",
+      "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "CreateMorphoChainlinkOracleV2",
+      "inputs": [
+        {
+          "name": "caller",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "oracle",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    }
+  ]
+}

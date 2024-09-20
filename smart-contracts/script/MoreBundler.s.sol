@@ -16,7 +16,7 @@ contract MoreBundlerScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        moreBundler = new MoreBundler(morpho);
+        moreBundler = new MoreBundler(morpho, vm.envAddress("WRAPPED_NATIVE"));
 
         string memory jsonObj = string(
             abi.encodePacked(

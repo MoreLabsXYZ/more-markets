@@ -1,0 +1,598 @@
+{
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        { "name": "router", "type": "address", "internalType": "address" },
+        {
+          "name": "_easContract",
+          "type": "address",
+          "internalType": "address"
+        },
+        { "name": "_donId", "type": "bytes32", "internalType": "bytes32" }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "DEFAULT_ADMIN_ROLE",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "donId",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getBorrowCapacity",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getImpliedPD",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getImpliedPDTenor",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getNAV",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getRAE",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "bytes8", "internalType": "bytes8" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getRoleAdmin",
+      "inputs": [
+        { "name": "role", "type": "bytes32", "internalType": "bytes32" }
+      ],
+      "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getScore",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "grantPermission",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" },
+        { "name": "thirdParty", "type": "address", "internalType": "address" },
+        { "name": "duration", "type": "uint128", "internalType": "uint128" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "grantPermission",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" },
+        { "name": "thirdParty", "type": "address", "internalType": "address" },
+        { "name": "duration", "type": "uint128", "internalType": "uint128" },
+        {
+          "name": "tokenAddress",
+          "type": "address",
+          "internalType": "address"
+        },
+        { "name": "tokenSender", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "grantRole",
+      "inputs": [
+        { "name": "role", "type": "bytes32", "internalType": "bytes32" },
+        { "name": "account", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "handleOracleFulfillment",
+      "inputs": [
+        { "name": "requestId", "type": "bytes32", "internalType": "bytes32" },
+        { "name": "response", "type": "bytes", "internalType": "bytes" },
+        { "name": "err", "type": "bytes", "internalType": "bytes" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "hasRole",
+      "inputs": [
+        { "name": "role", "type": "bytes32", "internalType": "bytes32" },
+        { "name": "account", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "recipient",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "renounceRole",
+      "inputs": [
+        { "name": "role", "type": "bytes32", "internalType": "bytes32" },
+        {
+          "name": "callerConfirmation",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "revokePermission",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" },
+        { "name": "thirdParty", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "revokeRole",
+      "inputs": [
+        { "name": "role", "type": "bytes32", "internalType": "bytes32" },
+        { "name": "account", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "s_lastError",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "bytes", "internalType": "bytes" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "s_lastRequestId",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "s_lastResponse",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "bytes", "internalType": "bytes" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "sendRequest",
+      "inputs": [
+        { "name": "source", "type": "string", "internalType": "string" },
+        {
+          "name": "secretsLocation",
+          "type": "uint8",
+          "internalType": "enum FunctionsRequest.Location"
+        },
+        {
+          "name": "encryptedSecretsReference",
+          "type": "bytes",
+          "internalType": "bytes"
+        },
+        { "name": "args", "type": "string[]", "internalType": "string[]" },
+        {
+          "name": "paymentDirections",
+          "type": "address[]",
+          "internalType": "address[]"
+        },
+        {
+          "name": "subscriptionId",
+          "type": "uint64",
+          "internalType": "uint64"
+        },
+        {
+          "name": "callbackGasLimit",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setData",
+      "inputs": [
+        { "name": "requestId", "type": "bytes32", "internalType": "bytes32" },
+        { "name": "data", "type": "bytes", "internalType": "bytes" },
+        { "name": "err", "type": "bytes", "internalType": "bytes" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setDataWithEAS",
+      "inputs": [
+        { "name": "uid", "type": "bytes32", "internalType": "bytes32" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setDonId",
+      "inputs": [
+        { "name": "newDonId", "type": "bytes32", "internalType": "bytes32" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setFeeDataRefresh",
+      "inputs": [
+        {
+          "name": "_requiredPayment",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setFeePermissionGrant",
+      "inputs": [
+        {
+          "name": "_requiredPayment",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "subscribe",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" },
+        {
+          "name": "subscribedContract",
+          "type": "address",
+          "internalType": "address"
+        },
+        { "name": "duration", "type": "uint128", "internalType": "uint128" },
+        {
+          "name": "tokenAddress",
+          "type": "address",
+          "internalType": "address"
+        },
+        { "name": "tokenSender", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "subscribe",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" },
+        {
+          "name": "subscribedContract",
+          "type": "address",
+          "internalType": "address"
+        },
+        { "name": "duration", "type": "uint128", "internalType": "uint128" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "supportsInterface",
+      "inputs": [
+        { "name": "interfaceId", "type": "bytes4", "internalType": "bytes4" }
+      ],
+      "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "testAccessData",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "bytes", "internalType": "bytes" }],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "testTriggerCallbacks",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" },
+        { "name": "metrics", "type": "bytes", "internalType": "bytes" },
+        {
+          "name": "subscribedContract",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "triggerCallbacks",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "unsubscribe",
+      "inputs": [
+        { "name": "entity", "type": "address", "internalType": "address" },
+        {
+          "name": "subscribedContract",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "CallbackError",
+      "inputs": [
+        {
+          "name": "subscriber",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "functionName",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "errorMessage",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "EntityDatad",
+      "inputs": [
+        {
+          "name": "entity",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "score",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "nav",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "rae",
+          "type": "bytes8",
+          "indexed": false,
+          "internalType": "bytes8"
+        },
+        {
+          "name": "borrowCapacity",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "impliedPD",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "impliedPDTenor",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Log",
+      "inputs": [
+        {
+          "name": "message",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RequestFulfilled",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RequestSent",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RoleAdminChanged",
+      "inputs": [
+        {
+          "name": "role",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "previousAdminRole",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "newAdminRole",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RoleGranted",
+      "inputs": [
+        {
+          "name": "role",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RoleRevoked",
+      "inputs": [
+        {
+          "name": "role",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "sender",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    { "type": "error", "name": "AccessControlBadConfirmation", "inputs": [] },
+    {
+      "type": "error",
+      "name": "AccessControlUnauthorizedAccount",
+      "inputs": [
+        { "name": "account", "type": "address", "internalType": "address" },
+        { "name": "neededRole", "type": "bytes32", "internalType": "bytes32" }
+      ]
+    },
+    { "type": "error", "name": "EmptyArgs", "inputs": [] },
+    { "type": "error", "name": "EmptySource", "inputs": [] },
+    { "type": "error", "name": "NoInlineSecrets", "inputs": [] },
+    { "type": "error", "name": "OnlyRouterCanFulfill", "inputs": [] }
+  ]
+}
