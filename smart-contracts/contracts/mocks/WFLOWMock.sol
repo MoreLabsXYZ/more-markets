@@ -2,8 +2,8 @@
 pragma solidity ^0.8.10;
 
 contract WFLOWMock {
-    string public name = "Wrapped FLOW";
-    string public symbol = "WFLOW";
+    string public name = "FLOW";
+    string public symbol = "FLOW";
     uint8 public decimals = 18;
 
     event Approval(address indexed src, address indexed guy, uint256 wad);

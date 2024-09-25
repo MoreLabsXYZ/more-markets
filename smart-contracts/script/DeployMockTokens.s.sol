@@ -7,7 +7,16 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 import {WFLOWMock} from "../contracts/mocks/WFLOWMock.sol";
 
-// // forge script script/DeployMockTokens.s.sol:DeployMockTokens --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
+// forge verify-contract \
+//   --rpc-url https://evm-testnet.flowscan.io/api/eth-rpc \
+//   --verifier blockscout \
+//   --verifier-url 'https://evm-testnet.flowscan.io/api' \
+//   --chain-id 545 \
+//   --constructor-args $(cast abi-encode "constructor(string,string,uint8)" "USDf(PYUSD) mock coin" "USDf" 6) \
+//   0x5360655a74C8E762a0D7EF67003F9aC586b15ada \
+//   contracts/mocks/ERC20MintableMock.sol:ERC20MintableMock
+
+// // forge script script/DeployMockTokens.s.sol:DeployMockTokens --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
 contract DeployMockTokens is Script {
     address owner;
 
@@ -30,7 +39,7 @@ contract DeployMockTokens is Script {
         tokenInfos.push(TokenInfo("BTCf(wBTC) mock coin", "BTCf", 8));
         tokenInfos.push(TokenInfo("ETHf(wETH) mock coin", "ETHf", 18));
         tokenInfos.push(TokenInfo("ankr.FLOW mock coin", "ankr.FLOW", 18));
-        tokenInfos.push(TokenInfo("wrapped FLOW mock coin", "wFLOW", 18));
+        tokenInfos.push(TokenInfo("wrapped FLOW mock coin", "FLOW", 18));
 
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
