@@ -4,13 +4,11 @@ pragma solidity ^0.8.21;
 import {Script, console} from "forge-std/Script.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
 import {IMoreMarkets} from "../contracts/interfaces/IMoreMarkets.sol";
-import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
-import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {MoreProxy} from "../contracts/proxy/MoreProxy.sol";
+import {MoreUupsProxy} from "../contracts/proxy/MoreUupsProxy.sol";
 
 // forge verify-contract \
 //   --rpc-url https://evm-testnet.flowscan.io/api/eth-rpc \
@@ -18,19 +16,17 @@ import {MoreProxy} from "../contracts/proxy/MoreProxy.sol";
 //   --verifier-url 'https://evm-testnet.flowscan.io/api' \
 //   --chain-id 545\
 //   0x7EBf3217f8A54De432ACFe6E803576CB859E22a3 \
-//   contracts/proxy/MoreProxy.sol:MoreProxy
+//   contracts/proxy/MoreUupsProxy.sol:MoreUupsProxy
 
 // // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
 contract DeployMarketContracts is Script {
     ICreditAttestationService public credora;
     address public credoraAdmin;
     OracleMock public oracleMock;
-    MoreProxy proxy;
+    MoreUupsProxy proxy;
 
     MoreMarkets public marketsImpl;
     MoreMarkets public markets;
-    DebtTokenFactory public debtTokenFactory;
-    DebtToken public debtToken;
     address public owner;
     AdaptiveCurveIrm public irm;
 
@@ -70,20 +66,9 @@ contract DeployMarketContracts is Script {
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
 
-        debtToken = new DebtToken();
-        console.log("Debt token was deployed at", address(debtToken));
-        debtTokenFactory = new DebtTokenFactory(address(debtToken));
-        console.log(
-            "Debt token factory was deployed at",
-            address(debtTokenFactory)
-        );
-        // markets = new MoreMarkets(owner, address(debtTokenFactory));
         markets = new MoreMarkets();
-        proxy = new MoreProxy(address(markets));
-        IMoreMarkets(address(proxy)).initialize(
-            owner,
-            address(debtTokenFactory)
-        );
+        proxy = new MoreUupsProxy(address(markets));
+        IMoreMarkets(address(proxy)).initialize(owner);
 
         console.log("More markets was deplyed at", address(markets));
         console.log("More markets proxy was deplyed at", address(proxy));
@@ -102,11 +87,7 @@ contract DeployMarketContracts is Script {
 
         string memory jsonObj = string(
             abi.encodePacked(
-                "{ 'debtToken': ",
-                Strings.toHexString(address(debtToken)),
-                ", 'debtTokenFactory': ",
-                Strings.toHexString(address(debtTokenFactory)),
-                " , 'markets': ",
+                "{ 'markets': ",
                 Strings.toHexString(address(proxy)),
                 ", 'irm': ",
                 Strings.toHexString(address(irm)),

@@ -3,8 +3,6 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
-import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
-import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
@@ -20,8 +18,6 @@ contract supplyToMarket is Script {
     OracleMock public oracle;
 
     MoreMarkets public markets;
-    DebtTokenFactory public debtTokenFactorye;
-    DebtToken public debtToken;
     address public owner;
     AdaptiveCurveIrm public irm;
 
@@ -65,7 +61,7 @@ contract supplyToMarket is Script {
         ) = markets.idToMarketParams(
                 Id.wrap(
                     bytes32(
-                        0x6bed9b33d3ee7142f53ba4cf930d61e4aff25a4677150cfe354e9b75a2ee2547
+                        0xa60293202460d7df68151ac06ec00f6b3dfb5ff119ca579107673bd843547875
                     )
                 )
             );
@@ -82,15 +78,15 @@ contract supplyToMarket is Script {
         });
         ERC20MintableMock(loanToken).mint(
             owner,
-            2564890 * 10 ** ERC20MintableMock(loanToken).decimals()
+            881 * 10 ** ERC20MintableMock(loanToken).decimals()
         );
         ERC20MintableMock(loanToken).approve(
             address(markets),
-            2564890 * 10 ** ERC20MintableMock(loanToken).decimals()
+            881 * 10 ** ERC20MintableMock(loanToken).decimals()
         );
         markets.supply(
             marketParams,
-            2564890 * 10 ** ERC20MintableMock(loanToken).decimals(),
+            881 * 10 ** ERC20MintableMock(loanToken).decimals(),
             0,
             owner,
             ""

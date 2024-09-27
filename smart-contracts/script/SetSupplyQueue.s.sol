@@ -79,36 +79,36 @@ contract SetSupplyQueue is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        moreVault = MoreVaults(vm.envAddress("PRIME_VAULT"));
+        moreVault = MoreVaults(vm.envAddress("APEX_VAULT"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
         address owner = vm.envAddress("OWNER");
 
         vm.startBroadcast(deployerPrivateKey);
-        marketsArray.push(Id.wrap(MarketIdwFLOWxBTCf));
-        marketsArray.push(Id.wrap(MarketIdwFLOWxUSDf));
+        // marketsArray.push(Id.wrap(MarketIdUSDfxFl));
+        // marketsArray.push(Id.wrap(MarketIdwFLOWxUSDf));
         // marketsArray.push(Id.wrap(MarketIdwUSDCfxUSDf));
-
-        marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxBTCf));
-
-        moreVault.submitCap(marketParams, 4500 * 1e18);
-        moreVault.acceptCap(marketParams);
 
         marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxUSDf));
 
-        moreVault.submitCap(marketParams, 5500 * 1e18);
+        moreVault.submitCap(marketParams, 10000 * 1e18);
+        moreVault.acceptCap(marketParams);
+
+        marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxBTCf));
+
+        moreVault.submitCap(marketParams, 90000 * 1e18);
         moreVault.acceptCap(marketParams);
 
         // marketParams = getMarketParams(Id.wrap(MarketIdwUSDCfxUSDf));
 
-        // moreVault.submitCap(marketParams, 6000 * 1e6);
+        // moreVault.submitCap(marketParams, 60000 * 1e6);
         // moreVault.acceptCap(marketParams);
 
-        moreVault.setSupplyQueue(marketsArray);
-        moreVault.setFeeRecipient(owner);
-        moreVault.setFee(0.1e18);
-        moreVault.setCurator(
-            address(0xB37a5BA4060D6bFD00a3bFCb235Bb596F13932Bd)
-        );
+        // moreVault.setSupplyQueue(marketsArray);
+        // moreVault.setFeeRecipient(owner);
+        // moreVault.setFee(0.1e18);
+        // moreVault.setCurator(
+        //     address(0xB37a5BA4060D6bFD00a3bFCb235Bb596F13932Bd)
+        // );
 
         vm.stopBroadcast();
     }

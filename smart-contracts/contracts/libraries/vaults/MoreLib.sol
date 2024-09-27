@@ -2,21 +2,20 @@
 pragma solidity ^0.8.0;
 
 import {IMoreMarkets, Id} from "../../interfaces/IMoreMarkets.sol";
-import {MorphoStorageLib} from "./MorphoStorageLib.sol";
+import {MoreStorageLib} from "./MoreStorageLib.sol";
 
-/// @title MorphoLib
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
-/// @notice Helper library to access Morpho storage variables.
+/// @title MoreLib
+/// @author MORE Labs
+/// @notice Helper library to access More storage variables. Fork of the Morpho's library.
 /// @dev Warning: Supply and borrow getters may return outdated values that do not include accrued interest.
-library MorphoLib {
+library MoreLib {
     function supplyShares(
         IMoreMarkets moreMarkets,
         Id id,
         address user
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.positionSupplySharesAndBorrowSharesSlot(id, user)
+            MoreStorageLib.positionSupplySharesAndBorrowSharesSlot(id, user)
         );
         return uint128(uint256(moreMarkets.extSloads(slot)[0]));
     }
@@ -27,7 +26,7 @@ library MorphoLib {
         address user
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.positionSupplySharesAndBorrowSharesSlot(id, user)
+            MoreStorageLib.positionSupplySharesAndBorrowSharesSlot(id, user)
         );
         return uint256(moreMarkets.extSloads(slot)[0] >> 128);
     }
@@ -38,7 +37,7 @@ library MorphoLib {
         address user
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.positionCollateralAndLastMultiplierSlot(id, user)
+            MoreStorageLib.positionCollateralAndLastMultiplierSlot(id, user)
         );
         return uint128(uint256(moreMarkets.extSloads(slot)[0]));
     }
@@ -49,7 +48,7 @@ library MorphoLib {
         address user
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.positionCollateralAndLastMultiplierSlot(id, user)
+            MoreStorageLib.positionCollateralAndLastMultiplierSlot(id, user)
         );
         return uint256(moreMarkets.extSloads(slot)[0] >> 128);
     }
@@ -59,7 +58,7 @@ library MorphoLib {
         Id id
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.marketTotalSupplyAssetsAndSharesSlot(id)
+            MoreStorageLib.marketTotalSupplyAssetsAndSharesSlot(id)
         );
         return uint128(uint256(moreMarkets.extSloads(slot)[0]));
     }
@@ -69,7 +68,7 @@ library MorphoLib {
         Id id
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.marketTotalSupplyAssetsAndSharesSlot(id)
+            MoreStorageLib.marketTotalSupplyAssetsAndSharesSlot(id)
         );
         return uint256(moreMarkets.extSloads(slot)[0] >> 128);
     }
@@ -79,7 +78,7 @@ library MorphoLib {
         Id id
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.marketTotalBorrowAssetsAndSharesSlot(id)
+            MoreStorageLib.marketTotalBorrowAssetsAndSharesSlot(id)
         );
         return uint128(uint256(moreMarkets.extSloads(slot)[0]));
     }
@@ -89,7 +88,7 @@ library MorphoLib {
         Id id
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.marketTotalBorrowAssetsAndSharesSlot(id)
+            MoreStorageLib.marketTotalBorrowAssetsAndSharesSlot(id)
         );
         return uint256(moreMarkets.extSloads(slot)[0] >> 128);
     }
@@ -99,7 +98,7 @@ library MorphoLib {
         Id id
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.marketLastUpdateAndFeeSlot(id)
+            MoreStorageLib.marketLastUpdateAndFeeSlot(id)
         );
         return uint128(uint256(moreMarkets.extSloads(slot)[0]));
     }
@@ -109,7 +108,7 @@ library MorphoLib {
         Id id
     ) internal view returns (uint256) {
         bytes32[] memory slot = _array(
-            MorphoStorageLib.marketLastUpdateAndFeeSlot(id)
+            MoreStorageLib.marketLastUpdateAndFeeSlot(id)
         );
         return uint256(moreMarkets.extSloads(slot)[0] >> 128);
     }

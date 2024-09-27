@@ -4,8 +4,6 @@ pragma solidity ^0.8.13;
 import {Script, console} from "forge-std/Script.sol";
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
-import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
-import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
@@ -21,8 +19,6 @@ contract borrowFromMarket is Script {
     OracleMock public oracle;
 
     MoreMarkets public markets;
-    DebtTokenFactory public debtTokenFactorye;
-    DebtToken public debtToken;
     address public owner;
     AdaptiveCurveIrm public irm;
 

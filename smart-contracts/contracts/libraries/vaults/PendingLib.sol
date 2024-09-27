@@ -31,17 +31,29 @@ struct PendingAddress {
 library PendingLib {
     /// @dev Updates `pending`'s value to `newValue` and its corresponding `validAt` timestamp.
     /// @dev Assumes `timelock` <= `MAX_TIMELOCK`.
-    function update(PendingUint192 storage pending, uint184 newValue, uint256 timelock) internal {
+    function update(
+        PendingUint192 storage pending,
+        uint184 newValue,
+        uint256 timelock
+    ) internal {
         pending.value = newValue;
         // Safe "unchecked" cast because timelock <= MAX_TIMELOCK.
-        pending.validAt = uint64(block.timestamp + timelock);
+        unchecked {
+            pending.validAt = uint64(block.timestamp + timelock);
+        }
     }
 
     /// @dev Updates `pending`'s value to `newValue` and its corresponding `validAt` timestamp.
     /// @dev Assumes `timelock` <= `MAX_TIMELOCK`.
-    function update(PendingAddress storage pending, address newValue, uint256 timelock) internal {
+    function update(
+        PendingAddress storage pending,
+        address newValue,
+        uint256 timelock
+    ) internal {
         pending.value = newValue;
         // Safe "unchecked" cast because timelock <= MAX_TIMELOCK.
-        pending.validAt = uint64(block.timestamp + timelock);
+        unchecked {
+            pending.validAt = uint64(block.timestamp + timelock);
+        }
     }
 }

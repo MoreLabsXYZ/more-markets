@@ -3,26 +3,22 @@ pragma solidity ^0.8.0;
 
 import {Id} from "../../interfaces/IMoreMarkets.sol";
 
-/// @title MorphoStorageLib
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
-/// @notice Helper library exposing getters to access Morpho storage variables' slot.
+/// @title MoreStorageLib
+/// @author MORE Labs
+/// @notice Helper library exposing getters to access Morpho storage variables' slot. Fork of the Morpho's library.
 /// @dev This library is not used in Morpho itself and is intended to be used by integrators.
-library MorphoStorageLib {
+library MoreStorageLib {
     /* SLOTS */
 
-    /// inheritance to make contract upgradeable was implemented and storage shifted
-    uint256 internal constant INHERITANCE_OFFSET = 101;
-
-    uint256 internal constant OWNER_SLOT = 0 + INHERITANCE_OFFSET;
-    uint256 internal constant FEE_RECIPIENT_SLOT = 1 + INHERITANCE_OFFSET;
-    uint256 internal constant POSITION_SLOT = 2 + INHERITANCE_OFFSET;
-    uint256 internal constant MARKET_SLOT = 3 + INHERITANCE_OFFSET;
-    uint256 internal constant IS_IRM_ENABLED_SLOT = 4 + INHERITANCE_OFFSET;
-    uint256 internal constant IS_LLTV_ENABLED_SLOT = 5 + INHERITANCE_OFFSET;
-    uint256 internal constant IS_AUTHORIZED_SLOT = 6 + INHERITANCE_OFFSET;
-    uint256 internal constant NONCE_SLOT = 7 + INHERITANCE_OFFSET;
-    uint256 internal constant ID_TO_MARKET_PARAMS_SLOT = 8 + INHERITANCE_OFFSET;
+    uint256 internal constant OWNER_SLOT = 0;
+    uint256 internal constant FEE_RECIPIENT_SLOT = 1;
+    uint256 internal constant POSITION_SLOT = 2;
+    uint256 internal constant MARKET_SLOT = 3;
+    uint256 internal constant IS_IRM_ENABLED_SLOT = 4;
+    uint256 internal constant IS_LLTV_ENABLED_SLOT = 5;
+    uint256 internal constant IS_AUTHORIZED_SLOT = 6;
+    uint256 internal constant NONCE_SLOT = 7;
+    uint256 internal constant ID_TO_MARKET_PARAMS_SLOT = 8;
 
     /* SLOT OFFSETS */
 
@@ -38,8 +34,6 @@ library MorphoStorageLib {
 
     uint256 internal constant SUPPLY_SHARES_AND_BORROW_SHARES_OFFSET = 0;
     uint256 internal constant COLLATERAL_AND_LAST_MULTIPLIER_OFFSET = 1;
-    uint256 internal constant DEBT_TOKEN_MISSED_AND_DEBT_TOKEN_GAINED_OFFSET =
-        2;
 
     uint256 internal constant TOTAL_SUPPLY_ASSETS_AND_SHARES_OFFSET = 0;
     uint256 internal constant TOTAL_BORROW_ASSETS_AND_SHARES_OFFSET = 1;
@@ -88,23 +82,6 @@ library MorphoStorageLib {
                         )
                     )
                 ) + COLLATERAL_AND_LAST_MULTIPLIER_OFFSET
-            );
-    }
-
-    function positionDebtTokenMissedAndDebtTokenGainedSlot(
-        Id id,
-        address user
-    ) internal pure returns (bytes32) {
-        return
-            bytes32(
-                uint256(
-                    keccak256(
-                        abi.encode(
-                            user,
-                            keccak256(abi.encode(id, POSITION_SLOT))
-                        )
-                    )
-                ) + DEBT_TOKEN_MISSED_AND_DEBT_TOKEN_GAINED_OFFSET
             );
     }
 

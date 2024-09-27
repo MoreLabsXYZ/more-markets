@@ -1,0 +1,76 @@
+{
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "moreMarketsAddress",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "REGULAR_MULTIPLIER",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "SECONDS_PER_YEAR",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getBorrowRate",
+      "inputs": [{ "name": "id", "type": "bytes32", "internalType": "Id" }],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getMarketSupplyRate",
+      "inputs": [{ "name": "id", "type": "bytes32", "internalType": "Id" }],
+      "outputs": [
+        {
+          "name": "regularSupplyRate",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "premiumSupplyRate",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getVaultSupplyRate",
+      "inputs": [
+        { "name": "vault", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "moreMarkets",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "contract IMoreMarkets"
+        }
+      ],
+      "stateMutability": "view"
+    }
+  ]
+}

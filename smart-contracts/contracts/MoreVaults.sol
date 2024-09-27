@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.21;
 
-import {MarketConfig, PendingUint192, PendingAddress, MarketAllocation, IMetaMorphoBase, IMetaMorphoStaticTyping} from "./interfaces/IMetaMorpho.sol";
+import {MarketConfig, PendingUint192, PendingAddress, MarketAllocation, IMoreVaultsBase, IMoreVaultsStaticTyping} from "./interfaces/IMoreVaults.sol";
 import {IMoreMarkets, MarketParams, Market, Id} from "./interfaces/IMoreMarkets.sol";
-import {IMetaMorphoFactory, PremiumFeeInfo} from "./interfaces/IMetaMorphoFactory.sol";
+import {IMoreVaultsFactory, PremiumFeeInfo} from "./interfaces/factories/IMoreVaultsFactory.sol";
 
 import {PendingUint192, PendingAddress, PendingLib} from "./libraries/vaults/PendingLib.sol";
 import {ConstantsLib} from "./libraries/vaults/ConstantsLib.sol";
@@ -13,10 +13,10 @@ import {WAD} from "@morpho-org/morpho-blue/src/libraries/MathLib.sol";
 import {UtilsLib} from "@morpho-org/morpho-blue/src/libraries/UtilsLib.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {SharesMathLib} from "@morpho-org/morpho-blue/src/libraries/SharesMathLib.sol";
-import {MorphoLib} from "./libraries/vaults/MorphoLib.sol";
+import {MoreLib} from "./libraries/vaults/MoreLib.sol";
 import {MarketParamsLib} from "./libraries/MarketParamsLib.sol";
 import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
-import {MorphoBalancesLib} from "./libraries/vaults/MorphoBalancesLib.sol";
+import {MoreBalancesLib} from "./libraries/vaults/MoreBalancesLib.sol";
 
 import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -25,22 +25,22 @@ import {ERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/
 import {IERC4626Upgradeable, ERC4626Upgradeable, MathUpgradeable, SafeERC20Upgradeable, IERC20Upgradeable, ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 
 /// @title MoreVaults
-/// @author MoreMarkets
+/// @author MORE Labs
 /// @notice ERC4626 compliant vault allowing users to deposit assets to More Markets. Fork of Morpho's metamorpho.
 contract MoreVaults is
     ERC4626Upgradeable,
     ERC20PermitUpgradeable,
     Ownable2StepUpgradeable,
     MulticallUpgradeable,
-    IMetaMorphoStaticTyping
+    IMoreVaultsStaticTyping
 {
     using MathUpgradeable for uint256;
     using UtilsLib for uint256;
     using SafeCast for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
-    using MorphoLib for IMoreMarkets;
+    using MoreLib for IMoreMarkets;
     using SharesMathLib for uint256;
-    using MorphoBalancesLib for IMoreMarkets;
+    using MoreBalancesLib for IMoreMarkets;
     using MarketParamsLib for MarketParams;
     using PendingLib for MarketConfig;
     using PendingLib for PendingUint192;
@@ -48,10 +48,10 @@ contract MoreVaults is
 
     /* IMMUTABLES */
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     IMoreMarkets public MORE_MARKETS;
-    /// @inheritdoc IMetaMorphoBase
-    IMetaMorphoFactory public VAULTS_FACTORY;
+    /// @inheritdoc IMoreVaultsBase
+    IMoreVaultsFactory public VAULTS_FACTORY;
 
     /// @notice OpenZeppelin decimals offset used by the ERC4626 implementation.
     /// @dev Calculated to be max(0, 18 - underlyingDecimals) at construction, so the initial conversion rate maximizes
@@ -60,51 +60,57 @@ contract MoreVaults is
 
     /* STORAGE */
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     address public curator;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     mapping(address => bool) public isAllocator;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     address public guardian;
 
-    /// @inheritdoc IMetaMorphoStaticTyping
+    /// @inheritdoc IMoreVaultsStaticTyping
     mapping(Id => MarketConfig) public config;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     uint256 public timelock;
 
-    /// @inheritdoc IMetaMorphoStaticTyping
+    /// @inheritdoc IMoreVaultsStaticTyping
     PendingAddress public pendingGuardian;
 
-    /// @inheritdoc IMetaMorphoStaticTyping
+    /// @inheritdoc IMoreVaultsStaticTyping
     mapping(Id => PendingUint192) public pendingCap;
 
-    /// @inheritdoc IMetaMorphoStaticTyping
+    /// @inheritdoc IMoreVaultsStaticTyping
     PendingUint192 public pendingTimelock;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     uint96 public fee;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     address public feeRecipient;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     address public skimRecipient;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     Id[] public supplyQueue;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     Id[] public withdrawQueue;
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     uint256 public lastTotalAssets;
+
+    /* CONSTRUCTOR */
+
+    constructor() {
+        _disableInitializers();
+    }
 
     /* INITIALIZER */
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function initialize(
         address owner,
         address moreMarkets,
@@ -123,7 +129,7 @@ contract MoreVaults is
         _transferOwnership(owner);
 
         MORE_MARKETS = IMoreMarkets(moreMarkets);
-        VAULTS_FACTORY = IMetaMorphoFactory(vaultsFactory);
+        VAULTS_FACTORY = IMoreVaultsFactory(vaultsFactory);
         DECIMALS_OFFSET = uint8(
             uint256(18).zeroFloorSub(
                 IERC20MetadataUpgradeable(_asset).decimals()
@@ -191,7 +197,7 @@ contract MoreVaults is
 
     /* ONLY OWNER FUNCTIONS */
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function setCurator(address newCurator) external onlyOwner {
         if (newCurator == curator) revert ErrorsLib.AlreadySet();
 
@@ -200,7 +206,7 @@ contract MoreVaults is
         emit EventsLib.SetCurator(newCurator);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function setIsAllocator(
         address newAllocator,
         bool newIsAllocator
@@ -213,7 +219,7 @@ contract MoreVaults is
         emit EventsLib.SetIsAllocator(newAllocator, newIsAllocator);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function setSkimRecipient(address newSkimRecipient) external onlyOwner {
         if (newSkimRecipient == skimRecipient) revert ErrorsLib.AlreadySet();
 
@@ -222,7 +228,7 @@ contract MoreVaults is
         emit EventsLib.SetSkimRecipient(newSkimRecipient);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function submitTimelock(uint256 newTimelock) external onlyOwner {
         if (newTimelock == timelock) revert ErrorsLib.AlreadySet();
         if (pendingTimelock.validAt != 0) revert ErrorsLib.AlreadyPending();
@@ -238,7 +244,7 @@ contract MoreVaults is
         }
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function setFee(uint256 newFee) external onlyOwner {
         if (newFee == fee) revert ErrorsLib.AlreadySet();
         if (newFee > ConstantsLib.MAX_FEE) revert ErrorsLib.MaxFeeExceeded();
@@ -254,7 +260,7 @@ contract MoreVaults is
         emit EventsLib.SetFee(_msgSender(), fee);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function setFeeRecipient(address newFeeRecipient) external onlyOwner {
         if (newFeeRecipient == feeRecipient) revert ErrorsLib.AlreadySet();
         if (newFeeRecipient == address(0) && fee != 0)
@@ -268,7 +274,7 @@ contract MoreVaults is
         emit EventsLib.SetFeeRecipient(newFeeRecipient);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function submitGuardian(address newGuardian) external onlyOwner {
         if (newGuardian == guardian) revert ErrorsLib.AlreadySet();
         if (pendingGuardian.validAt != 0) revert ErrorsLib.AlreadyPending();
@@ -284,7 +290,7 @@ contract MoreVaults is
 
     /* ONLY CURATOR FUNCTIONS */
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function submitCap(
         MarketParams memory marketParams,
         uint256 newSupplyCap
@@ -308,7 +314,7 @@ contract MoreVaults is
         }
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function submitMarketRemoval(
         MarketParams memory marketParams
     ) external onlyCuratorRole {
@@ -326,7 +332,7 @@ contract MoreVaults is
 
     /* ONLY ALLOCATOR FUNCTIONS */
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function setSupplyQueue(
         Id[] calldata newSupplyQueue
     ) external onlyAllocatorRole {
@@ -345,7 +351,7 @@ contract MoreVaults is
         emit EventsLib.SetSupplyQueue(_msgSender(), newSupplyQueue);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function updateWithdrawQueue(
         uint256[] calldata indexes
     ) external onlyAllocatorRole {
@@ -395,7 +401,7 @@ contract MoreVaults is
         emit EventsLib.SetWithdrawQueue(_msgSender(), newWithdrawQueue);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function reallocate(
         MarketAllocation[] calldata allocations
     ) external onlyAllocatorRole {
@@ -480,28 +486,28 @@ contract MoreVaults is
 
     /* REVOKE FUNCTIONS */
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function revokePendingTimelock() external onlyGuardianRole {
         delete pendingTimelock;
 
         emit EventsLib.RevokePendingTimelock(_msgSender());
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function revokePendingGuardian() external onlyGuardianRole {
         delete pendingGuardian;
 
         emit EventsLib.RevokePendingGuardian(_msgSender());
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function revokePendingCap(Id id) external onlyCuratorOrGuardianRole {
         delete pendingCap[id];
 
         emit EventsLib.RevokePendingCap(_msgSender(), id);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function revokePendingMarketRemoval(
         Id id
     ) external onlyCuratorOrGuardianRole {
@@ -512,27 +518,27 @@ contract MoreVaults is
 
     /* EXTERNAL */
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function supplyQueueLength() external view returns (uint256) {
         return supplyQueue.length;
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function withdrawQueueLength() external view returns (uint256) {
         return withdrawQueue.length;
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function acceptTimelock() external afterTimelock(pendingTimelock.validAt) {
         _setTimelock(pendingTimelock.value);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function acceptGuardian() external afterTimelock(pendingGuardian.validAt) {
         _setGuardian(pendingGuardian.value);
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function acceptCap(
         MarketParams memory marketParams
     ) external afterTimelock(pendingCap[marketParams.id()].validAt) {
@@ -542,7 +548,7 @@ contract MoreVaults is
         _setCap(marketParams, id, uint184(pendingCap[id].value));
     }
 
-    /// @inheritdoc IMetaMorphoBase
+    /// @inheritdoc IMoreVaultsBase
     function skim(address token) external {
         if (skimRecipient == address(0)) revert ErrorsLib.ZeroAddress();
 

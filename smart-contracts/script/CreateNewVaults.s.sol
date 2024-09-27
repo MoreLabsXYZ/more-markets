@@ -3,7 +3,7 @@ pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MoreVaultsFactory} from "../contracts/MoreVaultsFactory.sol";
-import {IMetaMorpho} from "../contracts/interfaces/IMetaMorpho.sol";
+import {IMoreVaults} from "../contracts/interfaces/IMoreVaults.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
 // forge script script/CreateNewVaults.s.sol:CreateNewVaults --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
@@ -28,7 +28,6 @@ contract CreateNewVaults is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // TODO script can be improved by reading these values from the environment or JSON CONFIG
         address initialOwner = address(uint160(vm.envUint("OWNER")));
         uint256 initialTimelock = 0;
         address asset1 = address(BTCf);
@@ -40,7 +39,7 @@ contract CreateNewVaults is Script {
         vm.startBroadcast(deployerPrivateKey);
         vaultsFactory = MoreVaultsFactory(vm.envAddress("VAULT_FACTORY"));
 
-        IMetaMorpho vault = vaultsFactory.createMetaMorpho(
+        IMoreVaults vault = vaultsFactory.createMoreVault(
             initialOwner,
             initialTimelock,
             asset1,

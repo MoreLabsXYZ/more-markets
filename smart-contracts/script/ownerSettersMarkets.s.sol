@@ -3,8 +3,6 @@ pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
-import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
-import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
@@ -19,8 +17,6 @@ contract ownerSettersMarkets is Script {
     OracleMock public oracle;
 
     MoreMarkets public markets;
-    DebtTokenFactory public debtTokenFactorye;
-    DebtToken public debtToken;
     address public owner;
     AdaptiveCurveIrm public irm;
 
@@ -36,10 +32,6 @@ contract ownerSettersMarkets is Script {
         credora = ICreditAttestationService(vm.envAddress("CREDORA_METRICS"));
         oracle = OracleMock(vm.envAddress("ORACLE"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
-        debtTokenFactorye = DebtTokenFactory(
-            vm.envAddress("DEBT_TOKEN_FACTORY")
-        );
-        debtToken = DebtToken(vm.envAddress("DEBT_TOKEN"));
         irm = AdaptiveCurveIrm(vm.envAddress("IRM"));
 
         vm.startBroadcast(deployerPrivateKey);

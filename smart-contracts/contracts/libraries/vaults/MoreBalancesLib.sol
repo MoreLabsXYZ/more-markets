@@ -4,25 +4,24 @@ pragma solidity ^0.8.0;
 import {Id, MarketParams, Market, IMoreMarkets} from "../../interfaces/IMoreMarkets.sol";
 import {IIrm} from "../../interfaces/IIrm.sol";
 
-import {MorphoLib} from "./MorphoLib.sol";
+import {MoreLib} from "./MoreLib.sol";
 import {MarketParamsLib} from "../MarketParamsLib.sol";
 
 import {MathLib, WAD} from "@morpho-org/morpho-blue/src/libraries/MathLib.sol";
 import {UtilsLib} from "@morpho-org/morpho-blue/src/libraries/UtilsLib.sol";
 import {SharesMathLib} from "@morpho-org/morpho-blue/src/libraries/SharesMathLib.sol";
 
-/// @title MorphoBalancesLib
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
-/// @notice Helper library exposing getters with the expected value after interest accrual.
+/// @title MoreBalancesLib
+/// @author MORE Labs
+/// @notice Helper library exposing getters with the expected value after interest accrual. Fork of the Morpho's library.
 /// @dev This library is not used in Morpho itself and is intended to be used by integrators.
 /// @dev The getter to retrieve the expected total borrow shares is not exposed because interest accrual does not apply
 /// to it. The value can be queried directly on Morpho using `totalBorrowShares`.
-library MorphoBalancesLib {
+library MoreBalancesLib {
     using MathLib for uint256;
     using MathLib for uint128;
     using UtilsLib for uint256;
-    using MorphoLib for IMoreMarkets;
+    using MoreLib for IMoreMarkets;
     using SharesMathLib for uint256;
     using MarketParamsLib for MarketParams;
 

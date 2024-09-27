@@ -5,9 +5,8 @@ import {Id, MarketParams} from "../interfaces/IMoreMarkets.sol";
 import "hardhat/console.sol";
 
 /// @title MarketParamsLib
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
-/// @notice Library to convert a market to its id.
+/// @author MORE Labs
+/// @notice Library to convert a market to its id. Fork of the Morpho's library.
 library MarketParamsLib {
     /// @notice Returns the id of the market `marketParams`.
     function id(

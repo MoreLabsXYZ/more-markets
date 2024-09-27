@@ -3,8 +3,6 @@ pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
-import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
-import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
@@ -27,8 +25,6 @@ contract CreateNewMarket is Script {
     address public credoraAdmin;
 
     MoreMarkets public markets;
-    DebtTokenFactory public debtTokenFactorye;
-    DebtToken public debtToken;
     address public owner;
     AdaptiveCurveIrm public irm;
 

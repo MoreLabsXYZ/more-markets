@@ -1,5 +1,6 @@
 {
   "abi": [
+    { "type": "constructor", "inputs": [], "stateMutability": "nonpayable" },
     {
       "type": "function",
       "name": "DECIMALS_OFFSET",
@@ -35,7 +36,7 @@
         {
           "name": "",
           "type": "address",
-          "internalType": "contract IMetaMorphoFactory"
+          "internalType": "contract IMoreVaultsFactory"
         }
       ],
       "stateMutability": "view"

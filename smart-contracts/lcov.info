@@ -1138,8 +1138,8 @@ FNDA:0,MoreVaultsFactory.
 DA:33,0
 BRDA:33,0,0,-
 DA:35,0
-FN:41,MoreVaultsFactory.createMetaMorpho
-FNDA:0,MoreVaultsFactory.createMetaMorpho
+FN:41,MoreVaultsFactory.createMoreVault
+FNDA:0,MoreVaultsFactory.createMoreVault
 DA:49,0
 DA:62,0
 DA:63,0

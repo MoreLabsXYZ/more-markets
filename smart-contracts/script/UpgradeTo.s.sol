@@ -5,6 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {MoreMarkets} from "../contracts/MoreMarkets.sol";
+import {ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // // forge script script/UpgradeTo.s.sol:UpgradeTo --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv  --slow
 contract UpgradeTo is Script {
@@ -14,12 +15,15 @@ contract UpgradeTo is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        MoreMarkets marketsProxy = MoreMarkets(vm.envAddress("MARKETS"));
+        ITransparentUpgradeableProxy marketsProxy = ITransparentUpgradeableProxy(
+                vm.envAddress("MARKETS")
+            );
 
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
-        marketsProxy.upgradeTo(
-            address(0xF72Dca492aA8Ad4419B55804f4Ce672f25974D34)
+        marketsProxy.upgradeToAndCall(
+            address(0xF72Dca492aA8Ad4419B55804f4Ce672f25974D34),
+            ""
         );
 
         vm.stopBroadcast();

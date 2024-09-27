@@ -3,13 +3,13 @@ pragma solidity ^0.8.21;
 
 import {Vm, StdCheats, Test, console} from "forge-std/Test.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
-import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
-import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 contract MoreMarketsTest is Test {
     using MarketParamsLib for MarketParams;
@@ -27,9 +27,10 @@ contract MoreMarketsTest is Test {
         address(0x98ADc891Efc9Ce18cA4A63fb0DfbC2864566b5Ab);
     OracleMock public oracle;
 
+    TransparentUpgradeableProxy public transparentProxy;
+    ProxyAdmin public proxyAdmin;
+    MoreMarkets public marketsImpl;
     MoreMarkets public markets;
-    DebtTokenFactory public debtTokenFactory;
-    DebtToken public debtToken;
     address public owner = address(0x89a76D7a4D006bDB9Efd0923A346fAe9437D434F);
     AdaptiveCurveIrm public irm;
 
@@ -69,11 +70,16 @@ contract MoreMarketsTest is Test {
         flowTestnetFork = vm.createFork("https://testnet.evm.nodes.onflow.org");
         vm.selectFork(flowTestnetFork);
 
-        debtToken = new DebtToken();
-        debtTokenFactory = new DebtTokenFactory(address(debtToken));
-        // markets = new MoreMarkets(owner, address(debtTokenFactory));
-        markets = new MoreMarkets();
-        markets.initialize(owner, address(debtTokenFactory));
+        proxyAdmin = new ProxyAdmin(owner);
+        marketsImpl = new MoreMarkets();
+        transparentProxy = new TransparentUpgradeableProxy(
+            address(marketsImpl),
+            address(proxyAdmin),
+            ""
+        );
+        markets = MoreMarkets(address(transparentProxy));
+        markets.initialize(owner);
+
         irm = new AdaptiveCurveIrm(address(markets));
         oracle = new OracleMock();
         // set price as 1 : 1

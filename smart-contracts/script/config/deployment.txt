@@ -78,6 +78,7 @@
   More markets implementation was deployed at 0x4b7ECe4210dCD289575C3D4e0d401ef8E367a626
   More markets proxy was deployed at 0x9a9B20fAb58a0fF084e70283E91448bB31d0FAfa
   AdaptiveCurveIrm was deployed at 0xAcdBb48ee560fFc54234559a58F5a45589a77097
+  AprFeed was deployed at 0x49B071664908299dE9aFa9e81F560b5e884046E0
 
   -----------------------------MORE VAULTS--------------------------------
   

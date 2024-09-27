@@ -69,7 +69,7 @@ export const metaMorphoFactoryAbi: Abi = [
         type: "bytes32",
       },
     ],
-    name: "CreateMetaMorpho",
+    name: "createMoreVault",
     type: "event",
   },
   {
@@ -131,10 +131,10 @@ export const metaMorphoFactoryAbi: Abi = [
         type: "bytes32",
       },
     ],
-    name: "createMetaMorpho",
+    name: "createMoreVault",
     outputs: [
       {
-        internalType: "contract IMetaMorpho",
+        internalType: "contract IMoreVaults",
         name: "metaMorpho",
         type: "address",
       },

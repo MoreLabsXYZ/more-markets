@@ -2,7 +2,7 @@
 pragma solidity >=0.5.0;
 
 import {IMoreMarkets, MarketParams, Id} from "./IMoreMarkets.sol";
-import {IMetaMorphoFactory} from "./IMetaMorphoFactory.sol";
+import {IMoreVaultsFactory} from "./factories/IMoreVaultsFactory.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
@@ -27,12 +27,12 @@ interface IOwnable {
     function pendingOwner() external view returns (address);
 }
 
-/// @dev This interface is used for factorizing IMetaMorphoStaticTyping and IMetaMorpho.
-/// @dev Consider using the IMetaMorpho interface instead of this one.
-interface IMetaMorphoBase {
+/// @dev This interface is used for factorizing IMoreVaultsStaticTyping and IMoreVaults.
+/// @dev Consider using the IMoreVaults interface instead of this one.
+interface IMoreVaultsBase {
     /// @notice Initializes the contract.
     /// @param owner The owner of the contract.
-    /// @param moreMarkets The address of the Morpho contract.
+    /// @param moreMarkets The address of the MoreMarkets contract.
     /// @param vaultsFactory address of the factory, that deployed this contract.
     /// @param initialTimelock The initial timelock.
     /// @param _asset The address of the underlying asset.
@@ -51,7 +51,7 @@ interface IMetaMorphoBase {
     /// @notice The address of the MoreMarkets contract.
     function MORE_MARKETS() external view returns (IMoreMarkets);
     /// @notice The address of the More vaults factory contract.
-    function VAULTS_FACTORY() external view returns (IMetaMorphoFactory);
+    function VAULTS_FACTORY() external view returns (IMoreVaultsFactory);
     function DECIMALS_OFFSET() external view returns (uint8);
 
     /// @notice The address of the curator.
@@ -201,9 +201,9 @@ interface IMetaMorphoBase {
     function reallocate(MarketAllocation[] calldata allocations) external;
 }
 
-/// @dev This interface is inherited by MetaMorpho so that function signatures are checked by the compiler.
-/// @dev Consider using the IMetaMorpho interface instead of this one.
-interface IMetaMorphoStaticTyping is IMetaMorphoBase {
+/// @dev This interface is inherited by MoreVaults so that function signatures are checked by the compiler.
+/// @dev Consider using the IMoreVaults interface instead of this one.
+interface IMoreVaultsStaticTyping is IMoreVaultsBase {
     /// @notice Returns the current configuration of each market.
     function config(
         Id
@@ -227,12 +227,11 @@ interface IMetaMorphoStaticTyping is IMetaMorphoBase {
         returns (uint192 value, uint64 validAt);
 }
 
-/// @title IMetaMorpho
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
-/// @dev Use this interface for MetaMorpho to have access to all the functions with the appropriate function signatures.
-interface IMetaMorpho is
-    IMetaMorphoBase,
+/// @title IMoreVaults
+/// @author MoreMarkets
+/// @dev Use this interface for MoreVaults to have access to all the functions with the appropriate function signatures.
+interface IMoreVaults is
+    IMoreVaultsBase,
     IERC4626,
     IERC20Permit,
     IOwnable,
@@ -250,5 +249,5 @@ interface IMetaMorpho is
     /// @notice Returns the pending timelock.
     function pendingTimelock() external view returns (PendingUint192 memory);
 
-    function arrayOfMorphos() external view returns (address[] memory);
+    function arrayOfVaults() external view returns (address[] memory);
 }

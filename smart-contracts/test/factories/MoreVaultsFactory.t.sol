@@ -3,22 +3,28 @@ pragma solidity ^0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
 import {IMoreMarkets} from "../../contracts/interfaces/IMoreMarkets.sol";
-import {IMetaMorpho} from "../../contracts/interfaces/IMetaMorpho.sol";
-import {IMetaMorphoFactory} from "../../contracts/interfaces/IMetaMorphoFactory.sol";
+import {IMoreVaults} from "../../contracts/interfaces/IMoreVaults.sol";
+import {IMoreVaultsFactory} from "../../contracts/interfaces/factories/IMoreVaultsFactory.sol";
 import {MoreMarkets} from "../../contracts/MoreMarkets.sol";
 import {MoreVaultsFactory, PremiumFeeInfo, ErrorsLib, OwnableUpgradeable} from "../../contracts/MoreVaultsFactory.sol";
 import {MoreVaults} from "../../contracts/MoreVaults.sol";
 import {ERC20MintableMock} from "../../contracts/mocks/ERC20MintableMock.sol";
-import {DebtTokenFactory} from "../../contracts/factories/DebtTokenFactory.sol";
-import {DebtToken} from "../../contracts/tokens/DebtToken.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {MoreUupsProxy} from "../../contracts/proxy/MoreUupsProxy.sol";
 
 contract MoreVaultsFactoryTest is Test {
+    MoreVaultsFactory factoryImpl;
     MoreVaultsFactory factory;
     MoreVaults implementation;
-    MoreMarkets markets;
+    MoreUupsProxy proxy;
+
+    TransparentUpgradeableProxy public transparentProxy;
+    ProxyAdmin public proxyAdmin;
+    MoreMarkets public marketsImpl;
+    MoreMarkets public markets;
+
     ERC20MintableMock asset;
-    DebtTokenFactory public debtTokenFactory;
-    DebtToken public debtToken;
 
     uint256 sepoliaFork;
     uint256 flowTestnetFork;
@@ -36,19 +42,22 @@ contract MoreVaultsFactoryTest is Test {
         vm.selectFork(flowTestnetFork);
 
         startHoax(deployer);
-        debtToken = new DebtToken();
-        debtTokenFactory = new DebtTokenFactory(address(debtToken));
 
         implementation = new MoreVaults();
-        // markets = new MoreMarkets(deployer, address(debtTokenFactory));
-        markets = new MoreMarkets();
-        markets.initialize(deployer, address(debtTokenFactory));
 
-        // factory = new MoreVaultsFactory(
-        //     address(markets),
-        //     address(implementation)
-        // );
-        factory = new MoreVaultsFactory();
+        proxyAdmin = new ProxyAdmin(deployer);
+        marketsImpl = new MoreMarkets();
+        transparentProxy = new TransparentUpgradeableProxy(
+            address(marketsImpl),
+            address(proxyAdmin),
+            ""
+        );
+        markets = MoreMarkets(address(transparentProxy));
+        markets.initialize(deployer);
+
+        factoryImpl = new MoreVaultsFactory();
+        proxy = new MoreUupsProxy(address(factoryImpl));
+        factory = MoreVaultsFactory(address(proxy));
         factory.initialize(address(markets), address(implementation));
 
         asset = new ERC20MintableMock(deployer, "Asset", "ASSET");
@@ -59,7 +68,7 @@ contract MoreVaultsFactoryTest is Test {
         assertEq(imp, address(implementation));
     }
 
-    function test_createMetaMorpho_shouldSetParametersCorrectly() public {
+    function test_createMoreVault_shouldSetParametersCorrectly() public {
         address initialOwner = deployer;
         uint256 initialTimelock = 0;
         string memory name = "MOCK VAULT 1";
@@ -69,7 +78,7 @@ contract MoreVaultsFactoryTest is Test {
         address[] memory vaults = factory.arrayOfVaults();
         assertEq(vaults.length, 0);
 
-        IMetaMorpho vault = factory.createMetaMorpho(
+        IMoreVaults vault = factory.createMoreVault(
             initialOwner,
             initialTimelock,
             address(asset),
@@ -85,19 +94,19 @@ contract MoreVaultsFactoryTest is Test {
         assertEq(vault.symbol(), symbol);
         assertEq(address(vault.VAULTS_FACTORY()), address(factory));
 
-        assertTrue(factory.isMetaMorpho(address(vault)));
+        assertTrue(factory.isMoreVault(address(vault)));
         vaults = factory.arrayOfVaults();
         assertEq(vaults.length, 1);
         assertEq(vaults[0], address(vault));
     }
 
-    function test_setFeeInfo_shouldSetPremiumFeeInfoCorrectly() public {
+    function test_setPremiumFeeInfo_shouldSetPremiumFeeInfoCorrectly() public {
         address initialOwner = deployer;
         uint256 initialTimelock = 0;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
-        IMetaMorpho vault = factory.createMetaMorpho(
+        IMoreVaults vault = factory.createMoreVault(
             initialOwner,
             initialTimelock,
             address(asset),
@@ -107,7 +116,7 @@ contract MoreVaultsFactoryTest is Test {
         );
 
         PremiumFeeInfo memory feeInfo = PremiumFeeInfo(deployer, maxFee);
-        factory.setFeeInfo(address(vault), feeInfo);
+        factory.setPremiumFeeInfo(address(vault), feeInfo);
 
         (address feeRecipient, uint96 fee) = factory.premiumFeeInfo(
             address(vault)
@@ -116,19 +125,21 @@ contract MoreVaultsFactoryTest is Test {
         assertEq(fee, maxFee);
     }
 
-    function test_setFeeInfo_shouldRevertIfProvidedVaultIsIncorrect() public {
+    function test_setPremiumFeeInfo_shouldRevertIfProvidedVaultIsIncorrect()
+        public
+    {
         PremiumFeeInfo memory feeInfo = PremiumFeeInfo(address(0), maxFee);
         vm.expectRevert(ErrorsLib.NotTheVault.selector);
-        factory.setFeeInfo(address(0), feeInfo);
+        factory.setPremiumFeeInfo(address(0), feeInfo);
     }
 
-    function test_setFeeInfo_shouldRevertIfCalledNotByAnOwner() public {
+    function test_setPremiumFeeInfo_shouldRevertIfCalledNotByAnOwner() public {
         address initialOwner = deployer;
         uint256 initialTimelock = 0;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
-        IMetaMorpho vault = factory.createMetaMorpho(
+        IMoreVaults vault = factory.createMoreVault(
             initialOwner,
             initialTimelock,
             address(asset),
@@ -140,16 +151,18 @@ contract MoreVaultsFactoryTest is Test {
         startHoax(alice);
         PremiumFeeInfo memory feeInfo = PremiumFeeInfo(address(0), maxFee);
         vm.expectRevert("Ownable: caller is not the owner");
-        factory.setFeeInfo(address(vault), feeInfo);
+        factory.setPremiumFeeInfo(address(vault), feeInfo);
     }
 
-    function test_setFeeInfo_shouldRevertIfFeeRecipientIsZeroAddress() public {
+    function test_setPremiumFeeInfo_shouldRevertIfFeeRecipientIsZeroAddress()
+        public
+    {
         address initialOwner = deployer;
         uint256 initialTimelock = 0;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
-        IMetaMorpho vault = factory.createMetaMorpho(
+        IMoreVaults vault = factory.createMoreVault(
             initialOwner,
             initialTimelock,
             address(asset),
@@ -160,16 +173,16 @@ contract MoreVaultsFactoryTest is Test {
 
         PremiumFeeInfo memory feeInfo = PremiumFeeInfo(address(0), maxFee);
         vm.expectRevert(ErrorsLib.ZeroAddress.selector);
-        factory.setFeeInfo(address(vault), feeInfo);
+        factory.setPremiumFeeInfo(address(vault), feeInfo);
     }
 
-    function test_setFeeInfo_shouldRevertIfFeeValueExceedsMax() public {
+    function test_setPremiumFeeInfo_shouldRevertIfFeeValueExceedsMax() public {
         address initialOwner = deployer;
         uint256 initialTimelock = 0;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
-        IMetaMorpho vault = factory.createMetaMorpho(
+        IMoreVaults vault = factory.createMoreVault(
             initialOwner,
             initialTimelock,
             address(asset),
@@ -180,6 +193,6 @@ contract MoreVaultsFactoryTest is Test {
 
         PremiumFeeInfo memory feeInfo = PremiumFeeInfo(deployer, maxFee + 1);
         vm.expectRevert(ErrorsLib.MaxFeeExceeded.selector);
-        factory.setFeeInfo(address(vault), feeInfo);
+        factory.setPremiumFeeInfo(address(vault), feeInfo);
     }
 }

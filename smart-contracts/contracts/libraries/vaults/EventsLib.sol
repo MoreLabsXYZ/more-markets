@@ -2,14 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {Id} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
-import {PremiumFeeInfo} from "../../interfaces/IMetaMorphoFactory.sol";
+import {PremiumFeeInfo} from "../../interfaces/factories/IMoreVaultsFactory.sol";
 
 import {PendingAddress} from "./PendingLib.sol";
 
 /// @title EventsLib
-/// @author Morpho Labs
-/// @custom:contact security@morpho.org
-/// @notice Library exposing events.
+/// @author MORE Labs
+/// @notice Library exposing events. Fork of the Morpho's library.
 library EventsLib {
     /// @notice Emitted when a pending `newTimelock` is submitted.
     event SubmitTimelock(uint256 newTimelock);
@@ -107,7 +106,7 @@ library EventsLib {
     /// @param name The name of the MetaMorpho vault.
     /// @param symbol The symbol of the MetaMorpho vault.
     /// @param salt The salt used for the MetaMorpho vault's CREATE2 address.
-    event CreateMetaMorpho(
+    event createMoreVault(
         address indexed metaMorpho,
         address indexed caller,
         address initialOwner,
@@ -123,4 +122,7 @@ library EventsLib {
         address indexed vault,
         PremiumFeeInfo indexed _premiumFeeInfo
     );
+
+    /// @notice Emitted when the `moreVaultsImpl` is set to `newImplementation`.
+    event VaultImplementationUpgraded(address indexed newImplementation);
 }

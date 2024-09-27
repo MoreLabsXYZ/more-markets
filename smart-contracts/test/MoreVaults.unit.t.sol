@@ -3,24 +3,27 @@ pragma solidity ^0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
 import {IMoreMarkets} from "../contracts/interfaces/IMoreMarkets.sol";
-import {IMetaMorpho} from "../contracts/interfaces/IMetaMorpho.sol";
-import {IMetaMorphoFactory} from "../contracts/interfaces/IMetaMorphoFactory.sol";
+import {IMoreVaults} from "../contracts/interfaces/IMoreVaults.sol";
+import {IMoreVaultsFactory} from "../contracts/interfaces/factories/IMoreVaultsFactory.sol";
 import {Id, MoreMarkets, MarketParams, MarketParamsLib} from "../contracts/MoreMarkets.sol";
 import {MoreVaultsFactory, PremiumFeeInfo, ErrorsLib, OwnableUpgradeable} from "../contracts/MoreVaultsFactory.sol";
 import {MoreVaults, IERC20Upgradeable, MathUpgradeable} from "../contracts/MoreVaults.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
-import {DebtTokenFactory} from "../contracts/factories/DebtTokenFactory.sol";
-import {DebtToken} from "../contracts/tokens/DebtToken.sol";
 import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestationService.sol";
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {MoreUupsProxy} from "../contracts/proxy/MoreUupsProxy.sol";
 
 contract MoreVaultsTest is Test {
     using MarketParamsLib for MarketParams;
     using MathUpgradeable for uint256;
 
+    MoreVaultsFactory factoryImpl;
     MoreVaultsFactory factory;
     MoreVaults implementation;
+    MoreUupsProxy proxy;
     ERC20MintableMock asset;
 
     ICreditAttestationService public credora =
@@ -32,9 +35,10 @@ contract MoreVaultsTest is Test {
 
     OracleMock public oracle;
 
+    TransparentUpgradeableProxy public transparentProxy;
+    ProxyAdmin public proxyAdmin;
+    MoreMarkets public marketsImpl;
     MoreMarkets public markets;
-    DebtTokenFactory public debtTokenFactory;
-    DebtToken public debtToken;
     address public owner = address(0x89a76D7a4D006bDB9Efd0923A346fAe9437D434F);
     AdaptiveCurveIrm public irm;
 
@@ -73,7 +77,7 @@ contract MoreVaultsTest is Test {
     string symbol = "MOCK1";
     bytes32 salt = "1";
 
-    IMetaMorpho vault;
+    IMoreVaults vault;
 
     address premiumFeeRecipient = address(0x12345678);
     address feeRecipient = address(0x1234567890);
@@ -85,11 +89,16 @@ contract MoreVaultsTest is Test {
         flowTestnetFork = vm.createFork("https://testnet.evm.nodes.onflow.org");
         vm.selectFork(flowTestnetFork);
 
-        debtToken = new DebtToken();
-        debtTokenFactory = new DebtTokenFactory(address(debtToken));
-        // markets = new MoreMarkets(owner, address(debtTokenFactory));
-        markets = new MoreMarkets();
-        markets.initialize(owner, address(debtTokenFactory));
+        proxyAdmin = new ProxyAdmin(owner);
+        marketsImpl = new MoreMarkets();
+        transparentProxy = new TransparentUpgradeableProxy(
+            address(marketsImpl),
+            address(proxyAdmin),
+            ""
+        );
+        markets = MoreMarkets(address(transparentProxy));
+        markets.initialize(owner);
+
         irm = new AdaptiveCurveIrm(address(markets));
         oracle = new OracleMock();
         // set price as 1 : 1
@@ -150,14 +159,12 @@ contract MoreVaultsTest is Test {
 
         implementation = new MoreVaults();
 
-        // factory = new MoreVaultsFactory(
-        //     address(markets),
-        //     address(implementation)
-        // );
-        factory = new MoreVaultsFactory();
+        factoryImpl = new MoreVaultsFactory();
+        proxy = new MoreUupsProxy(address(factoryImpl));
+        factory = MoreVaultsFactory(address(proxy));
         factory.initialize(address(markets), address(implementation));
 
-        vault = factory.createMetaMorpho(
+        vault = factory.createMoreVault(
             initialOwner,
             initialTimelock,
             address(loanToken),
@@ -189,7 +196,7 @@ contract MoreVaultsTest is Test {
             premiumFeePercent
         );
 
-        factory.setFeeInfo(address(vault), feeInfo);
+        factory.setPremiumFeeInfo(address(vault), feeInfo);
 
         loanToken.approve(address(vault), 1000000 ether);
         vault.deposit(5000 ether, owner);
@@ -234,7 +241,7 @@ contract MoreVaultsTest is Test {
             premiumFeePercent
         );
 
-        factory.setFeeInfo(address(vault), feeInfo);
+        factory.setPremiumFeeInfo(address(vault), feeInfo);
 
         loanToken.approve(address(vault), 1000000 ether);
         vault.deposit(5000 ether, owner);

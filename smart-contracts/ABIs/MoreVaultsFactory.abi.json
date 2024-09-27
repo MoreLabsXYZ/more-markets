@@ -1,5 +1,6 @@
 {
   "abi": [
+    { "type": "constructor", "inputs": [], "stateMutability": "nonpayable" },
     {
       "type": "function",
       "name": "MORE_MARKETS",
@@ -25,7 +26,7 @@
     },
     {
       "type": "function",
-      "name": "createMetaMorpho",
+      "name": "createMoreVault",
       "inputs": [
         {
           "name": "initialOwner",
@@ -46,7 +47,7 @@
         {
           "name": "metaMorpho",
           "type": "address",
-          "internalType": "contract IMetaMorpho"
+          "internalType": "contract IMoreVaults"
         }
       ],
       "stateMutability": "nonpayable"
@@ -74,7 +75,7 @@
     },
     {
       "type": "function",
-      "name": "isMetaMorpho",
+      "name": "isMoreVault",
       "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
       "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
       "stateMutability": "view"
@@ -130,7 +131,7 @@
     },
     {
       "type": "function",
-      "name": "setFeeInfo",
+      "name": "setPremiumFeeInfo",
       "inputs": [
         { "name": "vault", "type": "address", "internalType": "address" },
         {
@@ -187,6 +188,19 @@
       "stateMutability": "payable"
     },
     {
+      "type": "function",
+      "name": "upgradeVaultImplemtationTo",
+      "inputs": [
+        {
+          "name": "newImplementation",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
       "type": "event",
       "name": "AdminChanged",
       "inputs": [
@@ -214,61 +228,6 @@
           "type": "address",
           "indexed": true,
           "internalType": "address"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "CreateMetaMorpho",
-      "inputs": [
-        {
-          "name": "metaMorpho",
-          "type": "address",
-          "indexed": true,
-          "internalType": "address"
-        },
-        {
-          "name": "caller",
-          "type": "address",
-          "indexed": true,
-          "internalType": "address"
-        },
-        {
-          "name": "initialOwner",
-          "type": "address",
-          "indexed": false,
-          "internalType": "address"
-        },
-        {
-          "name": "initialTimelock",
-          "type": "uint256",
-          "indexed": false,
-          "internalType": "uint256"
-        },
-        {
-          "name": "asset",
-          "type": "address",
-          "indexed": true,
-          "internalType": "address"
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "indexed": false,
-          "internalType": "string"
-        },
-        {
-          "name": "symbol",
-          "type": "string",
-          "indexed": false,
-          "internalType": "string"
-        },
-        {
-          "name": "salt",
-          "type": "bytes32",
-          "indexed": false,
-          "internalType": "bytes32"
         }
       ],
       "anonymous": false
@@ -363,6 +322,85 @@
         }
       ],
       "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "VaultImplementationUpgraded",
+      "inputs": [
+        {
+          "name": "newImplementation",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "createMoreVault",
+      "inputs": [
+        {
+          "name": "metaMorpho",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "caller",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "initialOwner",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "initialTimelock",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "asset",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "salt",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "BeaconInvalidImplementation",
+      "inputs": [
+        {
+          "name": "implementation",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
     },
     { "type": "error", "name": "MaxFeeExceeded", "inputs": [] },
     { "type": "error", "name": "NotTheVault", "inputs": [] },

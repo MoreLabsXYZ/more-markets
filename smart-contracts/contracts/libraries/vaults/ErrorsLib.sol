@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {Id} from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
 /// @title ErrorsLib
-/// @author Morpho Labs
+/// @author MORE Labs
 /// @custom:contact security@morpho.org
-/// @notice Library exposing error messages.
+/// @notice Library exposing error messages. Fork of the Morpho's library.
 library ErrorsLib {
     /// @notice Thrown when the address passed is the zero address.
     error ZeroAddress();
@@ -98,6 +98,9 @@ library ErrorsLib {
 
     /// @notice Thrown when provided address not the vault created by this factory.
     error NotTheVault();
+
+    /// @notice Thrown when provided address has zero code size.
+    error BeaconInvalidImplementation(address implementation);
 
     /// @dev Thrown when passing the zero address.
     string internal constant ZERO_ADDRESS = "zero address";

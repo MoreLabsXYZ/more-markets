@@ -1,5 +1,6 @@
 {
   "abi": [
+    { "type": "constructor", "inputs": [], "stateMutability": "nonpayable" },
     {
       "type": "function",
       "name": "DOMAIN_SEPARATOR",
@@ -60,6 +61,15 @@
       "name": "arrayOfMarkets",
       "inputs": [],
       "outputs": [{ "name": "", "type": "bytes32[]", "internalType": "Id[]" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "availableMultipliers",
+      "inputs": [{ "name": "id", "type": "bytes32", "internalType": "Id" }],
+      "outputs": [
+        { "name": "", "type": "uint256[]", "internalType": "uint256[]" }
+      ],
       "stateMutability": "view"
     },
     {
@@ -233,12 +243,7 @@
       "type": "function",
       "name": "initialize",
       "inputs": [
-        { "name": "newOwner", "type": "address", "internalType": "address" },
-        {
-          "name": "_debtTokenFactory",
-          "type": "address",
-          "internalType": "address"
-        }
+        { "name": "newOwner", "type": "address", "internalType": "address" }
       ],
       "outputs": [],
       "stateMutability": "nonpayable"
@@ -408,29 +413,8 @@
           "internalType": "uint128"
         },
         { "name": "collateral", "type": "uint128", "internalType": "uint128" },
-        {
-          "name": "lastMultiplier",
-          "type": "uint64",
-          "internalType": "uint64"
-        },
-        {
-          "name": "debtTokenMissed",
-          "type": "uint128",
-          "internalType": "uint128"
-        },
-        {
-          "name": "debtTokenGained",
-          "type": "uint128",
-          "internalType": "uint128"
-        }
+        { "name": "lastMultiplier", "type": "uint64", "internalType": "uint64" }
       ],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "proxiableUUID",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
       "stateMutability": "view"
     },
     {
@@ -863,33 +847,6 @@
     },
     {
       "type": "function",
-      "name": "upgradeTo",
-      "inputs": [
-        {
-          "name": "newImplementation",
-          "type": "address",
-          "internalType": "address"
-        }
-      ],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "function",
-      "name": "upgradeToAndCall",
-      "inputs": [
-        {
-          "name": "newImplementation",
-          "type": "address",
-          "internalType": "address"
-        },
-        { "name": "data", "type": "bytes", "internalType": "bytes" }
-      ],
-      "outputs": [],
-      "stateMutability": "payable"
-    },
-    {
-      "type": "function",
       "name": "withdraw",
       "inputs": [
         {
@@ -1021,38 +978,6 @@
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "AdminChanged",
-      "inputs": [
-        {
-          "name": "previousAdmin",
-          "type": "address",
-          "indexed": false,
-          "internalType": "address"
-        },
-        {
-          "name": "newAdmin",
-          "type": "address",
-          "indexed": false,
-          "internalType": "address"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "BeaconUpgraded",
-      "inputs": [
-        {
-          "name": "beacon",
-          "type": "address",
-          "indexed": true,
-          "internalType": "address"
         }
       ],
       "anonymous": false
@@ -1236,9 +1161,9 @@
       "inputs": [
         {
           "name": "version",
-          "type": "uint8",
+          "type": "uint64",
           "indexed": false,
-          "internalType": "uint8"
+          "internalType": "uint64"
         }
       ],
       "anonymous": false
@@ -1526,19 +1451,6 @@
     },
     {
       "type": "event",
-      "name": "Upgraded",
-      "inputs": [
-        {
-          "name": "implementation",
-          "type": "address",
-          "indexed": true,
-          "internalType": "address"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
       "name": "Withdraw",
       "inputs": [
         {
@@ -1641,6 +1553,7 @@
         }
       ]
     },
+    { "type": "error", "name": "InvalidInitialization", "inputs": [] },
     {
       "type": "error",
       "name": "InvalidIrxMaxValue",
@@ -1678,7 +1591,14 @@
         }
       ]
     },
+    {
+      "type": "error",
+      "name": "InvalidParamsForNonPremiumMarket",
+      "inputs": []
+    },
+    { "type": "error", "name": "LLTVsNotInAscendingOrder", "inputs": [] },
     { "type": "error", "name": "MarketNotCreated", "inputs": [] },
+    { "type": "error", "name": "NotInitializing", "inputs": [] },
     { "type": "error", "name": "NotOwner", "inputs": [] }
   ]
 }

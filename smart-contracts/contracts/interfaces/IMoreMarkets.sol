@@ -21,8 +21,6 @@ struct Position {
     uint128 borrowShares;
     uint128 collateral;
     uint64 lastMultiplier;
-    uint128 debtTokenMissed;
-    uint128 debtTokenGained;
 }
 
 struct CategoryInfo {
@@ -45,8 +43,8 @@ struct Market {
     uint256 premiumFee;
 }
 
-/// @dev This interface is used for factorizing IMorphoStaticTyping and IMorpho.
-/// @dev Consider using the IMorpho interface instead of this one.
+/// @dev This interface is used for factorizing IMoreMarketsStaticTyping and IMoreMarkets.
+/// @dev Consider using the IMoreMarkets interface instead of this one.
 interface IMoreMarketsBase {
     /// @notice The EIP-712 domain separator.
     /// @dev Warning: Every EIP-712 signed message based on this domain separator can be reused on another chain sharing
@@ -79,22 +77,6 @@ interface IMoreMarketsBase {
     /// @notice The `authorizer`'s current nonce. Used to prevent replay attacks with EIP-712 signatures.
     function nonce(address authorizer) external view returns (uint256);
 
-    // /// @notice The address of "debtToken" for a given market.
-    // function idToDebtToken(Id marketId) external view returns (address);
-
-    // /// @notice Total amount of debt assets generated to a given market.
-    // function totalDebtAssetsGenerated(
-    //     Id marketId
-    // ) external view returns (uint256);
-
-    // /// @notice Last total debt assets generated to a given market that used for further calculation.
-    // function lastTotalDebtAssetsGenerated(
-    //     Id marketId
-    // ) external view returns (uint256);
-
-    // /// @notice Value of token per share in a given market.
-    // function tps(Id marketId) external view returns (uint256);
-
     /// @notice Total amount of assets borrowed on a given market for particular multiplier.
     function totalBorrowAssetsForMultiplier(
         Id marketId,
@@ -113,16 +95,12 @@ interface IMoreMarketsBase {
     /// @notice Upper limit for categoryLltv to set.
     function maxLltvForCategory() external view returns (uint256);
 
-    // /// @notice Address of the debt token factory.
-    // function debtTokenFactory() external view returns (address);
-
     /// @notice Array of ids of created markets.
     function arrayOfMarkets() external view returns (Id[] memory);
 
     /// @notice Initializes the contract.
     /// @param newOwner The new owner of the contract.
-    /// @param _debtTokenFactory The debt token factory.
-    function initialize(address newOwner, address _debtTokenFactory) external;
+    function initialize(address newOwner) external;
 
     /// @notice Sets `newOwner` as `owner` of the contract.
     /// @dev Warning: No two-step transfer ownership.
@@ -165,21 +143,21 @@ interface IMoreMarketsBase {
 
     /// @notice Creates the market `marketParams`.
     /// @dev Here is the list of assumptions on the market's dependencies (tokens, IRM and oracle) that guarantees
-    /// Morpho behaves as expected:
+    /// MoreMarkets behaves as expected:
     /// - The token should be ERC-20 compliant, except that it can omit return values on `transfer` and `transferFrom`.
-    /// - The token balance of Morpho should only decrease on `transfer` and `transferFrom`. In particular, tokens with
+    /// - The token balance of MoreMarkets should only decrease on `transfer` and `transferFrom`. In particular, tokens with
     /// burn functions are not supported.
-    /// - The token should not re-enter Morpho on `transfer` nor `transferFrom`.
+    /// - The token should not re-enter MoreMarkets on `transfer` nor `transferFrom`.
     /// - The token balance of the sender (resp. receiver) should decrease (resp. increase) by exactly the given amount
     /// on `transfer` and `transferFrom`. In particular, tokens with fees on transfer are not supported.
-    /// - The IRM should not re-enter Morpho.
+    /// - The IRM should not re-enter MoreMarkets.
     /// - The oracle should return a price with the correct scaling.
     /// - The credit attestation service should be ICreditAttestationService compliant. It should be able to return
     /// scores of the users by getScores(address) returns(uint256) call and this score should be between 1e18 and 1000 * 1e18.
     /// Any score higher or equal than 1000 * 1e18 will be considered as 1000 * 1e18.
     /// - The irxMaxLltv should be between irxMaxAvailable and 1e18.
     /// - The ltvMaxLltv should be between maxLltvForCategory and default lltv.
-    /// @dev Here is a list of properties on the market's dependencies that could break Morpho's liveness properties
+    /// @dev Here is a list of properties on the market's dependencies that could break MoreMarkets's liveness properties
     /// (funds could get stuck):
     /// - The token can revert on `transfer` and `transferFrom` for a reason other than an approval or balance issue.
     /// - A very high amount of assets (~1e35) supplied or borrowed can make the computation of `toSharesUp` and
@@ -313,18 +291,6 @@ interface IMoreMarketsBase {
         address receiver
     ) external;
 
-    // /// @notice Claims `assets` of debtToken on behalf of `onBehalf` and sends the assets to `receiver`.
-    // /// @dev `msg.sender` must be authorized to manage `onBehalf`'s positions.
-    // /// @dev If there are no `assets` to claim than will revert.
-    // /// @param marketParams The market to claim debt tokens from.
-    // /// @param onBehalf The address of the owner of the debt tokens position.
-    // /// @param receiver The address that will receive the debt tokens.
-    // function claimDebtTokens(
-    //     MarketParams memory marketParams,
-    //     address onBehalf,
-    //     address receiver
-    // ) external;
-
     /// @notice Function that updates the premium borrower's current interest rate multiplier if conditions are met.
     /// Since because of fluctuating of the market LTV of the users can change, it has to be checked if the conditions are met
     /// and update the multiplier of the borrower.
@@ -401,8 +367,8 @@ interface IMoreMarketsBase {
     ) external view returns (bytes32[] memory);
 }
 
-/// @dev This interface is inherited by Morpho so that function signatures are checked by the compiler.
-/// @dev Consider using the IMorpho interface instead of this one.
+/// @dev This interface is inherited by MoreMarkets so that function signatures are checked by the compiler.
+/// @dev Consider using the IMoreMarkets interface instead of this one.
 interface IMoreMarketsStaticTyping is IMoreMarketsBase {
     function position(
         Id id,
@@ -414,9 +380,7 @@ interface IMoreMarketsStaticTyping is IMoreMarketsBase {
             uint128 supplyShares,
             uint128 borrowShares,
             uint128 collateral,
-            uint64 lastMultiplier,
-            uint128 debtTokenMissed,
-            uint128 debtTokenGained
+            uint64 lastMultiplier
         );
 
     /// @notice The state of the market corresponding to `id`.
@@ -440,7 +404,7 @@ interface IMoreMarketsStaticTyping is IMoreMarketsBase {
         );
 
     /// @notice The market params corresponding to `id`.
-    /// @dev This mapping is not used in Morpho. It is there to enable reducing the cost associated to calldata on layer
+    /// @dev This mapping is not used in MoreMarkets. It is there to enable reducing the cost associated to calldata on layer
     /// 2s by creating a wrapper contract with functions that take `id` as input instead of `marketParams`.
     function idToMarketParams(
         Id id
@@ -474,7 +438,7 @@ interface IMoreMarkets is IMoreMarketsBase {
     function market(Id id) external view returns (Market memory);
 
     /// @notice The market params corresponding to `id`.
-    /// @dev This mapping is not used in Morpho. It is there to enable reducing the cost associated to calldata on layer
+    /// @dev This mapping is not used in MoreMarkets. It is there to enable reducing the cost associated to calldata on layer
     /// 2s by creating a wrapper contract with functions that take `id` as input instead of `marketParams`.
     function idToMarketParams(
         Id id
@@ -493,8 +457,19 @@ interface IMoreMarkets is IMoreMarketsBase {
             uint256[] memory categoryLltv
         );
 
+    /// @notice Updates the borrower position state in the market. It should change multiplier for
+    /// premium borrowers if their LLTV reached any treshold.
+    /// @param marketParams The market parameters.
+    /// @param borrower The borrower address.
     function updateBorrower(
         MarketParams memory marketParams,
         address borrower
     ) external;
+
+    /// @notice Returns the available multipliers for the given market `id`.
+    /// @param id The market id.
+    /// @return The array of available multipliers.
+    function availableMultipliers(
+        Id id
+    ) external view returns (uint256[] memory);
 }

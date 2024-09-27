@@ -6,17 +6,11 @@ pragma solidity ^0.8.0;
 /// @custom:contact security@morpho.org
 /// @notice Library exposing error messages.
 library ErrorsLib {
-    /// @notice Thrown when the caller is not the owner.
-    string internal constant NOT_OWNER = "not owner";
-
     /// @notice Thrown when the LLTV to enable exceeds the maximum LLTV.
     string internal constant MAX_LLTV_EXCEEDED = "max LLTV exceeded";
 
     /// @notice Thrown when the fee to set exceeds the maximum fee.
     string internal constant MAX_FEE_EXCEEDED = "max fee exceeded";
-
-    /// @notice Thrown when the value is already set.
-    string internal constant ALREADY_SET = "already set";
 
     /// @notice Thrown when the IRM is not enabled at market creation.
     string internal constant IRM_NOT_ENABLED = "IRM not enabled";
@@ -30,9 +24,6 @@ library ErrorsLib {
     /// @notice Thrown when a token to transfer doesn't have code.
     string internal constant NO_CODE = "no code";
 
-    /// @notice Thrown when the market is not created.
-    string internal constant MARKET_NOT_CREATED = "market not created";
-
     /// @notice Thrown when not exactly one of the input amount is zero.
     string internal constant INCONSISTENT_INPUT = "inconsistent input";
 
@@ -44,10 +35,6 @@ library ErrorsLib {
 
     /// @notice Thrown when the caller is not authorized to conduct an action.
     string internal constant UNAUTHORIZED = "unauthorized";
-
-    /// @notice Thrown when the collateral is insufficient to `borrow` or `withdrawCollateral`.
-    string internal constant INSUFFICIENT_COLLATERAL =
-        "insufficient collateral";
 
     /// @notice Thrown when the liquidity is insufficient to `withdraw` or `borrow`.
     string internal constant INSUFFICIENT_LIQUIDITY = "insufficient liquidity";
@@ -111,14 +98,21 @@ library ErrorsLib {
         uint256 providedValue
     );
 
-    /// @notice Thrown when nothing debt tokens to claim by the caller.
-    error NothingToClaim();
-
+    /// @notice Thrown when the collateral is insufficient to `borrow` or `withdrawCollateral`.
     error InsufficientCollateral();
 
+    /// @notice Thrown when the caller is not the owner.
     error NotOwner();
 
+    /// @notice Thrown when the value is already set.
     error AlreadySet();
 
+    /// @notice Thrown when the market is not created.
     error MarketNotCreated();
+
+    /// @notice Thrown if LLTVs in array not in ascending order.
+    error LLTVsNotInAscendingOrder();
+
+    /// @notice Thrown if premium params set for non premium markets.
+    error InvalidParamsForNonPremiumMarket();
 }
