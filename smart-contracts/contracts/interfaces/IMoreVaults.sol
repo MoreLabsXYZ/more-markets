@@ -249,5 +249,6 @@ interface IMoreVaults is
     /// @notice Returns the pending timelock.
     function pendingTimelock() external view returns (PendingUint192 memory);
 
+    /// @notice Returns the array of vaults.
     function arrayOfVaults() external view returns (address[] memory);
 }
