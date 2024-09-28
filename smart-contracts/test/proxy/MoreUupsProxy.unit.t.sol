@@ -98,7 +98,7 @@ contract MoreUupsProxyTest is Test {
         );
 
         address initialOwner = deployer;
-        uint256 initialTimelock = 0;
+        uint256 initialTimelock = 1 days;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";

@@ -72,7 +72,7 @@ contract MoreVaultsTest is Test {
     MarketParams public marketParams;
 
     address initialOwner = owner;
-    uint256 initialTimelock = 0;
+    uint256 initialTimelock = 1 days;
     string name = "MOCK VAULT 1";
     string symbol = "MOCK1";
     bytes32 salt = "1";
@@ -174,6 +174,7 @@ contract MoreVaultsTest is Test {
         );
 
         vault.submitCap(marketParams, 10000 ether);
+        skip(1 days);
         vault.acceptCap(marketParams);
 
         Id[] memory supplyQueue = new Id[](1);

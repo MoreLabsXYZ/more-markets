@@ -28,13 +28,23 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
     using MarketParamsLib for MarketParams;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    /* IMMUTABLES */
+    /* ENUMS */
 
+    /// Type of position update.
     enum UPDATE_TYPE {
         BORROW,
         REPAY,
         IDLE
     }
+
+    /* CONSTANTS */
+
+    /// Number of categories for attestation service score. 0-199 score is 1st category, 200-399 score is 2nd category, etc.
+    uint256 constant LENGTH_OF_CATEGORY_LLTVS_ARRAY = 5;
+    // Default multiplier for users, that are in default LLTV range.
+    uint64 constant DEFAULT_MULTIPLIER = 1e18;
+    /// @dev The maximum premium fee a market can have (50%).
+    uint256 constant PREMIUM_MAX_FEE = 0.5e18;
 
     /* STORAGE */
 
@@ -73,12 +83,6 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
     /// Array that stores ids of all created markets.
     Id[] private _arrayOfMarkets;
 
-    /// Number of categories for attestation service score. 0-199 score is 1st category, 200-399 score is 2nd category, etc
-    uint256 constant LENGTH_OF_CATEGORY_LLTVS_ARRAY = 5;
-    // Default multiplier for users, that are in default LLTV range.
-    uint64 constant DEFAULT_MULTIPLIER = 1e18;
-    /// @dev The maximum premium fee a market can have (50%).
-    uint256 constant PREMIUM_MAX_FEE = 0.5e18;
     /// @inheritdoc IMoreMarketsBase
     bytes32 public DOMAIN_SEPARATOR;
 

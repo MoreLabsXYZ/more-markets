@@ -70,7 +70,7 @@ contract MoreVaultsFactoryTest is Test {
 
     function test_createMoreVault_shouldSetParametersCorrectly() public {
         address initialOwner = deployer;
-        uint256 initialTimelock = 0;
+        uint256 initialTimelock = 1 days;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
@@ -102,7 +102,7 @@ contract MoreVaultsFactoryTest is Test {
 
     function test_setPremiumFeeInfo_shouldSetPremiumFeeInfoCorrectly() public {
         address initialOwner = deployer;
-        uint256 initialTimelock = 0;
+        uint256 initialTimelock = 1 days;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
@@ -135,7 +135,7 @@ contract MoreVaultsFactoryTest is Test {
 
     function test_setPremiumFeeInfo_shouldRevertIfCalledNotByAnOwner() public {
         address initialOwner = deployer;
-        uint256 initialTimelock = 0;
+        uint256 initialTimelock = 1 days;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
@@ -158,7 +158,7 @@ contract MoreVaultsFactoryTest is Test {
         public
     {
         address initialOwner = deployer;
-        uint256 initialTimelock = 0;
+        uint256 initialTimelock = 1 days;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
@@ -178,7 +178,7 @@ contract MoreVaultsFactoryTest is Test {
 
     function test_setPremiumFeeInfo_shouldRevertIfFeeValueExceedsMax() public {
         address initialOwner = deployer;
-        uint256 initialTimelock = 0;
+        uint256 initialTimelock = 1 days;
         string memory name = "MOCK VAULT 1";
         string memory symbol = "MOCK1";
         bytes32 salt = "1";
