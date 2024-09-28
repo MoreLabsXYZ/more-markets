@@ -361,7 +361,9 @@ contract MoreMarketsTest is Test {
         uint256 premiumFeeGenerated = ownerAmountToBorrow
             .wMulDown(borrowRate.wTaylorCompounded(timeToSkip))
             .wMulDown(ownerLastMultiplier.wMulDown(premFee));
-        uint256 sumOfInterests = nonPremUserInterest + ownerInterest;
+        uint256 sumOfInterests = nonPremUserInterest +
+            ownerInterest +
+            premiumFeeGenerated;
         uint256 totalSupplySharesBefore = totalSupplyShares;
         uint256 totalSupplyAssetsBefore = totalSupplyAssets;
 
@@ -377,10 +379,7 @@ contract MoreMarketsTest is Test {
             premiumFee
         ) = markets.market(marketParams.id());
 
-        assertEq(
-            sumOfInterests + premiumFeeGenerated,
-            totalBorrowAssets - totalBorrowAssetsBefore
-        );
+        assertEq(sumOfInterests, totalBorrowAssets - totalBorrowAssetsBefore);
         assertEq(sumOfInterests, totalSupplyAssets - totalSupplyAssetsBefore);
 
         (uint128 feeRecipientSupplySharesAfter, , , ) = markets.position(
@@ -496,7 +495,9 @@ contract MoreMarketsTest is Test {
             .wMulDown(defaultFee);
         uint256 totalFee = defaultFeeAssets + premiumFeeGenerated;
 
-        uint256 sumOfInterests = nonPremUserInterest + ownerInterest;
+        uint256 sumOfInterests = nonPremUserInterest +
+            ownerInterest +
+            premiumFeeGenerated;
 
         markets.accrueInterest(marketParams);
 
@@ -510,10 +511,7 @@ contract MoreMarketsTest is Test {
             premiumFee
         ) = markets.market(marketParams.id());
 
-        assertEq(
-            sumOfInterests + premiumFeeGenerated,
-            totalBorrowAssets - totalBorrowAssetsBefore
-        );
+        assertEq(sumOfInterests, totalBorrowAssets - totalBorrowAssetsBefore);
         assertEq(sumOfInterests, totalSupplyAssets - totalSupplyAssetsBefore);
 
         (uint128 feeRecipientSupplySharesAfter, , , ) = markets.position(

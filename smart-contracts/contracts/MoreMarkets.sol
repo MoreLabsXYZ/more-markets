@@ -933,7 +933,9 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
             currentMarket.totalBorrowAssets +=
                 totalInterest.toUint128() +
                 premiumFeeAccumulated.toUint128();
-            currentMarket.totalSupplyAssets += uint128(totalInterest);
+            currentMarket.totalSupplyAssets +=
+                uint128(totalInterest) +
+                uint128(premiumFeeAccumulated);
 
             uint256 feeShares;
             if (currentMarket.fee != 0 || premiumFee != 0) {
