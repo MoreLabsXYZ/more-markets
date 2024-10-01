@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {MoreBundler} from "../contracts/MoreBundler.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-// // forge script script/DeployBundler.s.sol:DeployBundler --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
+// // forge script script/DeployBundler.s.sol:DeployBundler --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm.flowscan.io/api'
 contract DeployBundler is Script {
     MoreBundler moreBundler;
 

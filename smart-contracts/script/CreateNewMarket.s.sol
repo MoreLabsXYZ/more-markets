@@ -18,7 +18,7 @@ import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 //   0x66832a1C487aBf864BeC15b0A636b739f41c05E5 \
 //   contracts/MoreVaultsFactory.sol:MoreVaultsFactory
 
-// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --slow
+// // forge script script/CreateNewMarket.s.sol:CreateNewMarket --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vv
 contract CreateNewMarket is Script {
     using MarketParamsLib for MarketParams;
     ICreditAttestationService public credora;
@@ -116,6 +116,16 @@ contract CreateNewMarket is Script {
     address oracleBTCfwFLOW =
         address(0x8857C969d0E40413AB9C8e972ACE186A39bE4071);
 
+    // MAINNET
+
+    address oracleMainnetwFlowAnkrFlow =
+        address(0xA363e8627b5b4A5DC1cf6b5f228665C5CafF770f);
+    address oracleMainnetAnkrFlowwFlow =
+        address(0xC5aB0dA655760825c0b2746D9b865892B8A117Dc);
+    address mainnetAnkrFlow =
+        address(0x1b97100eA1D7126C4d60027e231EA4CB25314bdb);
+    address mainnetWFlow = address(0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e);
+
     MarketParams public marketParams;
 
     function setUp() public {}
@@ -145,11 +155,11 @@ contract CreateNewMarket is Script {
         // create a market
         marketParams = MarketParams(
             false,
-            address(BTCf),
-            address(wFLOW),
-            address(oraclewFLOWBTCf),
+            mainnetWFlow,
+            mainnetAnkrFlow,
+            address(oracleMainnetAnkrFlowwFlow),
             address(irm),
-            lltv80,
+            lltv90,
             address(0),
             1 ether,
             premiumLltvsZero

@@ -3,9 +3,11 @@ pragma solidity ^0.8.21;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MoreVaults} from "../contracts/MoreVaults.sol";
+import {IWETH9} from "../contracts/IWETH9.sol";
 import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id, MathLib} from "../contracts/MoreMarkets.sol";
+import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-// forge script script/SetSupplyQueue.s.sol:SetSupplyQueue --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --slow
+// forge script script/SetSupplyQueue.s.sol:SetSupplyQueue --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vv --slow
 contract SetSupplyQueue is Script {
     using MarketParamsLib for MarketParams;
 
@@ -75,37 +77,54 @@ contract SetSupplyQueue is Script {
             0x75a964099ef99a0c7dc893c659a4dec8f6beeb3d7c9705e28df7d793694b6164
         );
 
+    // mainnet test Flow All Day
+    bytes32 MarketIdwFLOWxankrFLOW =
+        bytes32(
+            0x93c256e9fa38ee67d0b6cd5bac0aae32cc0498d5a1103ba52d41b772b82c2bef
+        );
+
     function setUp() public {}
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        moreVault = MoreVaults(vm.envAddress("APEX_VAULT"));
+        moreVault = MoreVaults(vm.envAddress("FLOW_ALL_DAY_VAULT"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
         address owner = vm.envAddress("OWNER");
 
         vm.startBroadcast(deployerPrivateKey);
-        // marketsArray.push(Id.wrap(MarketIdUSDfxFl));
+        marketsArray.push(Id.wrap(MarketIdwFLOWxankrFLOW));
         // marketsArray.push(Id.wrap(MarketIdwFLOWxUSDf));
         // marketsArray.push(Id.wrap(MarketIdwUSDCfxUSDf));
 
-        marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxUSDf));
+        marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxankrFLOW));
 
-        moreVault.submitCap(marketParams, 10000 * 1e18);
-        moreVault.acceptCap(marketParams);
+        // moreVault.submitCap(marketParams, 33557047 * 1e18);
+        // moreVault.acceptCap(marketParams);
 
-        marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxBTCf));
+        // marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxBTCf));
 
-        moreVault.submitCap(marketParams, 90000 * 1e18);
-        moreVault.acceptCap(marketParams);
+        // moreVault.submitCap(marketParams, 90000 * 1e18);
+        // moreVault.acceptCap(marketParams);
 
         // marketParams = getMarketParams(Id.wrap(MarketIdwUSDCfxUSDf));
 
         // moreVault.submitCap(marketParams, 60000 * 1e6);
         // moreVault.acceptCap(marketParams);
 
-        // moreVault.setSupplyQueue(marketsArray);
-        // moreVault.setFeeRecipient(owner);
-        // moreVault.setFee(0.1e18);
+        moreVault.setSupplyQueue(marketsArray);
+        // moreVault.setFeeRecipient(
+        //     address(0x3Ba5aAB8d8CD479ffb4a2f03609e9122552dD150)
+        // );
+        IWETH9(address(0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e)).deposit{
+            value: 190 * 1e18
+        }();
+        ERC20MintableMock(address(0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e))
+            .approve(
+                address(0x8434D9E41C822F4e10AACcc1D777AAcDf9D4BA60),
+                190 * 1e18
+            );
+        moreVault.deposit(190 * 1e18, owner);
+        // moreVault.setFee(0.15e18);
         // moreVault.setCurator(
         //     address(0xB37a5BA4060D6bFD00a3bFCb235Bb596F13932Bd)
         // );

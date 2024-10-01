@@ -64,11 +64,11 @@ contract MoreMarketsTest is Test {
         flowTestnetFork = vm.createFork("https://testnet.evm.nodes.onflow.org");
         vm.selectFork(flowTestnetFork);
 
-        proxyAdmin = new ProxyAdmin(owner);
+        // proxyAdmin = new ProxyAdmin(owner);
         marketsImpl = new MoreMarkets();
         transparentProxy = new TransparentUpgradeableProxy(
             address(marketsImpl),
-            address(proxyAdmin),
+            address(owner),
             ""
         );
 

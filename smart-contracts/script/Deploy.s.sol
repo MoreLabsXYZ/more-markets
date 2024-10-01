@@ -8,7 +8,7 @@ import {ICreditAttestationService} from "../contracts/interfaces/ICreditAttestat
 import {OracleMock} from "../contracts/mocks/OracleMock.sol";
 import {AdaptiveCurveIrm} from "../contracts/AdaptiveCurveIrm.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {MoreUupsProxy} from "../contracts/proxy/MoreUupsProxy.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 // forge verify-contract \
 //   --rpc-url https://evm-testnet.flowscan.io/api/eth-rpc \
@@ -18,12 +18,13 @@ import {MoreUupsProxy} from "../contracts/proxy/MoreUupsProxy.sol";
 //   0x7EBf3217f8A54De432ACFe6E803576CB859E22a3 \
 //   contracts/proxy/MoreUupsProxy.sol:MoreUupsProxy
 
-// // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
+// // forge script script/Deploy.s.sol:DeployMarketContracts --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm.flowscan.io/api'
 contract DeployMarketContracts is Script {
     ICreditAttestationService public credora;
     address public credoraAdmin;
     OracleMock public oracleMock;
-    MoreUupsProxy proxy;
+
+    TransparentUpgradeableProxy public proxy;
 
     MoreMarkets public marketsImpl;
     MoreMarkets public markets;
@@ -31,10 +32,10 @@ contract DeployMarketContracts is Script {
     AdaptiveCurveIrm public irm;
 
     uint256[] public lltvs = [
-        720000000000000000,
-        770000000000000000,
-        800000000000000000,
-        850000000000000000,
+        // 720000000000000000,
+        // 770000000000000000,
+        // 800000000000000000,
+        // 850000000000000000,
         900000000000000000
     ];
 
@@ -66,14 +67,21 @@ contract DeployMarketContracts is Script {
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
 
-        markets = new MoreMarkets();
-        proxy = new MoreUupsProxy(address(markets));
-        IMoreMarkets(address(proxy)).initialize(owner);
+        marketsImpl = new MoreMarkets();
+        proxy = new TransparentUpgradeableProxy(
+            address(marketsImpl),
+            address(owner),
+            ""
+        );
 
-        console.log("More markets was deplyed at", address(markets));
-        console.log("More markets proxy was deplyed at", address(proxy));
+        markets = MoreMarkets(address(proxy));
+        markets.initialize(owner);
+
+        // console.log("Proxy admin was deployed at ", address(proxyAdmin));
+        console.log("More markets impl was deployed at", address(marketsImpl));
+        console.log("More markets proxy was deployed at", address(proxy));
         irm = new AdaptiveCurveIrm(address(proxy));
-        console.log("AdaptiveCurveIrm was deplyed at", address(irm));
+        console.log("AdaptiveCurveIrm was deployed at", address(irm));
 
         IMoreMarkets(address(proxy)).enableIrm(address(irm));
         // markets.setCreditAttestationService(address(credora));

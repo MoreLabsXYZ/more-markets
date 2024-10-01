@@ -7,7 +7,7 @@ import {MoreVaultsFactory, IMoreVaultsFactory} from "../contracts/MoreVaultsFact
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {MoreUupsProxy} from "../contracts/proxy/MoreUupsProxy.sol";
 
-// forge script script/DeployVaults.s.sol:DeployVaults --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
+// forge script script/DeployVaults.s.sol:DeployVaults --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm.flowscan.io/api'
 contract DeployVaults is Script {
     MoreVaultsFactory vaultsFactory;
     MoreVaults moreVaultsImpl;

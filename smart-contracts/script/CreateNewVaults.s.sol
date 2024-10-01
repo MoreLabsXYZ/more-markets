@@ -6,7 +6,16 @@ import {MoreVaultsFactory} from "../contracts/MoreVaultsFactory.sol";
 import {IMoreVaults} from "../contracts/interfaces/IMoreVaults.sol";
 import {ERC20MintableMock} from "../contracts/mocks/ERC20MintableMock.sol";
 
-// forge script script/CreateNewVaults.s.sol:CreateNewVaults --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
+// forge verify-contract \
+//   --rpc-url https://evm.flowscan.io/api/eth-rpc \
+//   --verifier blockscout \
+//   --verifier-url 'https://evm.flowscan.io/api' \
+//   --chain-id 747\
+//   --constructor-args $(cast abi-encode "constructor(address)" 0xF56EcB3b2204f12069bf99E94Cf9a01F3DedC1c8 0 0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e "Flow All Day" "fadFLOW" 0x0000000000000000000000000000000000000000000000000000000000000000) \
+//   0x8434D9E41C822F4e10AACcc1D777AAcDf9D4BA60 \
+//   contracts/MoreVaults.sol:MoreVaults
+
+// forge script script/CreateNewVaults.s.sol:CreateNewVaults --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vv
 contract CreateNewVaults is Script {
     MoreVaultsFactory vaultsFactory;
 
@@ -23,6 +32,10 @@ contract CreateNewVaults is Script {
     ERC20MintableMock public wFLOW =
         ERC20MintableMock(0xe0fd0a2A4C2E59a479AaB0cF44244E355C508766);
 
+    address mainnetAnkrFlow =
+        address(0x1b97100eA1D7126C4d60027e231EA4CB25314bdb);
+    address mainnetWFlow = address(0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e);
+
     function setUp() public {}
 
     function run() external {
@@ -30,11 +43,11 @@ contract CreateNewVaults is Script {
 
         address initialOwner = address(uint160(vm.envUint("OWNER")));
         uint256 initialTimelock = 0;
-        address asset1 = address(BTCf);
-        string memory name1 = "Nimbus BTC Core";
-        string memory symbol1 = "nBTCc";
+        address asset1 = mainnetWFlow;
+        string memory name1 = "Flow All Day";
+        string memory symbol1 = "fadFLOW";
 
-        bytes32 salt = "10";
+        bytes32 salt = "0";
 
         vm.startBroadcast(deployerPrivateKey);
         vaultsFactory = MoreVaultsFactory(vm.envAddress("VAULT_FACTORY"));
