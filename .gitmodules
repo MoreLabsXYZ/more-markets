@@ -13,3 +13,6 @@
 [submodule "smart-contracts/lib/openzeppelin-contracts-upgradeable"]
 	path = smart-contracts/lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
+[submodule "smart-contracts/lib/morpho-blue-oracles"]
+	path = smart-contracts/lib/morpho-blue-oracles
+	url = https://github.com/morpho-org/morpho-blue-oracles
