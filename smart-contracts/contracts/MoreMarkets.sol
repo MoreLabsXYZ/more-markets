@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: GNU General Public License v3.0 (GNU GPLv3)
 pragma solidity 0.8.21;
 
 import {IMoreMarketsStaticTyping, Position, CategoryInfo, MarketParams, Market, Id, Authorization, Signature, IMoreMarketsBase} from "./interfaces/IMoreMarkets.sol";

@@ -1,0 +1,31 @@
+-----------------------ORACLES---------------------------
+
+MorphoOracleV2Factory deployed at 0x65070537ff35d2eaa1CB57D36f5Eab90916388A0
+AnkrRatioFeedWrapper deployed at 0xA787422E22E4722d2052eaC8ab967A8e32f30bc2.
+
+Morpho oracle for FLOW/AnkrFLOW deployed at  0xA363e8627b5b4A5DC1cf6b5f228665C5CafF770f
+Morpho oracle for AnkrFLOW/FLOW deployed at  0xC5aB0dA655760825c0b2746D9b865892B8A117Dc
+
+-----------------------CREDORA-----------------------------
+Original Credora metrics deployed at 0x6CEBbbbF370897eC4eD9e72cE34Db4659A40F3EA
+
+-----------------------MARKETS DEPLOYMENT------------------
+More markets impl was deployed at 0x20b5Fc2EE4f9E01a05Bc6D64B02b7ddd8B86d4B7
+More markets proxy was deployed at 0x878Fcd47982aD589A527C1B670Ba39fA6e1733Fb
+AdaptiveCurveIrm was deployed at 0xc35964fd5656F46ce8705A7FEeb201dc6dfb2fCf
+
+----------------------VAULTS DEPLOYMENT--------------------
+more vaults implementation:  0xA37BA19A252924a294A6e451548Ad09634c83EcB
+more vaults factory implementation:  0xfbA2ee8ffe82f7d539ea8c4fa0D9b3a76A2977ad
+more vaults factory proxy:  0xB09baEC4B6075aeFB7E576e2F4709755Bc49e298
+
+
+---------------------MARKET IDS----------------------------
+market id of ankrFlow/Flow 0xb69f09df3fc268519760e05b4efbb75c1c23ac00d8247712a46199dee3188cfe
+market id of Flow/ankrFlow 0x93c256e9fa38ee67d0b6cd5bac0aae32cc0498d5a1103ba52d41b772b82c2bef
+
+--------------------VAULT ADDRESSES------------------------
+Flow All Day vault address 0x8434D9E41C822F4e10AACcc1D777AAcDf9D4BA60
+
+--------------------BUNDLER--------------------------------
+MoreBundler deployed at 0xD9D6D465Ab80C969983c8c2ECAd62a84d5D2dd0D

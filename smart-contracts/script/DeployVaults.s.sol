@@ -23,28 +23,28 @@ contract DeployVaults is Script {
 
         moreVaultsImpl = new MoreVaults();
         // vaultsFactory = new MoreVaultsFactory(morpho, address(moreVaultsImpl));
-        vaultsFactory = new MoreVaultsFactory();
-        proxy = new MoreUupsProxy(address(vaultsFactory));
-        IMoreVaultsFactory(address(proxy)).initialize(
-            morpho,
-            address(moreVaultsImpl)
-        );
+        // vaultsFactory = new MoreVaultsFactory();
+        // proxy = new MoreUupsProxy(address(vaultsFactory));
+        // IMoreVaultsFactory(address(proxy)).initialize(
+        //     morpho,
+        //     address(moreVaultsImpl)
+        // );
 
-        console.log("more vaults implementation: ", address(moreVaultsImpl));
-        console.log(
-            "more vaults factory implementation: ",
-            address(vaultsFactory)
-        );
-        console.log("more vaults factory proxy: ", address(proxy));
+        // console.log("more vaults implementation: ", address(moreVaultsImpl));
+        // console.log(
+        //     "more vaults factory implementation: ",
+        //     address(vaultsFactory)
+        // );
+        // console.log("more vaults factory proxy: ", address(proxy));
 
-        string memory jsonObj = string(
-            abi.encodePacked(
-                "{ 'vaultsFactory': ",
-                Strings.toHexString(address(proxy)),
-                "}"
-            )
-        );
-        vm.writeJson(jsonObj, "./output/deployedVault.json");
+        // string memory jsonObj = string(
+        //     abi.encodePacked(
+        //         "{ 'vaultsFactory': ",
+        //         Strings.toHexString(address(proxy)),
+        //         "}"
+        //     )
+        // );
+        // vm.writeJson(jsonObj, "./output/deployedVault.json");
 
         vm.stopBroadcast();
     }
