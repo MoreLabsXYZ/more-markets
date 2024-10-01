@@ -194,8 +194,8 @@ contract MoreMarketsTest is Test {
                 );
             totalBorrowAssetsMapping[_multipliers[i]] =
                 totalBorrowAssetsForMultiplier
-                    .wMulDown(borrowRate.wMulDown(_multipliers[i]))
-                    .wTaylorCompounded(200) +
+                    .wMulDown(borrowRate.wTaylorCompounded(200))
+                    .wMulDown(_multipliers[i]) +
                 totalBorrowAssetsForMultiplier;
             unchecked {
                 ++i;
