@@ -57,11 +57,11 @@ contract AnkrRatioFeedWrapper is AggregatorV2V3Interface {
     ) external view returns (uint80, int256, uint256, uint256, uint80) {
         int256 answer = int256(ankrRatioFeed.getRatioFor(ankrFlow));
         return (
-            uint80(latestTimestamp()),
+            _roundId,
             answer,
             latestTimestamp(),
             latestTimestamp(),
-            uint80(latestTimestamp())
+            _roundId
         );
     }
 
