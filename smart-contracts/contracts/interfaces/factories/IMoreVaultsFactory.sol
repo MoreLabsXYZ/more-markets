@@ -3,6 +3,8 @@ pragma solidity >=0.5.0;
 
 import {IMoreVaults} from "../IMoreVaults.sol";
 
+/// @notice Information about premium fee.
+/// @dev The fee recipient and the fee percentage for particular vault.
 struct PremiumFeeInfo {
     address feeRecipient;
     uint96 fee;
