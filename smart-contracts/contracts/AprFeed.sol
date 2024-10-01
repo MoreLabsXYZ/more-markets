@@ -59,6 +59,9 @@ contract AprFeed is IAprFeed {
             market
         );
 
+        if (market.totalBorrowAssets == 0 || market.totalSupplyAssets == 0) {
+            return (0, 0);
+        }
         uint256 utilization = market.totalBorrowAssets.wDivDown(
             market.totalSupplyAssets
         );
@@ -166,6 +169,9 @@ contract AprFeed is IAprFeed {
             unchecked {
                 ++i;
             }
+        }
+        if (totalDeposits == 0) {
+            return 0;
         }
         return accumulator.wDivDown(totalDeposits);
     }

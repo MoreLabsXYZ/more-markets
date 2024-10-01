@@ -6,7 +6,7 @@ import {MoreMarkets, MarketParams, Market, MarketParamsLib, Id} from "../contrac
 import {MathLib, UtilsLib, SharesMathLib, SafeTransferLib, EventsLib, ErrorsLib, IERC20, IIrm, IOracle, WAD} from "../contracts/fork/Morpho.sol";
 import {IAprFeed} from "../contracts/interfaces/IAprFeed.sol";
 
-// forge script script/GetMarketSupplyRate.s.sol:GetMarketSupplyRate --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv
+// forge script script/GetMarketSupplyRate.s.sol:GetMarketSupplyRate --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vv
 contract GetMarketSupplyRate is Script {
     using MarketParamsLib for MarketParams;
     using MathLib for uint256;
@@ -39,7 +39,7 @@ contract GetMarketSupplyRate is Script {
         ) = markets.idToMarketParams(
                 Id.wrap(
                     bytes32(
-                        0x0f0de7ddadc86a7be1a3d3e1a9d2e8090a791299bcf0985626ae4ebd65add87e
+                        0x93c256e9fa38ee67d0b6cd5bac0aae32cc0498d5a1103ba52d41b772b82c2bef
                     )
                 )
             );
@@ -54,11 +54,11 @@ contract GetMarketSupplyRate is Script {
         marketParams.categoryLltv = categoryLltv;
 
         (uint256 regularRate, uint256 premiumRate) = IAprFeed(
-            address(0x2e201ACF426D45949bF685312f99CBf4f4ceEeC5)
+            address(0x266340Dc2bDDCc7D37B1d19412a67e445b6D0E5a)
         ).getMarketSupplyRate(
                 Id.wrap(
                     bytes32(
-                        0x0f0de7ddadc86a7be1a3d3e1a9d2e8090a791299bcf0985626ae4ebd65add87e
+                        0x93c256e9fa38ee67d0b6cd5bac0aae32cc0498d5a1103ba52d41b772b82c2bef
                     )
                 )
             );
