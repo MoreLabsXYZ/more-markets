@@ -33,22 +33,22 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
 
     /* CALLBACKS */
 
-    function onMorphoSupply(uint256, bytes calldata data) external {
+    function onMoreSupply(uint256, bytes calldata data) external {
         // Don't need to approve Morpho to pull tokens because it should already be approved max.
         _callback(data);
     }
 
-    function onMorphoSupplyCollateral(uint256, bytes calldata data) external {
+    function onMoreSupplyCollateral(uint256, bytes calldata data) external {
         // Don't need to approve Morpho to pull tokens because it should already be approved max.
         _callback(data);
     }
 
-    function onMorphoRepay(uint256, bytes calldata data) external {
+    function onMoreRepay(uint256, bytes calldata data) external {
         // Don't need to approve Morpho to pull tokens because it should already be approved max.
         _callback(data);
     }
 
-    function onMorphoFlashLoan(uint256, bytes calldata data) external {
+    function onMoreFlashLoan(uint256, bytes calldata data) external {
         // Don't need to approve Morpho to pull tokens because it should already be approved max.
         _callback(data);
     }
@@ -85,7 +85,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// @param slippageAmount The minimum amount of supply shares to mint in exchange for `assets` when it is used.
     /// The maximum amount of assets to deposit in exchange for `shares` otherwise.
     /// @param onBehalf The address that will own the increased supply position.
-    /// @param data Arbitrary data to pass to the `onMorphoSupply` callback. Pass empty data if not needed.
+    /// @param data Arbitrary data to pass to the `onMoreSupply` callback. Pass empty data if not needed.
     function morphoSupply(
         MarketParams calldata marketParams,
         uint256 assets,
@@ -98,7 +98,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
         require(onBehalf != address(this), ErrorsLib.BUNDLER_ADDRESS);
 
         // Don't always cap the assets to the bundler's balance because the liquidity can be transferred later
-        // (via the `onMorphoSupply` callback).
+        // (via the `onMoreSupply` callback).
         if (assets == type(uint256).max)
             assets = ERC20(marketParams.loanToken).balanceOf(address(this));
 
@@ -130,7 +130,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// @param assets The amount of collateral to supply. Pass `type(uint256).max` to supply the bundler's loan asset
     /// balance.
     /// @param onBehalf The address that will own the increased collateral position.
-    /// @param data Arbitrary data to pass to the `onMorphoSupplyCollateral` callback. Pass empty data if not needed.
+    /// @param data Arbitrary data to pass to the `onMoreSupplyCollateral` callback. Pass empty data if not needed.
     function morphoSupplyCollateral(
         MarketParams calldata marketParams,
         uint256 assets,
@@ -141,7 +141,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
         require(onBehalf != address(this), ErrorsLib.BUNDLER_ADDRESS);
 
         // Don't always cap the assets to the bundler's balance because the liquidity can be transferred later
-        // (via the `onMorphoSupplyCollateral` callback).
+        // (via the `onMoreSupplyCollateral` callback).
         if (assets == type(uint256).max)
             assets = ERC20(marketParams.collateralToken).balanceOf(
                 address(this)
@@ -200,7 +200,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// @param slippageAmount The minimum amount of borrow shares to burn in exchange for `assets` when it is used.
     /// The maximum amount of assets to deposit in exchange for `shares` otherwise.
     /// @param onBehalf The address of the owner of the debt position.
-    /// @param data Arbitrary data to pass to the `onMorphoRepay` callback. Pass empty data if not needed.
+    /// @param data Arbitrary data to pass to the `onMoreRepay` callback. Pass empty data if not needed.
     function morphoRepay(
         MarketParams calldata marketParams,
         uint256 assets,
@@ -213,7 +213,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
         require(onBehalf != address(this), ErrorsLib.BUNDLER_ADDRESS);
 
         // Don't always cap the assets to the bundler's balance because the liquidity can be transferred later
-        // (via the `onMorphoRepay` callback).
+        // (via the `onMoreRepay` callback).
         if (assets == type(uint256).max)
             assets = ERC20(marketParams.loanToken).balanceOf(address(this));
 
@@ -293,7 +293,7 @@ abstract contract MorphoBundler is BaseBundler, IMorphoBundler {
     /// @notice Triggers a flash loan on Morpho.
     /// @param token The address of the token to flash loan.
     /// @param assets The amount of assets to flash loan.
-    /// @param data Arbitrary data to pass to the `onMorphoFlashLoan` callback.
+    /// @param data Arbitrary data to pass to the `onMoreFlashLoan` callback.
     function morphoFlashLoan(
         address token,
         uint256 assets,
