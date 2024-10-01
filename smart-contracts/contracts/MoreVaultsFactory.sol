@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GNU General Public License v3.0 (GNU GPLv3)
-pragma solidity ^0.8.0;
+pragma solidity 0.8.21;
 
 import {IMoreVaults} from "./interfaces/IMoreVaults.sol";
 import {IMoreVaultsFactory, PremiumFeeInfo} from "./interfaces/factories/IMoreVaultsFactory.sol";
