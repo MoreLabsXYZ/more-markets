@@ -29,3 +29,6 @@ Flow All Day vault address 0x8434D9E41C822F4e10AACcc1D777AAcDf9D4BA60
 
 --------------------BUNDLER--------------------------------
 MoreBundler deployed at 0xD9D6D465Ab80C969983c8c2ECAd62a84d5D2dd0D
+
+--------------------APR FEED-------------------------------
+0x3406e375d3312239dc0b476a6a0e31ff2d8d3970

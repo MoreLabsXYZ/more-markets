@@ -77,26 +77,31 @@ contract SetSupplyQueue is Script {
             0x75a964099ef99a0c7dc893c659a4dec8f6beeb3d7c9705e28df7d793694b6164
         );
 
-    // mainnet test Flow All Day
+    // mainnet Flow All Day
     bytes32 MarketIdwFLOWxankrFLOW =
         bytes32(
-            0x93c256e9fa38ee67d0b6cd5bac0aae32cc0498d5a1103ba52d41b772b82c2bef
+            0x2ae0c40dc06f58ff0243b44116cd48cc4bdab19e2474792fbf1f413600ceab3a
+        );
+
+    bytes32 MarketIdankrFlowxFLOW =
+        bytes32(
+            0x3dca1854528f8a9bff744889198eb07ceacdfe25937450965e62103cefc69aa5
         );
 
     function setUp() public {}
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        moreVault = MoreVaults(vm.envAddress("FLOW_ALL_DAY_VAULT"));
+        moreVault = MoreVaults(vm.envAddress("SUPER_FLOW"));
         markets = MoreMarkets(vm.envAddress("MARKETS"));
         address owner = vm.envAddress("OWNER");
 
         vm.startBroadcast(deployerPrivateKey);
-        marketsArray.push(Id.wrap(MarketIdwFLOWxankrFLOW));
+        marketsArray.push(Id.wrap(MarketIdankrFlowxFLOW));
         // marketsArray.push(Id.wrap(MarketIdwFLOWxUSDf));
         // marketsArray.push(Id.wrap(MarketIdwUSDCfxUSDf));
 
-        marketParams = getMarketParams(Id.wrap(MarketIdwFLOWxankrFLOW));
+        marketParams = getMarketParams(Id.wrap(MarketIdankrFlowxFLOW));
 
         // moreVault.submitCap(marketParams, 33557047 * 1e18);
         // moreVault.acceptCap(marketParams);
@@ -111,23 +116,25 @@ contract SetSupplyQueue is Script {
         // moreVault.submitCap(marketParams, 60000 * 1e6);
         // moreVault.acceptCap(marketParams);
 
+        moreVault.submitCap(marketParams, 37558686 * 1e18);
+        moreVault.acceptCap(marketParams);
         moreVault.setSupplyQueue(marketsArray);
-        // moreVault.setFeeRecipient(
-        //     address(0x3Ba5aAB8d8CD479ffb4a2f03609e9122552dD150)
-        // );
-        IWETH9(address(0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e)).deposit{
-            value: 190 * 1e18
-        }();
-        ERC20MintableMock(address(0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e))
-            .approve(
-                address(0x8434D9E41C822F4e10AACcc1D777AAcDf9D4BA60),
-                190 * 1e18
-            );
-        moreVault.deposit(190 * 1e18, owner);
-        // moreVault.setFee(0.15e18);
-        // moreVault.setCurator(
-        //     address(0xB37a5BA4060D6bFD00a3bFCb235Bb596F13932Bd)
-        // );
+        moreVault.setFeeRecipient(
+            address(0x3Ba5aAB8d8CD479ffb4a2f03609e9122552dD150)
+        );
+        // IWETH9(address(0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e)).deposit{
+        //     value: 190 * 1e18
+        // }();
+        // ERC20MintableMock(address(0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e))
+        //     .approve(
+        //         address(0x8434D9E41C822F4e10AACcc1D777AAcDf9D4BA60),
+        //         190 * 1e18
+        //     );
+        // moreVault.deposit(190 * 1e18, owner);
+        moreVault.setFee(0.10e18);
+        moreVault.setCurator(
+            address(0xB37a5BA4060D6bFD00a3bFCb235Bb596F13932Bd)
+        );
 
         vm.stopBroadcast();
     }

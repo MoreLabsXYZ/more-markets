@@ -43,11 +43,11 @@ contract CreateNewVaults is Script {
 
         address initialOwner = address(uint160(vm.envUint("OWNER")));
         uint256 initialTimelock = 0;
-        address asset1 = mainnetWFlow;
-        string memory name1 = "Flow All Day";
-        string memory symbol1 = "fadFLOW";
+        address asset1 = mainnetAnkrFlow;
+        string memory name1 = "Super Flow";
+        string memory symbol1 = "sfFLOW";
 
-        bytes32 salt = "0";
+        bytes32 salt = "1";
 
         vm.startBroadcast(deployerPrivateKey);
         vaultsFactory = MoreVaultsFactory(vm.envAddress("VAULT_FACTORY"));

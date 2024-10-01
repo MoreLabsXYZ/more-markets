@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 import {Script, console} from "forge-std/Script.sol";
 import {AprFeed} from "../contracts/AprFeed.sol";
 
-// // forge script script/DeployAprFeed.s.sol:DeployAprFeed --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm-testnet.flowscan.io/api'
+// // forge script script/DeployAprFeed.s.sol:DeployAprFeed --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vvvv --verify --slow --verifier blockscout --verifier-url 'https://evm.flowscan.io/api'
 contract DeployAprFeed is Script {
     AprFeed aprFeed;
 

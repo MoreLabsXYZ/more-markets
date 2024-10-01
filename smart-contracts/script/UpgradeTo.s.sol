@@ -7,7 +7,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {MoreMarkets} from "../contracts/MoreMarkets.sol";
 import {ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-// // forge script script/UpgradeTo.s.sol:UpgradeTo --chain-id 545 --rpc-url https://testnet.evm.nodes.onflow.org --broadcast -vv  --slow
+// // forge script script/UpgradeTo.s.sol:UpgradeTo --chain-id 747 --rpc-url https://mainnet.evm.nodes.onflow.org --broadcast -vv --slow
 contract UpgradeTo is Script {
     OracleMock public oracleMock;
 
@@ -22,7 +22,7 @@ contract UpgradeTo is Script {
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
         marketsProxy.upgradeToAndCall(
-            address(0xF72Dca492aA8Ad4419B55804f4Ce672f25974D34),
+            address(0xc39e55eDc76507954bAB31d6445585f74295427E),
             ""
         );
 

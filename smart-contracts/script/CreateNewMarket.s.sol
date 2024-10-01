@@ -155,9 +155,9 @@ contract CreateNewMarket is Script {
         // create a market
         marketParams = MarketParams(
             false,
-            mainnetWFlow,
             mainnetAnkrFlow,
-            address(oracleMainnetAnkrFlowwFlow),
+            mainnetWFlow,
+            address(oracleMainnetwFlowAnkrFlow),
             address(irm),
             lltv90,
             address(0),
