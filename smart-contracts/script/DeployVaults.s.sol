@@ -36,15 +36,6 @@ contract DeployVaults is Script {
         );
         console.log("more vaults factory proxy: ", address(proxy));
 
-        // string memory jsonObj = string(
-        //     abi.encodePacked(
-        //         "{ 'vaultsFactory': ",
-        //         Strings.toHexString(address(proxy)),
-        //         "}"
-        //     )
-        // );
-        // vm.writeJson(jsonObj, "./output/deployedVault.json");
-
         vm.stopBroadcast();
     }
 }

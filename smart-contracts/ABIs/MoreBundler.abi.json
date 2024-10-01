@@ -572,7 +572,7 @@
     },
     {
       "type": "function",
-      "name": "onMorphoFlashLoan",
+      "name": "onMoreFlashLoan",
       "inputs": [
         { "name": "", "type": "uint256", "internalType": "uint256" },
         { "name": "data", "type": "bytes", "internalType": "bytes" }
@@ -582,7 +582,7 @@
     },
     {
       "type": "function",
-      "name": "onMorphoRepay",
+      "name": "onMoreRepay",
       "inputs": [
         { "name": "", "type": "uint256", "internalType": "uint256" },
         { "name": "data", "type": "bytes", "internalType": "bytes" }
@@ -592,7 +592,7 @@
     },
     {
       "type": "function",
-      "name": "onMorphoSupply",
+      "name": "onMoreSupply",
       "inputs": [
         { "name": "", "type": "uint256", "internalType": "uint256" },
         { "name": "data", "type": "bytes", "internalType": "bytes" }
@@ -602,7 +602,7 @@
     },
     {
       "type": "function",
-      "name": "onMorphoSupplyCollateral",
+      "name": "onMoreSupplyCollateral",
       "inputs": [
         { "name": "", "type": "uint256", "internalType": "uint256" },
         { "name": "data", "type": "bytes", "internalType": "bytes" }
