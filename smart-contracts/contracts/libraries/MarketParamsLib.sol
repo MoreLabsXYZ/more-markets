@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {Id, MarketParams} from "../interfaces/IMoreMarkets.sol";
-import "hardhat/console.sol";
 
 /// @title MarketParamsLib
 /// @author MORE Labs

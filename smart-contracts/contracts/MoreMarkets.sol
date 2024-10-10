@@ -39,12 +39,23 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
 
     /* CONSTANTS */
 
-    /// Number of categories for attestation service score. 0-199 score is 1st category, 200-399 score is 2nd category, etc.
+    /// The number of premium categories, users are categorized relative to their atestation service score.
+    /// For example 0-199 score is 1st category, 200-399 score is 2nd category, etc.
     uint256 constant LENGTH_OF_CATEGORY_LLTVS_ARRAY = 5;
     // Default multiplier for users, that are in default LLTV range.
     uint64 constant DEFAULT_MULTIPLIER = 1e18;
-    /// @dev The maximum premium fee a market can have (50%).
+    /// Maximum amount of premium commission that can be set in the market. (50%).
     uint256 constant PREMIUM_MAX_FEE = 0.5e18;
+    /// A value that helps determine the number of intermediate multipliers for premium borrowers in each category.
+    /// For example, if the default LLTV is 80% and the premium LLTV is 100%, the number of multipliers would be as follows.
+    /// 100% - 80% divided by the percent step, 5% in our case, and you get 20% / 5% = 4 multipliers per category.
+    uint256 constant PERCENT_STEP = 50000000000000000;
+    /// Upper treshold for credit attestation service's score. The contract is expecting, that premium borrowers will have
+    /// scores between 0 and 1000 with decimals 18. If score is higher than 1000, it will be considered as 1000.
+    uint256 constant MAX_CAS_SCORE = 1000 * WAD;
+    /// Step for determine premium borrower category. If user have score 199 it is 1st category with corresponding lltv,
+    /// if user have score 399 it is 2nd category with corresponding lltv etc.
+    uint256 constant PREMIUM_SCORE_STEP = 200 * WAD;
 
     /* STORAGE */
 
@@ -107,21 +118,6 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
         _setMaxLltvForCategory(1000000000000000000); // 100%
 
         emit EventsLib.SetOwner(newOwner);
-    }
-
-    function availableMultipliers(
-        Id id
-    ) public view returns (uint256[] memory) {
-        uint256 length = _availableMultipliers[id].length();
-        uint256[] memory array = new uint256[](length);
-
-        for (uint256 i; i < length; ) {
-            array[i] = _availableMultipliers[id].at(i);
-            unchecked {
-                ++i;
-            }
-        }
-        return array;
     }
 
     /* MODIFIERS */
@@ -276,15 +272,15 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
                     ) revert ErrorsLib.LLTVsNotInAscendingOrder();
                 }
                 uint256 categoryStepNumber = (marketParams.categoryLltv[i] -
-                    marketParams.lltv) / 50000000000000000;
+                    marketParams.lltv) / PERCENT_STEP;
                 if (categoryStepNumber == 0) {
                     avaialableMultipliersForMarket.add(marketParams.irxMaxLltv);
                     continue;
                 }
                 // calculate available multipliers
                 uint256 multiplierStep = (uint256(marketParams.irxMaxLltv) -
-                    DEFAULT_MULTIPLIER).wDivUp(categoryStepNumber * 10 ** 18);
-                for (uint256 j; j < categoryStepNumber; ) {
+                    DEFAULT_MULTIPLIER).wDivUp(categoryStepNumber * WAD);
+                for (uint256 j; j < categoryStepNumber - 1; ) {
                     uint256 multiplier = multiplierStep * (j + 1);
                     avaialableMultipliersForMarket.add(
                         multiplier + DEFAULT_MULTIPLIER
@@ -293,6 +289,7 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
                         ++j;
                     }
                 }
+                avaialableMultipliersForMarket.add(marketParams.irxMaxLltv);
                 unchecked {
                     ++i;
                 }
@@ -635,12 +632,21 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
         Position storage currentPosition = position[id][borrower];
         uint64 lastMultiplier = currentPosition.lastMultiplier;
         uint256 collateralPrice = IOracle(marketParams.oracle).price();
-        uint256 totalBorrowAssetsForCurrentLastMultiplier = totalBorrowAssetsForMultiplier[
+
+        mapping(uint64 => uint256)
+            storage totalBorrowAssetsForMultiplierInMarket = totalBorrowAssetsForMultiplier[
                 id
-            ][lastMultiplier];
-        uint256 totalBorrowSharesForCurrentLastMultiplier = totalBorrowSharesForMultiplier[
+            ];
+        mapping(uint64 => uint256)
+            storage totalBorrowSharesForMultiplierInMarket = totalBorrowSharesForMultiplier[
                 id
-            ][lastMultiplier];
+            ];
+        uint256 totalBorrowAssetsForCurrentLastMultiplier = totalBorrowAssetsForMultiplierInMarket[
+                lastMultiplier
+            ];
+        uint256 totalBorrowSharesForCurrentLastMultiplier = totalBorrowSharesForMultiplierInMarket[
+                lastMultiplier
+            ];
         {
             require(
                 !_isHealthy(marketParams, id, borrower, collateralPrice),
@@ -684,7 +690,7 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
 
         currentPosition.borrowShares -= repaidShares.toUint128();
         totalBorrowSharesForCurrentLastMultiplier -= uint128(repaidShares);
-        totalBorrowSharesForMultiplier[id][
+        totalBorrowSharesForMultiplierInMarket[
             lastMultiplier
         ] = totalBorrowSharesForCurrentLastMultiplier;
 
@@ -694,7 +700,7 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
                 repaidAssets
             )
             .toUint128();
-        totalBorrowAssetsForMultiplier[id][
+        totalBorrowAssetsForMultiplierInMarket[
             lastMultiplier
         ] = totalBorrowAssetsForCurrentLastMultiplier;
 
@@ -720,11 +726,12 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
             currentMarket.totalBorrowAssets -= badDebtAssets.toUint128();
 
             currentMarket.totalSupplyAssets -= uint128(badDebtAssets);
-            totalBorrowAssetsForMultiplier[id][lastMultiplier] -= uint128(
+            totalBorrowAssetsForMultiplierInMarket[lastMultiplier] -= uint128(
                 badDebtAssets
             );
-            totalBorrowSharesForMultiplier[id][lastMultiplier] -= badDebtShares
-                .toUint128();
+            totalBorrowSharesForMultiplierInMarket[
+                lastMultiplier
+            ] -= badDebtShares.toUint128();
 
             currentPosition.borrowShares = 0;
         }
@@ -885,13 +892,22 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
             // interest generated by premium users that have LTV above default LLTV.
             uint256 premiumFeeAccumulated;
             uint256 premiumFee = currentMarket.premiumFee;
-            for (uint256 i; i < _availableMultipliers[id].length(); ) {
+            EnumerableSet.UintSet
+                storage availableMultipliersForMarket = _availableMultipliers[
+                    id
+                ];
+            for (uint256 i; i < availableMultipliersForMarket.length(); ) {
                 uint64 currentMultiplier = uint64(
-                    _availableMultipliers[id].at(i)
+                    availableMultipliersForMarket.at(i)
                 );
 
+                mapping(uint64 => uint256)
+                    storage totalBorrowAssetsForMultiplierInMarket = totalBorrowAssetsForMultiplier[
+                        id
+                    ];
                 if (
-                    totalBorrowAssetsForMultiplier[id][currentMultiplier] == 0
+                    totalBorrowAssetsForMultiplierInMarket[currentMultiplier] ==
+                    0
                 ) {
                     unchecked {
                         ++i;
@@ -900,9 +916,9 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
                 }
 
                 uint256 interestForMultiplier;
-                uint256 totalBorrowAssetsForCurrentMultiplier = totalBorrowAssetsForMultiplier[
-                        id
-                    ][currentMultiplier];
+                uint256 totalBorrowAssetsForCurrentMultiplier = totalBorrowAssetsForMultiplierInMarket[
+                        currentMultiplier
+                    ];
                 interestForMultiplier = totalBorrowAssetsForCurrentMultiplier
                     .wMulDown(borrowRate.wTaylorCompounded(elapsed))
                     .wMulDown(currentMultiplier);
@@ -921,7 +937,7 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
                     premiumFeeAccumulated += premiumFeeGeneratedForMultiplier;
                 }
 
-                totalBorrowAssetsForMultiplier[id][currentMultiplier] +=
+                totalBorrowAssetsForMultiplierInMarket[currentMultiplier] +=
                     interestForMultiplier +
                     premiumFeeGeneratedForMultiplier;
 
@@ -1010,10 +1026,10 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
                 currentScore = abi.decode(data, (uint256));
                 if (currentScore != 0) {
                     uint8 categoryNum;
-                    if (currentScore < 1000 * 10 ** 18) {
-                        categoryNum = uint8(currentScore / (200 * 10 ** 18));
+                    if (currentScore < MAX_CAS_SCORE) {
+                        categoryNum = uint8(currentScore / PREMIUM_SCORE_STEP);
                     } else {
-                        categoryNum = 4;
+                        categoryNum = uint8(LENGTH_OF_CATEGORY_LLTVS_ARRAY - 1);
                     }
                     lltvToUse = marketParams.categoryLltv[categoryNum];
                 }
@@ -1060,12 +1076,21 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
             currentPosition.lastMultiplier = DEFAULT_MULTIPLIER;
         uint64 lastMultiplier = currentPosition.lastMultiplier;
 
-        uint256 totalBorrowAssetsForCurrentLastMultiplier = totalBorrowAssetsForMultiplier[
+        mapping(uint64 => uint256)
+            storage totalBorrowAssetsForMultiplierInMarket = totalBorrowAssetsForMultiplier[
                 id
-            ][lastMultiplier];
-        uint256 totalBorrowSharesForCurrentLastMultiplier = totalBorrowSharesForMultiplier[
+            ];
+        mapping(uint64 => uint256)
+            storage totalBorrowSharesForMultiplierInMarket = totalBorrowSharesForMultiplier[
                 id
-            ][lastMultiplier];
+            ];
+
+        uint256 totalBorrowAssetsForCurrentLastMultiplier = totalBorrowAssetsForMultiplierInMarket[
+                lastMultiplier
+            ];
+        uint256 totalBorrowSharesForCurrentLastMultiplier = totalBorrowSharesForMultiplierInMarket[
+                lastMultiplier
+            ];
 
         if (shares > 0)
             if (updateType == UPDATE_TYPE.BORROW) {
@@ -1096,17 +1121,17 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
         if (assets > 0 && shares == 0)
             if (updateType == UPDATE_TYPE.BORROW) {
                 shares = assets.toSharesUp(
-                    totalBorrowAssetsForMultiplier[id][currentMultiplier],
-                    totalBorrowSharesForMultiplier[id][currentMultiplier]
+                    totalBorrowAssetsForMultiplierInMarket[currentMultiplier],
+                    totalBorrowSharesForMultiplierInMarket[currentMultiplier]
                 );
             } else if (updateType == UPDATE_TYPE.REPAY) {
                 shares = assets.toSharesDown(
-                    totalBorrowAssetsForMultiplier[id][currentMultiplier],
-                    totalBorrowSharesForMultiplier[id][currentMultiplier]
+                    totalBorrowAssetsForMultiplierInMarket[currentMultiplier],
+                    totalBorrowSharesForMultiplierInMarket[currentMultiplier]
                 );
             }
 
-        uint256 borrowedSharesBefore = position[id][borrower].borrowShares;
+        uint256 borrowedSharesBefore = currentPosition.borrowShares;
         uint256 borrowedAssetsBefore;
 
         borrowedAssetsBefore = borrowedSharesBefore.toAssetsUp(
@@ -1126,21 +1151,21 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
             );
         } else if (updateType == UPDATE_TYPE.BORROW) {
             currentPosition.borrowShares += shares.toUint128();
-            totalBorrowAssetsForMultiplier[id][currentMultiplier] += assets
+            totalBorrowAssetsForMultiplierInMarket[currentMultiplier] += assets
                 .toUint128();
-            totalBorrowSharesForMultiplier[id][currentMultiplier] += uint128(
-                shares
-            );
+            totalBorrowSharesForMultiplierInMarket[
+                currentMultiplier
+            ] += uint128(shares);
             currentMarket.totalBorrowAssets += uint128(assets);
         } else if (updateType == UPDATE_TYPE.REPAY) {
             currentPosition.borrowShares -= shares.toUint128();
 
-            totalBorrowAssetsForMultiplier[id][currentMultiplier] -= assets
+            totalBorrowAssetsForMultiplierInMarket[currentMultiplier] -= assets
                 .toUint128();
 
-            totalBorrowSharesForMultiplier[id][currentMultiplier] -= uint128(
-                shares
-            );
+            totalBorrowSharesForMultiplierInMarket[
+                currentMultiplier
+            ] -= uint128(shares);
             currentMarket.totalBorrowAssets = UtilsLib
                 .zeroFloorSub(currentMarket.totalBorrowAssets, assets)
                 .toUint128();
@@ -1188,18 +1213,18 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
             .mulDivDown(collateralPrice, ORACLE_PRICE_SCALE)
             .wMulDown(marketParams.lltv);
 
-        if (borrowed <= maxBorrowByDefault) return 1 * 10 ** 18;
+        if (borrowed <= maxBorrowByDefault) return DEFAULT_MULTIPLIER;
 
         uint256 currentScore;
         uint8 categoryNum;
 
-        if (success && (data.length > 0)) {
+        if (success && data.length > 0) {
             currentScore = abi.decode(data, (uint256));
             if (currentScore != 0) {
-                if (currentScore < 1000 * 10 ** 18) {
-                    categoryNum = uint8(currentScore / (200 * 10 ** 18));
+                if (currentScore < MAX_CAS_SCORE) {
+                    categoryNum = uint8(currentScore / PREMIUM_SCORE_STEP);
                 } else {
-                    categoryNum = 4;
+                    categoryNum = uint8(LENGTH_OF_CATEGORY_LLTVS_ARRAY - 1);
                 }
             }
         } else revert ErrorsLib.InsufficientCollateral();
@@ -1209,22 +1234,22 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
             .wMulDown(marketParams.categoryLltv[categoryNum]);
 
         uint256 categoryStepNumber = (marketParams.categoryLltv[categoryNum] -
-            marketParams.lltv) / 50000000000000000;
+            marketParams.lltv) / PERCENT_STEP;
         if (categoryStepNumber == 0) {
             categoryStepNumber = 1;
         }
         uint256 step = (maxBorrowByScore - maxBorrowByDefault).wDivUp(
-            uint256(categoryStepNumber) * 10 ** 18
+            uint256(categoryStepNumber) * WAD
         );
 
         uint256 nextStep = maxBorrowByDefault + step;
-        for (uint64 i = 1; i < categoryStepNumber + 1; ) {
+        for (uint64 i = 1; i < categoryStepNumber; ) {
             if (borrowed <= nextStep) {
                 multiplier = uint64(
-                    ((
-                        uint256(marketParams.irxMaxLltv - DEFAULT_MULTIPLIER)
-                            .wDivUp(categoryStepNumber * 10 ** 18)
-                    ) * i) + DEFAULT_MULTIPLIER
+                    uint256(marketParams.irxMaxLltv - DEFAULT_MULTIPLIER)
+                        .wDivUp(categoryStepNumber * WAD) *
+                        i +
+                        DEFAULT_MULTIPLIER
                 );
                 break;
             }
@@ -1233,7 +1258,7 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
                 ++i;
             }
         }
-        if (multiplier == 0) multiplier = lastMultiplier;
+        if (multiplier == 0) multiplier = uint64(marketParams.irxMaxLltv);
     }
 
     /// @notice Move borrowed assets from one category of multipliers to another.
@@ -1256,11 +1281,19 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
         uint256 assets
     ) internal {
         Market storage currentMarket = market[id];
+        mapping(uint64 => uint256)
+            storage totalBorrowAssetsForMultiplierInMarket = totalBorrowAssetsForMultiplier[
+                id
+            ];
+        mapping(uint64 => uint256)
+            storage totalBorrowSharesForMultiplierInMarket = totalBorrowSharesForMultiplier[
+                id
+            ];
         // sub from prev category
-        totalBorrowAssetsForMultiplier[id][
+        totalBorrowAssetsForMultiplierInMarket[
             lastMultiplier
         ] -= borrowedAssetsBefore;
-        totalBorrowSharesForMultiplier[id][
+        totalBorrowSharesForMultiplierInMarket[
             lastMultiplier
         ] -= borrowedSharesBefore;
 
@@ -1278,15 +1311,15 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
 
         Position storage currentPosition = position[id][borrower];
         uint256 newShares = newAssets.toSharesUp(
-            totalBorrowAssetsForMultiplier[id][newMultiplier],
-            totalBorrowSharesForMultiplier[id][newMultiplier]
+            totalBorrowAssetsForMultiplierInMarket[newMultiplier],
+            totalBorrowSharesForMultiplierInMarket[newMultiplier]
         );
 
         // update borrow shares
         currentPosition.borrowShares = newShares.toUint128();
         // add to new category
-        totalBorrowAssetsForMultiplier[id][newMultiplier] += newAssets;
-        totalBorrowSharesForMultiplier[id][newMultiplier] += newShares;
+        totalBorrowAssetsForMultiplierInMarket[newMultiplier] += newAssets;
+        totalBorrowSharesForMultiplierInMarket[newMultiplier] += newShares;
         // update last category
         currentPosition.lastMultiplier = newMultiplier;
     }
@@ -1330,6 +1363,23 @@ contract MoreMarkets is Initializable, IMoreMarketsStaticTyping {
             currentMarketParams.irxMaxLltv,
             categoryLltvs
         );
+    }
+
+    function availableMultipliers(
+        Id id
+    ) public view returns (uint256[] memory) {
+        EnumerableSet.UintSet
+            storage availableMultipliersInMarket = _availableMultipliers[id];
+        uint256 length = availableMultipliersInMarket.length();
+        uint256[] memory array = new uint256[](length);
+
+        for (uint256 i; i < length; ) {
+            array[i] = availableMultipliersInMarket.at(i);
+            unchecked {
+                ++i;
+            }
+        }
+        return array;
     }
 
     /* INTERNAL SETTER FUNCTIONS */

@@ -1459,19 +1459,18 @@ contract MoreMarketsTest is Test {
             owner
         );
         assertEq(lastMultiplier, 1 ether);
-        for (uint256 i = 0; i < numberOfSteps; ) {
+        for (uint256 i = 0; i < numberOfSteps - 1; ) {
             markets.borrow(marketParams, borrowStep, 0, owner, owner);
             (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
-            assertApproxEqAbs(
-                lastMultiplier,
-                1 ether + multiplierStep * (i + 1),
-                10 ** 3
-            );
+            assertEq(lastMultiplier, 1 ether + multiplierStep * (i + 1));
 
             unchecked {
                 ++i;
             }
         }
+        markets.borrow(marketParams, borrowStep, 0, owner, owner);
+        (, , , lastMultiplier) = markets.position(marketParams.id(), owner);
+        assertEq(lastMultiplier, marketParams.irxMaxLltv);
     }
 
     function _checkCorrectMultipliersOnRepay(
