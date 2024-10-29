@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.20;
 
-import {IMoreMarkets, Market, Id, MarketParams, Position} from "./IMoreMarkets.sol";
+import {IMoreMarkets, Market, Id, MarketParams, Position} from "./interfaces/IMoreMarkets.sol";
 import {IMoreVaults} from "./interfaces/IMoreVaults.sol";
 import {ILiquidTokenStakingPool} from "./interfaces/ILiquidTokenStakingPool.sol";
 import {ICertificateToken} from "./interfaces/ankr/ICertificateToken.sol";

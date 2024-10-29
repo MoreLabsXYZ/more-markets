@@ -108,11 +108,9 @@ contract LoopStrategyTest is Test {
         uint256 amountToWithdraw = strategy.convertToAssets(
             strategy.balanceOf(alice)
         );
-        (
-            uint256 amountToRepay,
-            uint256 wFlowAmount,
-            uint256 ankrFlowAmount
-        ) = strategy.expectedAmountsToWithdraw(amountToWithdraw);
+        (uint256 amountToRepay, , ) = strategy.expectedAmountsToWithdraw(
+            amountToWithdraw
+        );
 
         console.log("check");
         console.log(amountToRepay);
@@ -202,9 +200,6 @@ contract LoopStrategyTest is Test {
         IWNative(wFlow).deposit{value: amountToDepositSecond}();
         assertEq(wFlow.balanceOf(bob), amountToDepositSecond);
 
-        uint256 expectedMintedAmount = strategy.previewDeposit(
-            amountToDepositSecond
-        );
         wFlow.approve(address(strategy), amountToDepositSecond);
         vm.expectRevert(LoopStrategy.TargetUtilizationReached.selector);
         strategy.deposit(amountToDepositSecond, bob);

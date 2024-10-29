@@ -3,7 +3,7 @@ pragma solidity >=0.5.0;
 
 import {IERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC4626Upgradeable.sol";
 import {IOwnable} from "./IMoreVaults.sol";
-import {Id} from "./interfaces/IMoreMarkets.sol";
+import {Id} from "./IMoreMarkets.sol";
 
 /// @title ILoopStrategy
 /// @author MORE Labs
