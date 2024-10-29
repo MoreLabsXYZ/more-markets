@@ -13,4 +13,6 @@ interface IWNative {
         address dst,
         uint256 wad
     ) external returns (bool);
+
+    function balanceOf(address account) external view returns (uint256);
 }
