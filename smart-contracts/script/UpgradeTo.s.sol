@@ -18,10 +18,11 @@ contract UpgradeTo is Script {
         ProxyAdmin proxyAdmin = ProxyAdmin(
             vm.envAddress("MARKETS_PROXY_ADMIN")
         );
-        MoreMarkets newMarketsImpl = MoreMarkets();
 
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
+
+        MoreMarkets newMarketsImpl = MoreMarkets();
         proxyAdmin.upgradeAndCall(address(newMarketsImpl), "");
 
         vm.stopBroadcast();
