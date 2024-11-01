@@ -15,6 +15,7 @@ contract UpgradeTo is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address marketsProxy = vm.envAddress("MARKETS");
         ProxyAdmin proxyAdmin = ProxyAdmin(
             vm.envAddress("MARKETS_PROXY_ADMIN")
         );
@@ -22,8 +23,8 @@ contract UpgradeTo is Script {
         // Start broadcasting for deployment
         vm.startBroadcast(deployerPrivateKey);
 
-        MoreMarkets newMarketsImpl = MoreMarkets();
-        proxyAdmin.upgradeAndCall(address(newMarketsImpl), "");
+        MoreMarkets newMarketsImpl = new MoreMarkets();
+        proxyAdmin.upgradeAndCall(marketsProxy, address(newMarketsImpl), "");
 
         vm.stopBroadcast();
     }
